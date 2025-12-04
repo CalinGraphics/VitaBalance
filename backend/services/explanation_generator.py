@@ -1,0 +1,133 @@
+from typing import List, Dict
+from models import Food, User
+
+class ExplanationGenerator:
+    """Generează explicații detaliate și personalizate pentru fiecare recomandare"""
+    
+    def __init__(self):
+        self.nutrient_names = {
+            'iron': 'fier',
+            'calcium': 'calciu',
+            'vitamin_d': 'vitamina D',
+            'vitamin_b12': 'vitamina B12',
+            'magnesium': 'magneziu',
+            'protein': 'proteine',
+            'zinc': 'zinc'
+        }
+    
+    def generate_explanation(
+        self,
+        food: Food,
+        user: User,
+        deficits: Dict[str, float],
+        score: float,
+        coverage: float
+    ) -> Dict:
+        """
+        Generează o explicație completă pentru o recomandare
+        """
+        portion = 150  # Porție standard în grame
+        reasons = []
+        tips = []
+        alternatives = []
+        
+        # Identifică nutrienții principali care justifică recomandarea
+        top_nutrients = self._get_top_nutrients(food, deficits)
+        
+        # Construiește explicația principală
+        main_text = f"Am recomandat {food.name.lower()} pentru că "
+        
+        nutrient_descriptions = []
+        for nutrient, value in top_nutrients:
+            nutrient_ro = self.nutrient_names.get(nutrient, nutrient)
+            portion_value = (value * portion) / 100
+            
+            # Găsește deficitul corespunzător
+            deficit = deficits.get(nutrient, 0)
+            if deficit > 0:
+                coverage_pct = min(100, (portion_value / deficit) * 100)
+                nutrient_descriptions.append(
+                    f"conține {value:.1f} mg {nutrient_ro} per 100g, "
+                    f"iar o porție de {portion}g îți oferă aproximativ {portion_value:.1f} mg, "
+                    f"acoperind {coverage_pct:.1f}% din deficitul tău zilnic estimat ({deficit:.1f} mg)"
+                )
+        
+        main_text += "; ".join(nutrient_descriptions) + "."
+        
+        # Adaugă motivele pentru recomandare
+        for nutrient, value in top_nutrients[:3]:  # Top 3 nutrienți
+            nutrient_ro = self.nutrient_names.get(nutrient, nutrient)
+            reasons.append(f"Conține {value:.1f} mg {nutrient_ro} per 100g")
+            
+            deficit = deficits.get(nutrient, 0)
+            if deficit > 0:
+                portion_value = (value * portion) / 100
+                coverage_pct = min(100, (portion_value / deficit) * 100)
+                reasons.append(
+                    f"O porție de {portion}g acoperă {coverage_pct:.1f}% din deficitul tău de {nutrient_ro}"
+                )
+        
+        # Verifică compatibilitatea cu dieta
+        if user.diet_type in ['vegetarian', 'vegan']:
+            reasons.append("Compatibil cu regim vegetarian")
+        elif user.diet_type == 'vegan':
+            reasons.append("Compatibil cu regim vegan")
+        
+        # Adaugă contraindicări dacă există
+        if user.medical_conditions:
+            conditions = [c.strip().lower() for c in user.medical_conditions.split(',')]
+            if 'rinichi' in str(conditions) or 'oxalati' in str(conditions):
+                if 'spanac' in food.name.lower() or 'rabarbar' in food.name.lower():
+                    reasons.append("⚠️ Exclus dacă ai probleme cu rinichii (oxalați ridicați)")
+        
+        # Generează sfaturi
+        if food.iron > 1.0:
+            tips.append("Sfat: Combină-l cu vitamina C (ex: lămâie) pentru absorbție mai bună a fierului!")
+        
+        if food.calcium > 50:
+            tips.append("Sfat: Evită consumul simultan cu alimente bogate în fier, pentru o absorbție optimă!")
+        
+        if food.vitamin_d > 0:
+            tips.append("Sfat: Expunerea la soare (10-15 minute zilnic) ajută la sinteza vitaminei D!")
+        
+        # Generează alternative similare (placeholder - ar trebui implementat cu baza de date)
+        if food.category == 'legume':
+            alternatives.append("Dacă nu-ți place, încearcă alte legume verzi: linte, fasole, mazăre")
+        elif food.category == 'carne':
+            alternatives.append("Alternative: ficat de vită, carne de porc, pește")
+        
+        return {
+            'text': main_text,
+            'portion': portion,
+            'reasons': reasons,
+            'tips': tips if tips else None,
+            'alternatives': alternatives if alternatives else None
+        }
+    
+    def _get_top_nutrients(self, food: Food, deficits: Dict[str, float]) -> List[tuple]:
+        """
+        Identifică nutrienții principali din aliment care corespund deficitelor
+        """
+        nutrient_values = {
+            'iron': food.iron,
+            'calcium': food.calcium,
+            'vitamin_d': food.vitamin_d / 40,  # Normalizează
+            'vitamin_b12': food.vitamin_b12,
+            'magnesium': food.magnesium,
+            'protein': food.protein,
+            'zinc': food.zinc
+        }
+        
+        # Calculează relevanța fiecărui nutrient (valoare * deficit)
+        relevance = []
+        for nutrient, value in nutrient_values.items():
+            deficit = deficits.get(nutrient, 0)
+            if deficit > 0 and value > 0:
+                relevance.append((nutrient, value, value * deficit))
+        
+        # Sortează după relevanță
+        relevance.sort(key=lambda x: x[2], reverse=True)
+        
+        # Returnează doar nutrientul și valoarea
+        return [(nutrient, value) for nutrient, value, _ in relevance[:3]]
+
