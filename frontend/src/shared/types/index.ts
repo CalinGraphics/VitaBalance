@@ -1,5 +1,3 @@
-// Shared types across the application
-
 export interface User {
   id?: number
   email: string
