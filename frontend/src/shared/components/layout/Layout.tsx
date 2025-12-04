@@ -42,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout }) => {
         </main>
 
         <footer className="z-10 mt-8 text-xs text-slate-400">
-          © {new Date().getFullYear()} VitaBalance · Neon UI Demo
+          © {new Date().getFullYear()} VitaBalance
         </footer>
       </div>
     </div>

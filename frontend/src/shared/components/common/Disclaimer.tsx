@@ -7,9 +7,9 @@ const Disclaimer = () => {
   if (!isVisible) return null
 
   return (
-    <div className="bg-yellow-900/30 border-b border-yellow-500/30 sticky top-0 z-50 backdrop-blur-sm">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-start gap-3">
+    <div className="w-full mb-6">
+      <div className="w-full rounded-2xl bg-yellow-900/40 border border-yellow-500/35 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+        <div className="px-5 py-3.5 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-yellow-200 font-medium">

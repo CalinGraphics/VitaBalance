@@ -47,11 +47,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
           Bine ai revenit
         </p>
         <h2 className="mb-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Autentifică-te în <span className="text-neonCyan">VitaBalance</span>
+          Bine ai venit la <span className="text-neonCyan">VitaBalance</span>
         </h2>
         <p className="text-sm text-slate-300">
-          Monitorizează-ți rutina, obiectivele și starea de bine într-un hub
-          futurist cu accente neon și animații fluide.
+          Hrănește-ți echilibrul și lasă-ți energia 
+          să revină la nivelul ei natural.
         </p>
       </motion.div>
 

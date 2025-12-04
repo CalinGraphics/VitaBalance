@@ -141,17 +141,17 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
             </div>
 
             <InputField
-              label="Alergii (separate prin virgulă)"
+              label="Alergii"
               value={formData.allergies || ''}
               onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-              placeholder="Ex: lactoza, nuci, gluten"
+              placeholder="EX: lactoza, nuci, gluten"
             />
 
             <InputField
-              label="Condiții medicale (separate prin virgulă)"
+              label="Condiții medicale"
               value={formData.medical_conditions || ''}
               onChange={(e) => setFormData({ ...formData, medical_conditions: e.target.value })}
-              placeholder="Ex: diabet, hipertensiune"
+              placeholder="EX: diabet, hipertensiune"
             />
 
             <div className="mt-6">

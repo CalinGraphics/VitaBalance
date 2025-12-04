@@ -44,6 +44,7 @@ VitaBalance este o aplicație web care oferă recomandări nutriționale persona
 
 ```bash
 cd backend
+venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python seed_data.py  # Populează baza de date cu alimente
 uvicorn main:app --reload
