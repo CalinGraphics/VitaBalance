@@ -1,10 +1,5 @@
--- ============================================
 -- Seed Data pentru Foods
 -- Date adaptate din baze de date publice (USDA)
--- ============================================
-
--- Șterge datele existente (opțional - decomentează dacă vrei să resetezi)
--- TRUNCATE TABLE foods RESTART IDENTITY CASCADE;
 
 -- Legume verzi (bogate în fier)
 INSERT INTO foods (name, category, iron, calcium, vitamin_d, vitamin_b12, magnesium, protein, zinc, vitamin_c, fiber, calories, allergens) VALUES
@@ -43,4 +38,3 @@ INSERT INTO foods (name, category, iron, calcium, vitamin_d, vitamin_b12, magnes
 INSERT INTO foods (name, category, iron, calcium, vitamin_d, vitamin_b12, magnesium, protein, zinc, vitamin_c, fiber, calories, allergens) VALUES
 ('Lapte fortificat cu vitamina D', 'lactate', 0.03, 113, 120, 0.4, 10, 3.4, 0.4, 0, 0, 61, 'lactoza'),
 ('Cereale fortificate', 'cereale', 18.0, 1000, 100, 6.0, 100, 10.0, 15.0, 0, 10.0, 379, 'gluten');
-

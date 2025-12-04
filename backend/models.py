@@ -95,4 +95,3 @@ class Feedback(Base):
     
     user = relationship("User", back_populates="feedbacks")
     recommendation = relationship("Recommendation", back_populates="feedbacks")
-
