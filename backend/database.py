@@ -4,9 +4,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
-# Încarcă variabilele de mediu din .env
-load_dotenv()
+# Încarcă variabilele de mediu din .env (robust: mereu din folderul backend)
+_backend_dir = Path(__file__).resolve().parent
+_env_path = _backend_dir / ".env"
+load_dotenv(dotenv_path=_env_path, override=False)
 
 # Obține URL-ul bazei de date din variabilele de mediu
 # Dacă nu există, folosește SQLite pentru development local

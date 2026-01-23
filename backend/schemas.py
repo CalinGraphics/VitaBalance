@@ -29,13 +29,19 @@ class UserResponse(UserBase):
 class LabResultBase(BaseModel):
     user_id: int
     hemoglobin: Optional[float] = None
-    ferritin: Optional[float] = None
-    vitamin_d: Optional[float] = None
-    vitamin_b12: Optional[float] = None
-    calcium: Optional[float] = None
-    magnesium: Optional[float] = None
-    zinc: Optional[float] = None
-    protein: Optional[float] = None
+    ferritin: Optional[float] = None  # ng/mL - pentru fier
+    vitamin_d: Optional[float] = None  # ng/mL (25(OH)D)
+    vitamin_b12: Optional[float] = None  # pg/mL
+    calcium: Optional[float] = None  # mg/dL
+    magnesium: Optional[float] = None  # mg/dL
+    zinc: Optional[float] = None  # mcg/dL
+    protein: Optional[float] = None  # g/dL
+    # Nutrienți suplimentari conform tabelului
+    folate: Optional[float] = None  # ng/mL (B9)
+    vitamin_a: Optional[float] = None  # μg/dL
+    iodine: Optional[float] = None  # μg/L
+    vitamin_k: Optional[float] = None  # PT/INR (indirect)
+    potassium: Optional[float] = None  # mmol/L
     notes: Optional[str] = None
 
 class LabResultCreate(LabResultBase):

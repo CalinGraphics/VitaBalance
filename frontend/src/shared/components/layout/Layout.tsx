@@ -9,7 +9,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout }) => {
   return (
     <div className="min-h-screen app-gradient-dark text-slate-100 transition-colors duration-500">
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-6">
+      <div className="relative min-h-screen flex flex-col items-center justify-start px-4 py-6">
         {/* Glow background decorations */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
           <div className="absolute -top-32 -left-24 h-72 w-72 rounded-full bg-neonCyan/30 blur-3xl" />
@@ -37,7 +37,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout }) => {
         </header>
 
         {/* Content */}
-        <main className="z-10 w-full max-w-7xl flex-1 flex items-center justify-center">
+        <main className="z-10 w-full max-w-7xl flex-1 flex items-start justify-center py-4">
           {children}
         </main>
 

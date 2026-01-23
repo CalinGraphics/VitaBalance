@@ -34,28 +34,51 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
     magnesium: undefined,
     zinc: undefined,
     protein: undefined,
+    folate: undefined,
+    vitamin_a: undefined,
+    iodine: undefined,
+    vitamin_k: undefined,
+    potassium: undefined,
     notes: ''
   })
 
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
     try {
-      const hasAnyValue = Object.values(formData).some(
-        (value, index) => index !== 0 && index !== 9 && value !== undefined && value !== null && value !== ''
+      const hasAnyValue = Object.entries(formData).some(
+        ([key, value]) => key !== 'user_id' && key !== 'notes' && value !== undefined && value !== null && value !== ''
       )
 
       if (hasAnyValue) {
         await labResultsService.create(formData)
       }
       onComplete()
-    } catch (error) {
-      console.error('Eroare la salvarea analizelor:', error)
-      // Continuă chiar dacă e eroare
-      onComplete()
+    } catch (err: any) {
+      console.error('Eroare la salvarea analizelor:', err)
+      let errorMessage = 'Eroare la salvarea analizelor. Poți continua oricum.'
+      
+      if (err?.message) {
+        errorMessage = err.message
+      } else if (err?.response?.data?.detail) {
+        const detail = err.response.data.detail
+        if (typeof detail === 'string') {
+          errorMessage = detail
+        } else if (Array.isArray(detail)) {
+          errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || detail.message || JSON.stringify(detail)
+        }
+      }
+      
+      setError(errorMessage)
+      // Continuă chiar dacă e eroare - poate sări peste acest pas
+      // Utilizatorul poate continua manual
     } finally {
       setLoading(false)
     }
@@ -89,6 +112,12 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
               Sistemul va folosi estimări bazate pe profilul tău.
             </p>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -154,6 +183,38 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
                 value={formData.protein?.toString() || ''}
                 onChange={(e) => setFormData({ ...formData, protein: e.target.value ? parseFloat(e.target.value) : undefined })}
                 placeholder="6.0-8.0 g/dL"
+              />
+
+              <InputField
+                label="Folat / Acid folic (ng/mL)"
+                type="number"
+                value={formData.folate?.toString() || ''}
+                onChange={(e) => setFormData({ ...formData, folate: e.target.value ? parseFloat(e.target.value) : undefined })}
+                placeholder="> 3 ng/mL"
+              />
+
+              <InputField
+                label="Vitamina A (μg/dL)"
+                type="number"
+                value={formData.vitamin_a?.toString() || ''}
+                onChange={(e) => setFormData({ ...formData, vitamin_a: e.target.value ? parseFloat(e.target.value) : undefined })}
+                placeholder="> 20 μg/dL"
+              />
+
+              <InputField
+                label="Iod (μg/L)"
+                type="number"
+                value={formData.iodine?.toString() || ''}
+                onChange={(e) => setFormData({ ...formData, iodine: e.target.value ? parseFloat(e.target.value) : undefined })}
+                placeholder="> 100 μg/L"
+              />
+
+              <InputField
+                label="Potasiu (mmol/L)"
+                type="number"
+                value={formData.potassium?.toString() || ''}
+                onChange={(e) => setFormData({ ...formData, potassium: e.target.value ? parseFloat(e.target.value) : undefined })}
+                placeholder="> 3.5 mmol/L"
               />
             </div>
 

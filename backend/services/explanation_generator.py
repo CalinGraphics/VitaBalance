@@ -1,4 +1,9 @@
+<<<<<<< Updated upstream
 from typing import List, Dict
+=======
+
+from typing import List, Dict, Optional
+>>>>>>> Stashed changes
 from models import Food, User
 
 class ExplanationGenerator:
@@ -25,8 +30,91 @@ class ExplanationGenerator:
     ) -> Dict:
         """
         Generează o explicație completă pentru o recomandare
+<<<<<<< Updated upstream
         """
         portion = 150  # Porție standard în grame
+=======
+        
+        Această metodă poate funcționa în două moduri:
+        1. Cu explicații pre-generate de rule engine (preferat)
+        2. Fără explicații pre-generate (fallback pentru compatibilitate)
+        
+        Args:
+            food: Alimentul recomandat
+            user: Utilizatorul
+            deficits: Deficiențele nutriționale
+            score: Scorul recomandării
+            coverage: Procentul de acoperire a deficitului
+            explanations: Lista de explicații generate de rule engine (opțional)
+            matched_rules: Lista regulilor care s-au potrivit (opțional)
+        
+        Returns:
+            Dicționar cu explicația completă
+        """
+        # Dacă există explicații pre-generate de rule engine, folosește-le
+        if explanations and len(explanations) > 0:
+            return self._generate_from_rule_explanations(
+                food=food,
+                explanations=explanations,
+                matched_rules=matched_rules or [],
+                coverage=coverage
+            )
+        
+        # Fallback: generează explicație tradițională (pentru compatibilitate)
+        return self._generate_traditional_explanation(
+            food=food,
+            user=user,
+            deficits=deficits,
+            score=score,
+            coverage=coverage
+        )
+    
+    def _generate_from_rule_explanations(
+        self,
+        food: Food,
+        explanations: List[str],
+        matched_rules: List[str],
+        coverage: float
+    ) -> Dict:
+        portion = 150
+        
+        if explanations:
+            main_text = " ".join(explanations)
+        else:
+            main_text = f"Am recomandat {food.name.lower()} pentru valoarea sa nutrițională."
+        
+        reasons = explanations.copy() if explanations else []
+        
+        if coverage > 0:
+            reasons.append(f"Acoperă {coverage:.1f}% din deficitul tău nutrițional total")
+        
+        tips = self._generate_tips_from_rules(matched_rules, food)
+        alternatives = self._generate_alternatives(food)
+        
+        return {
+            'text': main_text,
+            'portion': portion,
+            'reasons': reasons,
+            'tips': tips if tips else None,
+            'alternatives': alternatives if alternatives else None
+        }
+    
+    def _generate_traditional_explanation(
+        self,
+        food: Food,
+        user: User,
+        deficits: Dict[str, float],
+        score: float,
+        coverage: float
+    ) -> Dict:
+        """
+        Generează explicație tradițională (fallback pentru compatibilitate)
+        
+        Această metodă este folosită când nu există explicații pre-generate
+        de rule engine (pentru compatibilitate cu codul vechi).
+        """
+        portion = 150
+>>>>>>> Stashed changes
         reasons = []
         tips = []
         alternatives = []

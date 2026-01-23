@@ -24,6 +24,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length === 0) {
+<<<<<<< Updated upstream
       // Mock login: trimitem un user fake
       onLogin({
         fullName: 'User Demo',
@@ -31,6 +32,65 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
         bio: 'Explorator al echilibrului digital și fizic.',
         avatarUrl: null,
       });
+=======
+      try {
+        // Apel API pentru login
+        const apiUrl = import.meta.env.VITE_API_URL || '/api';
+        const response = await fetch(`${apiUrl}/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: form.email,
+            password: form.password,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Email sau parolă incorectă';
+          try {
+            const errorData = await response.json();
+            const detail = errorData.detail || errorData.message;
+            if (typeof detail === 'string') {
+              errorMessage = detail;
+            } else if (Array.isArray(detail)) {
+              errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ');
+            } else if (detail && typeof detail === 'object') {
+              errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+            }
+          } catch (parseError) {
+            // Dacă nu poate parsa JSON-ul, folosește mesajul de eroare generic
+            errorMessage = 'Eroare la autentificare. Vă rugăm să încercați din nou.';
+          }
+          setErrors({ password: errorMessage });
+          return;
+        }
+
+        const user = await response.json();
+        onLogin({
+          fullName: user.fullName,
+          email: user.email,
+          bio: user.bio,
+        });
+      } catch (error: any) {
+        console.error('Eroare la autentificare:', error);
+        let errorMessage = 'Eroare la conectare. Vă rugăm să încercați din nou.';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (error?.response?.data?.detail) {
+          const detail = error.response.data.detail;
+          if (typeof detail === 'string') {
+            errorMessage = detail;
+          } else if (Array.isArray(detail)) {
+            errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ');
+          } else if (typeof detail === 'object') {
+            errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+          }
+        }
+        setErrors({ password: errorMessage });
+      }
+>>>>>>> Stashed changes
     }
   };
 
@@ -66,7 +126,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <InputField
             label="Email"
             type="email"

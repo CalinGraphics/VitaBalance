@@ -1,44 +1,92 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { UserPlus, ArrowRight } from 'lucide-react'
+import { UserCog, ArrowRight, Save } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
-import type { User, AuthUser } from '../../../shared/types'
+import type { User } from '../../../shared/types'
 
-interface MedicalProfilePageProps {
-  authUser: AuthUser
-  onComplete: (user: User) => void
+interface EditProfilePageProps {
+  user: User
+  onUpdate: (user: User) => void
+  onNavigateBack: () => void
 }
 
-const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) => {
+const EditProfilePage = ({ user, onUpdate, onNavigateBack }: EditProfilePageProps) => {
   const [formData, setFormData] = useState<Partial<User>>({
-    email: authUser.email,
-    name: authUser.fullName,
-    age: 25,
-    sex: 'F',
-    weight: 70,
-    height: 170,
-    activity_level: 'moderate',
-    diet_type: 'omnivore',
-    allergies: '',
-    medical_conditions: ''
+    email: user.email,
+    name: user.name,
+    age: user.age,
+    sex: user.sex,
+    weight: user.weight,
+    height: user.height,
+    activity_level: user.activity_level,
+    diet_type: user.diet_type,
+    allergies: user.allergies || '',
+    medical_conditions: user.medical_conditions || ''
   })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    // Load user data from backend when component mounts if user has ID
+    if (user.id) {
+      loadUserData()
+    }
+    // Otherwise, formData is already initialized with user prop data
+  }, [user.id])
+
+  const loadUserData = async () => {
+    try {
+      if (user.id) {
+        const response = await profileService.get(user.id)
+        setFormData({
+          email: response.email,
+          name: response.name,
+          age: response.age,
+          sex: response.sex,
+          weight: response.weight,
+          height: response.height,
+          activity_level: response.activity_level,
+          diet_type: response.diet_type,
+          allergies: response.allergies || '',
+          medical_conditions: response.medical_conditions || ''
+        })
+      }
+    } catch (error) {
+      console.error('Eroare la încărcarea datelor:', error)
+      // If loading fails, keep the initial user data that was passed as prop
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccess(false)
 
     try {
-      const response = await profileService.create(formData)
-      onComplete(response)
+      // Backend uses email to identify and update user
+      const response = await profileService.update(user.id || 0, formData)
+      setSuccess(true)
+      
+      // Actualizează utilizatorul cu datele noi
+      const updatedUser = {
+        ...user,
+        ...response
+      }
+      onUpdate(updatedUser)
+      
+      // Navigate back after a short delay
+      setTimeout(() => {
+        onNavigateBack()
+      }, 1500)
     } catch (err: any) {
-      console.error('Eroare la salvarea profilului:', err)
-      let errorMessage = 'Eroare la salvarea profilului. Te rugăm să încerci din nou.'
+      console.error('Eroare la actualizarea profilului:', err)
+      // Extrage mesajul de eroare
+      let errorMessage = 'Eroare la salvarea modificărilor. Te rugăm să încerci din nou.'
       
       if (err?.message) {
         errorMessage = err.message
@@ -69,18 +117,32 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
         <GlassCard className="max-w-3xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-3 rounded-lg shadow-neon">
-              <UserPlus className="w-6 h-6 text-black" />
+              <UserCog className="w-6 h-6 text-black" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-100">Profilul tău medical</h2>
-              <p className="text-slate-400 text-sm">Completează informațiile pentru recomandări personalizate</p>
+              <h2 className="text-2xl font-bold text-slate-100">Actualizează profilul</h2>
+              <p className="text-slate-400 text-sm">Modifică informațiile tale personale</p>
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 text-sm">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 text-sm"
+            >
               {error}
-            </div>
+            </motion.div>
+          )}
+
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 rounded-lg bg-green-500/20 border border-green-500/50 text-green-300 text-sm"
+            >
+              Profilul a fost actualizat cu succes!
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -124,6 +186,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
               <InputField
                 label="Greutate (kg)"
                 type="number"
+                step="0.1"
                 value={formData.weight?.toString() || ''}
                 onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 70 })}
                 placeholder="70"
@@ -132,6 +195,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
               <InputField
                 label="Înălțime (cm)"
                 type="number"
+                step="0.1"
                 value={formData.height?.toString() || ''}
                 onChange={(e) => setFormData({ ...formData, height: parseFloat(e.target.value) || 170 })}
                 placeholder="170"
@@ -176,7 +240,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
               placeholder="EX: diabet, hipertensiune"
             />
 
-            <div className="mt-6">
+            <div className="mt-6 flex gap-4">
               <PrimaryButton type="submit" disabled={loading}>
                 {loading ? (
                   <>
@@ -189,11 +253,18 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
                   </>
                 ) : (
                   <>
-                    <span>Continuă</span>
-                    <ArrowRight className="w-5 h-5" />
+                    <Save className="w-5 h-5" />
+                    <span>Salvează modificările</span>
                   </>
                 )}
               </PrimaryButton>
+              <button
+                type="button"
+                onClick={onNavigateBack}
+                className="px-6 py-3 rounded-xl border border-white/20 text-slate-300 hover:border-neonCyan hover:text-neonCyan transition font-medium"
+              >
+                Anulează
+              </button>
             </div>
           </form>
         </GlassCard>
@@ -202,5 +273,5 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
   )
 }
 
-export default MedicalProfilePage
+export default EditProfilePage
 

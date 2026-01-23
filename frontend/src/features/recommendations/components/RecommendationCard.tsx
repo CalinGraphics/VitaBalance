@@ -1,7 +1,7 @@
-import { motion, AnimatePresence } from 'framer-motion'
-import { ThumbsUp, ThumbsDown, ChevronDown, ChevronUp, Info, CheckCircle2 } from 'lucide-react'
-import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { CheckCircle2, Info } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
+import { formatFoodCategory } from '../../../shared/utils/formatters'
 
 interface RecommendationCardProps {
   recommendation: {
@@ -24,44 +24,13 @@ interface RecommendationCardProps {
     recommendation_id: number
   }
   index: number
-  isExpanded: boolean
-  onExpand: () => void
-  onFeedback: (recommendationId: number, rating: number) => void
 }
 
 const RecommendationCard = ({
   recommendation,
-  index,
-  isExpanded,
-  onExpand,
-  onFeedback
+  index
 }: RecommendationCardProps) => {
-  const { food, explanation, coverage, recommendation_id } = recommendation
-  const [feedbackState, setFeedbackState] = useState<'idle' | 'liked' | 'disliked' | 'loading-like' | 'loading-dislike'>('idle')
-
-  const handleLike = async () => {
-    if (feedbackState !== 'idle' && feedbackState !== 'disliked') return
-    setFeedbackState('loading-like')
-    try {
-      await onFeedback(recommendation_id, 1)
-      setFeedbackState('liked')
-    } catch (error) {
-      console.error('Eroare la like:', error)
-      setFeedbackState('idle')
-    }
-  }
-
-  const handleDislike = async () => {
-    if (feedbackState !== 'idle' && feedbackState !== 'liked') return
-    setFeedbackState('loading-dislike')
-    try {
-      await onFeedback(recommendation_id, -1) // Backend acceptă -1 pentru dislike
-      setFeedbackState('disliked')
-    } catch (error) {
-      console.error('Eroare la dislike:', error)
-      setFeedbackState('idle')
-    }
-  }
+  const { food, explanation, coverage } = recommendation
 
   return (
     <motion.div
@@ -76,7 +45,7 @@ const RecommendationCard = ({
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h3 className="text-xl font-bold text-slate-100">{food.name}</h3>
               <span className="text-xs bg-gradient-to-r from-neonCyan/20 to-neonPurple/20 text-neonCyan px-3 py-1 rounded-full border border-neonCyan/30">
-                {food.category}
+                {formatFoodCategory(food.category)}
               </span>
             </div>
             <p className="text-sm text-slate-300 mb-3">
@@ -125,114 +94,30 @@ const RecommendationCard = ({
           </ul>
         </div>
 
-        {/* Expandable Details */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
-            >
-              <div className="pt-4 border-t border-white/10 space-y-4">
-                {explanation.tips && explanation.tips.length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold text-neonMagenta mb-2 flex items-center gap-2">
-                      <Info className="w-4 h-4" />
-                      Sfaturi
-                    </p>
-                    <ul className="space-y-2">
-                      {explanation.tips.map((tip, idx) => (
-                        <li key={idx} className="text-sm text-slate-300 bg-slate-800/50 border border-neonMagenta/20 p-3 rounded-lg">
-                          💡 {tip}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {explanation.alternatives && explanation.alternatives.length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold text-slate-200 mb-2">Alternative similare:</p>
-                    <p className="text-sm text-slate-300">{explanation.alternatives.join(', ')}</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Actions */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-          <button
-            onClick={onExpand}
-            className="flex items-center gap-2 text-sm text-neonCyan hover:text-neonMagenta transition-colors"
-          >
-            {isExpanded ? (
-              <>
-                <ChevronUp className="w-4 h-4" />
-                Ascunde detalii
-              </>
-            ) : (
-              <>
-                <ChevronDown className="w-4 h-4" />
-                Vezi detalii
-              </>
-            )}
-          </button>
-
-          <div className="flex items-center gap-2">
-            <motion.button
-              onClick={handleLike}
-              disabled={feedbackState === 'loading-like' || feedbackState === 'loading-dislike'}
-              whileHover={{ scale: feedbackState.includes('loading') ? 1 : 1.1 }}
-              whileTap={{ scale: feedbackState.includes('loading') ? 1 : 0.9 }}
-              className={`p-2 rounded-lg transition-all duration-200 border ${
-                feedbackState === 'liked'
-                  ? 'text-green-400 bg-green-400/30 border-green-400/50 shadow-[0_0_15px_rgba(34,197,94,0.5)]'
-                  : feedbackState === 'loading-like'
-                  ? 'text-green-400/50 bg-green-400/10 border-green-400/20 cursor-not-allowed'
-                  : 'text-green-400 hover:bg-green-400/20 border-green-400/30'
-              }`}
-              aria-label="Like"
-            >
-              {feedbackState === 'loading-like' ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-5 h-5 border-2 border-green-400 border-t-transparent rounded-full"
-                />
-              ) : (
-                <ThumbsUp className={`w-5 h-5 ${feedbackState === 'liked' ? 'fill-current' : ''}`} />
-              )}
-            </motion.button>
-            <motion.button
-              onClick={handleDislike}
-              disabled={feedbackState === 'loading-like' || feedbackState === 'loading-dislike'}
-              whileHover={{ scale: feedbackState.includes('loading') ? 1 : 1.1 }}
-              whileTap={{ scale: feedbackState.includes('loading') ? 1 : 0.9 }}
-              className={`p-2 rounded-lg transition-all duration-200 border ${
-                feedbackState === 'disliked'
-                  ? 'text-red-400 bg-red-400/30 border-red-400/50 shadow-[0_0_15px_rgba(239,68,68,0.5)]'
-                  : feedbackState === 'loading-dislike'
-                  ? 'text-red-400/50 bg-red-400/10 border-red-400/20 cursor-not-allowed'
-                  : 'text-red-400 hover:bg-red-400/20 border-red-400/30'
-              }`}
-              aria-label="Dislike"
-            >
-              {feedbackState === 'loading-dislike' ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full"
-                />
-              ) : (
-                <ThumbsDown className={`w-5 h-5 ${feedbackState === 'disliked' ? 'fill-current' : ''}`} />
-              )}
-            </motion.button>
+        {/* Tips - Always visible */}
+        {explanation.tips && explanation.tips.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <p className="text-sm font-semibold text-neonMagenta mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Sfaturi
+            </p>
+            <ul className="space-y-2">
+              {explanation.tips.map((tip, idx) => (
+                <li key={idx} className="text-sm text-slate-300 bg-slate-800/50 border border-neonMagenta/20 p-3 rounded-lg">
+                  💡 {tip}
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
+        )}
+
+        {/* Alternatives - Always visible */}
+        {explanation.alternatives && explanation.alternatives.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <p className="text-sm font-semibold text-slate-200 mb-2">Alternative similare:</p>
+            <p className="text-sm text-slate-300">{explanation.alternatives.join(', ')}</p>
+          </div>
+        )}
       </GlassCard>
     </motion.div>
   )

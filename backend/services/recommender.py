@@ -1,12 +1,27 @@
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 from typing import List, Dict, Optional
 import numpy as np
 from models import User, Food, LabResult
 
 class RecommenderService:
+<<<<<<< Updated upstream
     """Serviciu pentru generarea recomandărilor bazate pe algoritmi content-based"""
     
     def __init__(self):
         self.nutrients = ['iron', 'calcium', 'vitamin_d', 'vitamin_b12', 'magnesium', 'protein', 'zinc']
+=======
+    
+    def __init__(self):
+        self.rule_engine = NutritionalRuleEngine()
+        self.nutrients = [
+            'iron', 'calcium', 'magnesium', 'vitamin_d', 'vitamin_b12', 
+            'folate', 'zinc', 'vitamin_a', 'vitamin_c', 'iodine', 
+            'vitamin_k', 'potassium'
+        ]
+>>>>>>> Stashed changes
     
     def generate_recommendations(
         self,
@@ -15,6 +30,7 @@ class RecommenderService:
         foods: List[Food],
         lab_results: Optional[LabResult] = None
     ) -> List[Dict]:
+<<<<<<< Updated upstream
         """
         Generează recomandări personalizate pentru utilizator
         """
@@ -23,14 +39,83 @@ class RecommenderService:
         
         # Calculează scoruri content-based
         scored_foods = []
+=======
+        filtered_deficits = {
+            k: v for k, v in deficits.items() 
+            if k in self.nutrients and v > 0
+        }
+        
+        if not filtered_deficits:
+            return []
+        
+        recommendations = []
+>>>>>>> Stashed changes
         
         for food in foods:
             # Verifică dacă alimentul este compatibil
             if not self._is_compatible(food, user):
                 continue
             
+<<<<<<< Updated upstream
             # Calculează scorul content-based
             score = self._calculate_content_score(food, deficits)
+=======
+            if recommendation:
+                # Aplică ajustări bazate pe feedback (dacă există)
+                adjusted_score = self._apply_feedback_adjustments(
+                    score=recommendation.score,
+                    food=food,
+                    user=user,
+                    user_feedbacks=user_feedbacks,
+                    feedback_by_food=feedback_by_food
+                )
+                
+                recommendations.append({
+                    'food_id': recommendation.food_id,
+                    'score': adjusted_score,
+                    'coverage': recommendation.coverage,
+                    'explanations': recommendation.explanations,  # Lista de explicații din reguli
+                    'matched_rules': recommendation.matched_rules,  # Numele regulilor care s-au potrivit
+                    'nutrients_covered': recommendation.nutrients_covered
+                })
+        
+        # Sortează după coverage (procent) descrescător, apoi după scor ca tie-breaker
+        recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
+        
+        # Returnează recomandările (max 20 pentru performanță)
+        return recommendations[:20]
+    
+    def _apply_feedback_adjustments(
+        self,
+        score: float,
+        food: Food,
+        user: User,
+        user_feedbacks: Optional[List[Feedback]] = None,
+        feedback_by_food: Optional[Dict[int, List]] = None
+    ) -> float:
+        """
+        Aplică ajustări la scor bazate pe feedback-ul utilizatorului
+        
+        Această metodă permite sistemului să învețe din feedback-ul utilizatorilor,
+        ajustând scorurile pentru a reflecta preferințele reale.
+        
+        Args:
+            score: Scorul inițial din rule engine
+            food: Alimentul evaluat
+            user: Utilizatorul
+            user_feedbacks: Feedback-uri generale ale utilizatorului
+            feedback_by_food: Feedback-uri grupate pe aliment
+        
+        Returns:
+            Scorul ajustat
+        """
+        adjustment_factor = 1.0
+        
+        # Verifică feedback-ul specific pentru acest aliment
+        if feedback_by_food and food.id in feedback_by_food:
+            food_feedbacks = feedback_by_food[food.id]
+            ratings = [f.rating for f in food_feedbacks if f.rating is not None]
+>>>>>>> Stashed changes
             
             # Aplică penalități
             score = self._apply_penalties(score, food, user)

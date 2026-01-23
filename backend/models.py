@@ -30,13 +30,19 @@ class LabResult(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     hemoglobin = Column(Float, nullable=True)  # g/dL
-    ferritin = Column(Float, nullable=True)  # ng/mL
-    vitamin_d = Column(Float, nullable=True)  # ng/mL
+    ferritin = Column(Float, nullable=True)  # ng/mL - pentru fier
+    vitamin_d = Column(Float, nullable=True)  # ng/mL (25(OH)D)
     vitamin_b12 = Column(Float, nullable=True)  # pg/mL
     calcium = Column(Float, nullable=True)  # mg/dL
     magnesium = Column(Float, nullable=True)  # mg/dL
     zinc = Column(Float, nullable=True)  # mcg/dL
     protein = Column(Float, nullable=True)  # g/dL
+    # Nutrienți suplimentari conform tabelului
+    folate = Column(Float, nullable=True)  # ng/mL (B9)
+    vitamin_a = Column(Float, nullable=True)  # μg/dL
+    iodine = Column(Float, nullable=True)  # μg/L
+    vitamin_k = Column(Float, nullable=True)  # PT/INR (indirect, poate fi null)
+    potassium = Column(Float, nullable=True)  # mmol/L
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -59,6 +65,12 @@ class Food(Base):
     vitamin_c = Column(Float, default=0)  # mg
     fiber = Column(Float, default=0)  # g
     calories = Column(Float, default=0)  # kcal
+    # Nutrienți suplimentari conform tabelului
+    folate = Column(Float, default=0)  # mcg (B9)
+    vitamin_a = Column(Float, default=0)  # mcg
+    iodine = Column(Float, default=0)  # mcg
+    vitamin_k = Column(Float, default=0)  # mcg
+    potassium = Column(Float, default=0)  # mg
     allergens = Column(Text, nullable=True)  # JSON string sau comma-separated
     image_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
