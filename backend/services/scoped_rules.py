@@ -440,20 +440,8 @@ class ScopedRulesEngine:
                 scopes.append(ScopeType.HIGH_BMI)
         
         if lab_results:
-            # Verifică vitamina D pentru expunere solară redusă
             if lab_results.vitamin_d and lab_results.vitamin_d < 20:
                 scopes.append(ScopeType.LOW_SUN_EXPOSURE)
-            
-            # Verifică alte condiții bazate pe valorile medicale
-            # De exemplu, dacă ferritin este foarte scăzut, poate indica nevoie de fier
-            # (aceasta este gestionată în evaluate_rules_for_nutrient prin clinical_threshold)
-            
-            # Verifică dacă există probleme cu magneziul (pentru HIGH_ACTIVITY scope)
-            # Dacă magneziul este scăzut și utilizatorul este activ, scope-ul HIGH_ACTIVITY
-            # va activa regulile pentru magneziu
-            
-            # Verifică dacă există probleme cu potasiul (pentru HIGH_ACTIVITY scope)
-            # Similar pentru potasiu
         
         return scopes
     
@@ -465,18 +453,10 @@ class ScopedRulesEngine:
         deficit: float,
         lab_results: Optional[LabResult] = None
     ) -> List[ScopedRuleResult]:
-        """
-        Evaluează toate regulile pentru un nutrient specific
-        Returnează lista de rezultate pentru regulile care se potrivesc
-        
-        IMPORTANT: Verifică compatibilitatea alimentului cu restricțiile utilizatorului
-        înainte de a aplica regulile. De exemplu, dacă utilizatorul este vegan,
-        regulile pentru omnivori (care recomandă carne) nu se aplică.
-        """
+        """Evaluează regulile pentru un nutrient și returnează cele care se potrivesc"""
         if nutrient not in self.rules:
             return []
         
-        # Verifică mai întâi dacă alimentul este compatibil cu restricțiile utilizatorului
         if not self._is_compatible(food, user):
             return []
         
@@ -484,32 +464,20 @@ class ScopedRulesEngine:
         matching_rules = []
         
         for rule in self.rules[nutrient]:
-            # Verifică dacă regula se aplică în contextul utilizatorului
             if rule.scope not in user_scopes:
                 continue
             
-            # Verifică dacă regula are un clinical_threshold și dacă valoarea medicală corespunde
-            # De exemplu, dacă regula pentru fier necesită ferritin < 30, verificăm dacă ferritin < 30
             if rule.clinical_threshold is not None and lab_results:
                 biomarker_value = self._get_biomarker_value(lab_results, nutrient)
-                if biomarker_value is not None:
-                    # Verifică dacă valoarea biomarkerului este sub threshold (deficit)
-                    if biomarker_value >= rule.clinical_threshold:
-                        # Valoarea este OK, nu aplicăm regula pentru deficit
-                        continue
+                if biomarker_value is not None and biomarker_value >= rule.clinical_threshold:
+                    continue
             
-            # Verifică dacă alimentul este compatibil cu regula specifică
-            # De exemplu, dacă regula este pentru vegani, alimentul trebuie să fie vegan
             if not self._is_food_compatible_with_rule(food, rule, user):
                 continue
             
-            # Verifică dacă alimentul conține nutrientul necesar
             nutrient_value = self._get_nutrient_value(food, nutrient)
-            
-            # Verifică dacă alimentul este în lista de recomandări sau conține nutrientul
             food_matches = self._food_matches_recommendations(food, rule.recommended_foods)
             
-            # Regula se aplică dacă alimentul se potrivește cu recomandările SAU conține nutrientul
             if food_matches or nutrient_value > 0:
                 base_score = min(10.0, (nutrient_value / max(1, deficit)) * 10)
                 weighted_score = base_score * rule.weight
@@ -532,10 +500,9 @@ class ScopedRulesEngine:
             NutrientType.CALCIUM: food.calcium or 0,
             NutrientType.MAGNESIUM: food.magnesium or 0,
             NutrientType.ZINC: food.zinc or 0,
-            NutrientType.VITAMIN_D: (food.vitamin_d or 0) / 40,  # Convert IU to approximate mg
+            NutrientType.VITAMIN_D: (food.vitamin_d or 0) / 40,
             NutrientType.VITAMIN_B12: food.vitamin_b12 or 0,
             NutrientType.VITAMIN_C: food.vitamin_c or 0,
-            # Pentru nutrienții care nu sunt în modelul Food, returnează 0
             NutrientType.FOLATE: 0,
             NutrientType.VITAMIN_A: 0,
             NutrientType.IODINE: 0,
@@ -569,22 +536,13 @@ class ScopedRulesEngine:
         deficit: float,
         lab_results: Optional[LabResult] = None
     ) -> str:
-        """
-        Generează explicația pentru regulă conform formatului specificat:
-        "Pentru că [context] și [nivel biomarker], recomandăm [alimente]."
-        
-        Exemplu: "Pentru că ești intolerant la lactoză și nivelul tău de calciu este scăzut (< 8.5 mg/dL), 
-                 recomandăm kale, broccoli și lapte vegetal fortificat."
-        """
-        # Construiește partea de context
+        """Generează explicația pentru regulă"""
         context_label = self._get_scope_label(rule.scope)
-        
-        # Construiește partea de biomarker (dacă există lab_results și threshold)
         biomarker_text = ""
+        
         if lab_results and rule.clinical_threshold is not None:
             biomarker_value = self._get_biomarker_value(lab_results, rule.nutrient)
             if biomarker_value is not None:
-                # Construiește textul biomarkerului în funcție de nutrient
                 if rule.nutrient == NutrientType.IRON:
                     biomarker_text = f"feritina ta este scăzută (< {rule.clinical_threshold} ng/mL)"
                 elif rule.nutrient == NutrientType.CALCIUM:
@@ -606,39 +564,20 @@ class ScopedRulesEngine:
                 elif rule.nutrient == NutrientType.POTASSIUM:
                     biomarker_text = f"nivelul tău de potasiu este scăzut (< {rule.clinical_threshold} mmol/L)"
         
-        # Construiește lista de alimente recomandate
         foods_str = ', '.join(rule.recommended_foods) if rule.recommended_foods else food.name
         
-        # Generează explicația finală conform formatului specificat
         if biomarker_text:
-            # Format: "Pentru că [context] și [biomarker], recomandăm [alimente]."
             explanation = f"Pentru că {context_label.lower()} și {biomarker_text}, recomandăm {foods_str}."
         else:
-            # Fallback la template-ul original dacă nu avem biomarker
             explanation = rule.explanation_template.format(foods=foods_str)
         
-        # Adaugă informații despre conținutul nutrientului
         if nutrient_value > 0:
             explanation += f" {food.name} conține {nutrient_value:.1f} {self._get_nutrient_unit(rule.nutrient)} per 100g."
         
         return explanation
     
     def _get_biomarker_value(self, lab_results: LabResult, nutrient: NutrientType) -> Optional[float]:
-        """
-        Extrage valoarea biomarkerului din lab_results pentru nutrient
-        
-        Mapping:
-        - IRON -> ferritin (ng/mL)
-        - CALCIUM -> calcium (mg/dL)
-        - MAGNESIUM -> magnesium (mg/dL)
-        - ZINC -> zinc (μg/dL)
-        - VITAMIN_D -> vitamin_d (ng/mL)
-        - VITAMIN_B12 -> vitamin_b12 (pg/mL)
-        - FOLATE -> folate (ng/mL)
-        - VITAMIN_A -> vitamin_a (μg/dL)
-        - IODINE -> iodine (μg/L)
-        - POTASSIUM -> potassium (mmol/L)
-        """
+        """Extrage valoarea biomarkerului pentru nutrient"""
         mapping = {
             NutrientType.IRON: lab_results.ferritin,
             NutrientType.CALCIUM: lab_results.calcium,
@@ -696,13 +635,7 @@ class ScopedRulesEngine:
         return labels.get(scope, str(scope))
     
     def _parse_food_restrictions(self, medical_conditions: str) -> Dict[str, List[str]]:
-        """
-        Parsează condițiile medicale și identifică interziceri pentru categorii de alimente.
-        
-        Returnează un dicționar cu:
-        - 'forbidden_categories': lista de categorii interzise
-        - 'forbidden_keywords': lista de cuvinte cheie interzise
-        """
+        """Parsează condițiile medicale și identifică interziceri de alimente"""
         if not medical_conditions:
             return {'forbidden_categories': [], 'forbidden_keywords': []}
         
@@ -710,7 +643,6 @@ class ScopedRulesEngine:
         forbidden_categories = []
         forbidden_keywords = []
         
-        # Mapping de expresii către categorii
         category_patterns = {
             'legume': [
                 'nu mananc legume', 'nu mănânc legume', 'nu mananc leguma', 'nu mănânc leguma',
@@ -765,13 +697,10 @@ class ScopedRulesEngine:
             ]
         }
         
-        # Verifică fiecare categorie
         for category, patterns in category_patterns.items():
             if any(pattern in conditions_lower for pattern in patterns):
                 forbidden_categories.append(category)
         
-        # Verifică și expresii generale precum "nu mănânc X" unde X este orice aliment
-        # Pattern: "nu mănânc [aliment]" sau "nu pot mânca [aliment]"
         import re
         general_patterns = [
             r'nu\s+(?:mănânc|mananc|pot\s+mânca|pot\s+mananca)\s+([a-zăâîșț]+)',
@@ -784,12 +713,9 @@ class ScopedRulesEngine:
         for pattern in general_patterns:
             matches = re.findall(pattern, conditions_lower)
             for match in matches:
-                if match and len(match) > 2:  # Ignoră cuvinte prea scurte
+                if match and len(match) > 2:
                     forbidden_keywords.append(match)
         
-        # Verifică și cazurile simple: dacă utilizatorul scrie doar numele alimentului/categoriei
-        # (fără "nu mănânc", "fără", etc.), presupunem că este o interzicere
-        # Lista de cuvinte cheie pentru alimente/categorii comune
         simple_food_keywords = {
             'ouă': ['ouă', 'oua', 'ou', 'eggs'],
             'legume': ['legume', 'leguma', 'vegetable', 'vegetables'],
@@ -805,18 +731,13 @@ class ScopedRulesEngine:
             'gluten': ['gluten', 'grâu', 'grau', 'wheat']
         }
         
-        # Verifică dacă există cuvinte cheie standalone (nu în expresii complexe)
-        # Split pe virgulă, punct, sau spațiu pentru a identifica cuvinte individuale
         words = re.split(r'[,\s\.;]+', conditions_lower)
         for word in words:
             word = word.strip()
-            if len(word) > 2:  # Ignoră cuvinte prea scurte
-                # Verifică dacă cuvântul este un aliment/categorie cunoscut
+            if len(word) > 2:
                 for category, keywords in simple_food_keywords.items():
                     if word in keywords:
-                        # Verifică că nu este deja în forbidden_categories
                         if category not in forbidden_categories:
-                            # Verifică că nu apare într-o expresie care indică că poate mânca (ex: "pot mânca oua")
                             if not any(positive in conditions_lower for positive in [
                                 'pot mânca', 'pot mananca', 'pot consuma', 'mănânc', 'mananc',
                                 'consum', 'mănâncă', 'mananca'
@@ -830,11 +751,7 @@ class ScopedRulesEngine:
         }
     
     def _is_compatible(self, food: Food, user: User) -> bool:
-        """
-        Verifică dacă alimentul este compatibil cu restricțiile utilizatorului
-        (dietă, alergii, condiții medicale)
-        """
-        # Verifică restricții dietetice
+        """Verifică compatibilitatea alimentului cu restricțiile utilizatorului"""
         if user.diet_type == 'vegetarian' or user.diet_type == 'vegan':
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']
             if any(cat in food.category.lower() for cat in meat_categories):
@@ -850,15 +767,12 @@ class ScopedRulesEngine:
             if any(cat in food.category.lower() for cat in meat_categories):
                 return False
         
-        # Verifică alergii - verificare îmbunătățită cu mapping complet
         if user.allergies:
             user_allergies = [a.strip().lower() for a in user.allergies.split(',')]
             food_name_lower = food.name.lower() if food.name else ''
             food_category_lower = food.category.lower() if food.category else ''
             
-            # Mapping complet de alergii către categorii și cuvinte cheie
             allergy_mappings = {
-                # Lactoză/Lactate
                 'lactoza': {
                     'categories': ['lactate'],
                     'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
@@ -884,7 +798,6 @@ class ScopedRulesEngine:
                                 'paste', 'spaghete', 'macaroane', 'tortilla', 'cereale', 'wheat', 
                                 'barley', 'rye', 'seitan']
                 },
-                # Nuci și semințe
                 'nuci': {
                     'categories': [],
                     'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
@@ -917,12 +830,10 @@ class ScopedRulesEngine:
                     'categories': [],
                     'keywords': ['ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus']
                 },
-                # Soia
                 'soia': {
                     'categories': ['legume'],
                     'keywords': ['soia', 'soy', 'tofu', 'tempeh', 'miso', 'sos de soia']
                 },
-                # Peste/Pește
                 'peste': {
                     'categories': ['peste'],
                     'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
@@ -931,26 +842,22 @@ class ScopedRulesEngine:
                 'pește': {
                     'categories': ['peste'],
                     'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
-                                'crap', 'șalău', 'salau', 'fish', 'seafood']
+                                'crap', 'șalău', 'salau',                     'fish', 'seafood']
                 },
-                # Crustacee
                 'crustacee': {
                     'categories': [],
                     'keywords': ['crustacee', 'creveți', 'creveti', 'crab', 'homar', 'langustă', 
                                 'langusta', 'shrimp', 'lobster', 'crab']
                 },
-                # Arahide
                 'arahide': {
                     'categories': [],
                     'keywords': ['arahide', 'alune de pământ', 'alune de pamant', 'peanut', 'peanuts']
                 }
             }
             
-            # Verifică fiecare alergie a utilizatorului
             for user_allergy in user_allergies:
                 user_allergy_clean = user_allergy.strip().lower()
                 
-                # Verifică dacă există mapping pentru această alergie
                 allergy_info = None
                 for allergy_key, mapping in allergy_mappings.items():
                     if allergy_key == user_allergy_clean or user_allergy_clean in allergy_key or allergy_key in user_allergy_clean:
@@ -958,41 +865,33 @@ class ScopedRulesEngine:
                         break
                 
                 if allergy_info:
-                    # Verifică categoria alimentului
                     if allergy_info['categories'] and food_category_lower in allergy_info['categories']:
                         return False
                     
-                    # Verifică cuvintele cheie în nume și categorie
                     for keyword in allergy_info['keywords']:
                         if keyword in food_name_lower or keyword in food_category_lower:
                             return False
                 
-                # Verifică alergii generale prin câmpul allergens (pentru alergia curentă)
                 if food.allergens:
                     food_allergens = [a.strip().lower() for a in food.allergens.split(',') if a.strip()]
                     for allergen in food_allergens:
-                        # Verifică potrivire exactă sau parțială
                         if user_allergy_clean in allergen or allergen in user_allergy_clean:
                             return False
                 
-                # Verifică și în numele alimentului și categorie (fallback)
                 if user_allergy_clean and (user_allergy_clean in food_name_lower or user_allergy_clean in food_category_lower):
                     return False
         
-        # Verifică condiții medicale pentru interziceri explicite de alimente
         if user.medical_conditions:
             conditions_lower = user.medical_conditions.lower()
             food_name_lower = food.name.lower() if food.name else ''
             food_category_lower = food.category.lower() if food.category else ''
             
-            # Parsează restricțiile din condițiile medicale
             restrictions = self._parse_food_restrictions(user.medical_conditions)
             
-            # Verifică dacă categoria alimentului este interzisă
             for forbidden_category in restrictions['forbidden_categories']:
                 if forbidden_category in food_category_lower:
                     return False
-                # Verifică și variante ale categoriei
+                
                 category_mappings = {
                     'legume': ['legume', 'leguma', 'vegetable', 'vegetables', 'leguminoase'],
                     'fructe': ['fructe', 'fructa', 'fruit', 'fruits'],
@@ -1012,12 +911,10 @@ class ScopedRulesEngine:
                         if variant in food_category_lower or variant in food_name_lower:
                             return False
             
-            # Verifică cuvinte cheie interzise (din expresii generale)
             for keyword in restrictions['forbidden_keywords']:
                 if keyword in food_name_lower or keyword in food_category_lower:
                     return False
             
-            # Verificări specifice pentru semințe (pentru compatibilitate cu codul existent)
             seed_restrictions = [
                 'nu am voie seminte', 'nu am voie semințe', 'fără seminte', 'fără semințe',
                 'no seeds', 'no seeds allowed', 'fara seminte', 'fara semințe',
@@ -1034,7 +931,6 @@ class ScopedRulesEngine:
                 if any(keyword in food_name_lower for keyword in seed_keywords):
                     return False
             
-            # Verificări specifice pentru nuci
             nuts_restrictions = [
                 'nu am voie nuci', 'nu am voie nucă', 'fără nuci', 'fără nucă',
                 'no nuts', 'no nuts allowed', 'fara nuci', 'fara nucă',
@@ -1047,7 +943,6 @@ class ScopedRulesEngine:
                 if any(keyword in food_name_lower or keyword in food_category_lower for keyword in nuts_keywords):
                     return False
             
-            # Verificări specifice pentru lactate
             dairy_restrictions = [
                 'nu am voie lactate', 'nu am voie lapte', 'fără lactate', 'fără lapte',
                 'no dairy', 'no milk', 'fara lactate', 'fara lapte',
@@ -1061,7 +956,6 @@ class ScopedRulesEngine:
                 if any(keyword in food_name_lower or keyword in food_category_lower for keyword in dairy_keywords):
                     return False
             
-            # Verificări specifice pentru gluten
             gluten_restrictions = [
                 'nu am voie gluten', 'fără gluten', 'no gluten', 'fara gluten',
                 'interzis gluten', 'evit gluten', 'fără grâu', 'fara grau'
@@ -1076,35 +970,26 @@ class ScopedRulesEngine:
         return True
     
     def _is_food_compatible_with_rule(self, food: Food, rule: ScopedRule, user: User) -> bool:
-        """
-        Verifică dacă alimentul este compatibil cu regula specifică.
-        De exemplu, dacă regula este pentru vegani, alimentul trebuie să fie vegan.
-        Dacă regula este pentru omnivori și utilizatorul este vegan, regula nu se aplică.
-        """
-        # Dacă regula este pentru vegani, alimentul trebuie să fie vegan
+        """Verifică dacă alimentul este compatibil cu regula specifică"""
         if rule.scope == ScopeType.DIET_VEGAN:
-            # Verifică că nu conține carne sau lactate
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']
             dairy_categories = ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt']
             food_category_lower = food.category.lower() if food.category else ''
             if any(cat in food_category_lower for cat in meat_categories + dairy_categories):
                 return False
         
-        # Dacă regula este pentru vegetarieni, alimentul nu trebuie să conțină carne
         if rule.scope == ScopeType.DIET_VEGETARIAN:
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']
             food_category_lower = food.category.lower() if food.category else ''
             if any(cat in food_category_lower for cat in meat_categories):
                 return False
         
-        # Dacă regula este pentru pescatarieni, alimentul nu trebuie să conțină carne (dar poate conține pește)
         if rule.scope == ScopeType.DIET_PESCATARIAN:
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel']
             food_category_lower = food.category.lower() if food.category else ''
             if any(cat in food_category_lower for cat in meat_categories):
                 return False
         
-        # Dacă regula este pentru intoleranță la lactoză, alimentul nu trebuie să conțină lactate
         if rule.scope == ScopeType.LACTOSE_INTOLERANCE:
             dairy_categories = ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt']
             food_category_lower = food.category.lower() if food.category else ''
@@ -1112,7 +997,6 @@ class ScopedRulesEngine:
             if any(cat in food_category_lower or cat in food_name_lower for cat in dairy_categories):
                 return False
         
-        # Dacă regula este pentru sensibilitate la gluten, alimentul nu trebuie să conțină gluten
         if rule.scope == ScopeType.GLUTEN_SENSITIVITY:
             gluten_keywords = ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine', 
                              'paste', 'spaghete', 'macaroane', 'wheat', 'barley', 'rye']
@@ -1121,20 +1005,15 @@ class ScopedRulesEngine:
             if any(keyword in food_category_lower or keyword in food_name_lower for keyword in gluten_keywords):
                 return False
         
-        # Verifică dacă alimentul conține ingrediente interzise din recomandările regulii
-        # De exemplu, dacă utilizatorul este alergic la nuci și regula recomandă nuci, nu aplicăm regula
         if user.allergies and rule.recommended_foods:
             user_allergies = [a.strip().lower() for a in user.allergies.split(',')]
             food_name_lower = food.name.lower() if food.name else ''
             food_category_lower = food.category.lower() if food.category else ''
             
-            # Verifică dacă recomandările regulii conțin ingrediente la care utilizatorul este alergic
             for recommended in rule.recommended_foods:
                 recommended_lower = recommended.lower()
                 for allergy in user_allergies:
                     allergy_clean = allergy.strip().lower()
-                    # Dacă recomandarea conține un ingredient la care utilizatorul este alergic
-                    # și alimentul conține acel ingredient, nu aplicăm regula
                     if allergy_clean in recommended_lower or recommended_lower in allergy_clean:
                         if allergy_clean in food_name_lower or allergy_clean in food_category_lower:
                             return False

@@ -47,7 +47,6 @@ class FoodRecommendation:
 class NutritionalRuleEngine:
     
     def __init__(self):
-        # Păstrăm threshold-urile pentru compatibilitate
         self.nutrient_thresholds = {
             NutrientType.IRON: {
                 'high': 3.0,
@@ -74,19 +73,11 @@ class NutritionalRuleEngine:
         deficits: Dict[str, float],
         lab_results: Optional[LabResult] = None
     ) -> Optional[FoodRecommendation]:
-        """
-        Evaluează un aliment folosind toate regulile disponibile (scoped rules + reguli tradiționale)
-        
-        Returnează None dacă alimentul nu trece verificările de compatibilitate
-        """
-        # Verifică compatibilitatea de bază
+        """Evaluează un aliment folosind toate regulile disponibile"""
         if not self._is_compatible(food, user):
             return None
         
-        # Evaluează regulile cu scop pentru toți nutrienții
         scoped_rule_results: List[ScopedRuleResult] = []
-        
-        # Mapare de la string la ScopedNutrientType
         nutrient_mapping = {
             'iron': ScopedNutrientType.IRON,
             'vitamin_d': ScopedNutrientType.VITAMIN_D,
@@ -102,7 +93,6 @@ class NutritionalRuleEngine:
             'potassium': ScopedNutrientType.POTASSIUM,
         }
         
-        # Evaluează regulile cu scop pentru fiecare nutrient cu deficit
         for nutrient_str, deficit_amount in deficits.items():
             if deficit_amount <= 0:
                 continue
@@ -118,10 +108,7 @@ class NutritionalRuleEngine:
                 )
                 scoped_rule_results.extend(results)
         
-        # Dacă avem rezultate din scoped rules, le folosim cu prioritate
         if scoped_rule_results:
-            # Procesează rezultatele scoped rules
-            # Agregă rezultatele pentru același nutrient (dacă există multiple reguli)
             nutrient_scores: Dict[str, float] = {}
             nutrient_explanations: Dict[str, List[str]] = {}
             nutrient_contexts: Dict[str, List[str]] = {}
@@ -140,16 +127,13 @@ class NutritionalRuleEngine:
                 nutrient_contexts[nutrient_str].append(result.context)
                 nutrient_rules[nutrient_str].append(f"{result.rule.scope.value}_weight_{result.rule.weight}")
             
-            # Construiește explicațiile finale cu context
             final_explanations = []
             final_matched_rules = []
             
             for nutrient_str in nutrient_scores.keys():
-                # Combină explicațiile pentru acest nutrient
                 explanations_text = " ".join(nutrient_explanations[nutrient_str])
                 contexts_text = ", ".join(set(nutrient_contexts[nutrient_str]))
                 
-                # Adaugă contextul în explicație
                 if contexts_text:
                     final_explanation = f"[Context: {contexts_text}] {explanations_text}"
                 else:
@@ -158,10 +142,7 @@ class NutritionalRuleEngine:
                 final_explanations.append(final_explanation)
                 final_matched_rules.extend(nutrient_rules[nutrient_str])
             
-            # Calculează scorul total (suma scorurilor ponderate)
             total_score = sum(nutrient_scores.values())
-            
-            # Calculează acoperirea
             nutrients_covered = list(nutrient_scores.keys())
             coverage = self._calculate_coverage(food, deficits, nutrients_covered)
             
@@ -174,12 +155,8 @@ class NutritionalRuleEngine:
                 nutrients_covered=nutrients_covered
             )
         
-        # Dacă nu s-au găsit reguli cu scop, folosește regulile tradiționale pentru compatibilitate
-        # Fallback la regulile tradiționale pentru Iron, Magnesium, Calcium
         rule_results: List[RuleResult] = []
         
-        # Evaluează regulile tradiționale doar pentru nutrienții care nu au fost acoperiți de scoped rules
-        # și care au deficiențe
         if deficits.get(NutrientType.IRON.value, 0) > 0:
             iron_result = self._evaluate_iron_rules(food, user, deficits, lab_results)
             if iron_result:
@@ -195,11 +172,9 @@ class NutritionalRuleEngine:
             if calcium_result:
                 rule_results.append(calcium_result)
         
-        # Dacă nu s-au găsit rezultate nici din scoped rules, nici din regulile tradiționale
         if not rule_results:
             return None
         
-        # Calculează scorul total și explicațiile (mod tradițional)
         total_score = sum(r.score for r in rule_results)
         explanations = [r.explanation for r in rule_results]
         matched_rules = [r.rule_name for r in rule_results]
@@ -223,32 +198,15 @@ class NutritionalRuleEngine:
         deficits: Dict[str, float],
         lab_results: Optional[LabResult]
     ) -> Optional[RuleResult]:
-        """
-        REGULĂ IF-ELSE pentru Iron
-        
-        Reguli explicite:
-        IF deficit_iron > 0 THEN
-            IF iron_content >= 3.0 mg/100g THEN
-                score = 10.0, explanation = "Aliment bogat în fier"
-            ELSE IF iron_content >= 1.5 mg/100g THEN
-                score = 7.0, explanation = "Aliment cu conținut moderat de fier"
-            ELSE IF iron_content >= 0.5 mg/100g THEN
-                score = 4.0, explanation = "Aliment cu conținut redus de fier"
-            ELSE
-                return None (nu recomandă)
-        END IF
-        """
+        """Evaluează regulile pentru fier"""
         deficit = deficits.get(NutrientType.IRON.value, 0)
         if deficit <= 0:
             return None
         
         iron_content = food.iron or 0
         thresholds = self.nutrient_thresholds[NutrientType.IRON]
-        
-        # Determină nivelul deficienței
         deficiency_level = self._classify_deficiency(deficit, NutrientType.IRON)
         
-        # REGULĂ 1: Deficit sever + Iron high
         if deficiency_level == DeficiencyLevel.SEVERE and iron_content >= thresholds['high']:
             portion_value = (iron_content * 150) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
@@ -262,7 +220,6 @@ class NutritionalRuleEngine:
                 priority=10
             )
         
-        # REGULĂ 2: Deficit sever + Iron medium
         elif deficiency_level == DeficiencyLevel.SEVERE and iron_content >= thresholds['medium']:
             portion_value = (iron_content * 150) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
@@ -355,7 +312,6 @@ class NutritionalRuleEngine:
         thresholds = self.nutrient_thresholds[NutrientType.MAGNESIUM]
         deficiency_level = self._classify_deficiency(deficit, NutrientType.MAGNESIUM)
         
-        # REGULĂ 1: Deficit sever + Magnesium high
         if deficiency_level == DeficiencyLevel.SEVERE and magnesium_content >= thresholds['high']:
             portion_value = (magnesium_content * 150) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
@@ -369,7 +325,6 @@ class NutritionalRuleEngine:
                 priority=10
             )
         
-        # REGULĂ 2: Deficit sever + Magnesium medium
         elif deficiency_level == DeficiencyLevel.SEVERE and magnesium_content >= thresholds['medium']:
             portion_value = (magnesium_content * 150) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
@@ -461,7 +416,6 @@ class NutritionalRuleEngine:
         thresholds = self.nutrient_thresholds[NutrientType.CALCIUM]
         deficiency_level = self._classify_deficiency(deficit, NutrientType.CALCIUM)
         
-        # REGULĂ 1: Deficit sever + Calcium high
         if deficiency_level == DeficiencyLevel.SEVERE and calcium_content >= thresholds['high']:
             portion_value = (calcium_content * 150) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
@@ -475,7 +429,6 @@ class NutritionalRuleEngine:
                 priority=10
             )
         
-        # REGULĂ 2: Deficit sever + Calcium medium
         elif deficiency_level == DeficiencyLevel.SEVERE and calcium_content >= thresholds['medium']:
             portion_value = (calcium_content * 150) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
@@ -553,7 +506,6 @@ class NutritionalRuleEngine:
         
         Praguri relative bazate pe RDI estimat
         """
-        # Praguri relative (procente din RDI tipic)
         if nutrient == NutrientType.IRON:
             severe_threshold = 10.0  # mg
             moderate_threshold = 5.0
@@ -591,7 +543,6 @@ class NutritionalRuleEngine:
         forbidden_categories = []
         forbidden_keywords = []
         
-        # Mapping de expresii către categorii
         category_patterns = {
             'legume': [
                 'nu mananc legume', 'nu mănânc legume', 'nu mananc leguma', 'nu mănânc leguma',
@@ -646,12 +597,10 @@ class NutritionalRuleEngine:
             ]
         }
         
-        # Verifică fiecare categorie
         for category, patterns in category_patterns.items():
             if any(pattern in conditions_lower for pattern in patterns):
                 forbidden_categories.append(category)
         
-        # Verifică și expresii generale precum "nu mănânc X" unde X este orice aliment
         general_patterns = [
             r'nu\s+(?:mănânc|mananc|pot\s+mânca|pot\s+mananca)\s+([a-zăâîșț]+)',
             r'fără\s+([a-zăâîșț]+)',
@@ -663,11 +612,9 @@ class NutritionalRuleEngine:
         for pattern in general_patterns:
             matches = re.findall(pattern, conditions_lower)
             for match in matches:
-                if match and len(match) > 2:  # Ignoră cuvinte prea scurte
+                if match and len(match) > 2:
                     forbidden_keywords.append(match)
         
-        # Verifică și cazurile simple: dacă utilizatorul scrie doar numele alimentului/categoriei
-        # (fără "nu mănânc", "fără", etc.), presupunem că este o interzicere
         simple_food_keywords = {
             'ouă': ['ouă', 'oua', 'ou', 'eggs'],
             'legume': ['legume', 'leguma', 'vegetable', 'vegetables'],
@@ -683,17 +630,13 @@ class NutritionalRuleEngine:
             'gluten': ['gluten', 'grâu', 'grau', 'wheat']
         }
         
-        # Verifică dacă există cuvinte cheie standalone (nu în expresii complexe)
         words = re.split(r'[,\s\.;]+', conditions_lower)
         for word in words:
             word = word.strip()
-            if len(word) > 2:  # Ignoră cuvinte prea scurte
-                # Verifică dacă cuvântul este un aliment/categorie cunoscut
+            if len(word) > 2:
                 for category, keywords in simple_food_keywords.items():
                     if word in keywords:
-                        # Verifică că nu este deja în forbidden_categories
                         if category not in forbidden_categories:
-                            # Verifică că nu apare într-o expresie care indică că poate mânca
                             if not any(positive in conditions_lower for positive in [
                                 'pot mânca', 'pot mananca', 'pot consuma', 'mănânc', 'mananc',
                                 'consum', 'mănâncă', 'mananca'
@@ -708,7 +651,6 @@ class NutritionalRuleEngine:
     
     def _is_compatible(self, food: Food, user: User) -> bool:
         """Verifică dacă alimentul este compatibil cu profilul utilizatorului"""
-        # Verifică restricții dietetice
         if user.diet_type == 'vegetarian' or user.diet_type == 'vegan':
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']
             if any(cat in food.category.lower() for cat in meat_categories):
@@ -724,15 +666,12 @@ class NutritionalRuleEngine:
             if any(cat in food.category.lower() for cat in meat_categories):
                 return False
         
-        # Verifică alergii - verificare îmbunătățită cu mapping complet
         if user.allergies:
             user_allergies = [a.strip().lower() for a in user.allergies.split(',')]
             food_name_lower = food.name.lower()
             food_category_lower = food.category.lower() if food.category else ''
             
-            # Mapping complet de alergii către categorii și cuvinte cheie
             allergy_mappings = {
-                # Lactoză/Lactate - cel mai important
                 'lactoza': {
                     'categories': ['lactate'],
                     'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
@@ -758,7 +697,6 @@ class NutritionalRuleEngine:
                                 'paste', 'spaghete', 'macaroane', 'tortilla', 'cereale', 'wheat', 
                                 'barley', 'rye', 'seitan']
                 },
-                # Nuci
                 'nuci': {
                     'categories': [],
                     'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
@@ -767,9 +705,8 @@ class NutritionalRuleEngine:
                 'nucă': {
                     'categories': [],
                     'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
-                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+                                'caju', 'macadamia', 'pecan', 'nuts',                     'almond', 'walnut', 'hazelnut']
                 },
-                # Ouă
                 'ouă': {
                     'categories': [],
                     'keywords': ['ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus']
@@ -778,12 +715,10 @@ class NutritionalRuleEngine:
                     'categories': [],
                     'keywords': ['ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus']
                 },
-                # Soia
                 'soia': {
                     'categories': ['legume'],
                     'keywords': ['soia', 'soy', 'tofu', 'tempeh', 'miso', 'sos de soia']
                 },
-                # Peste/Pește
                 'peste': {
                     'categories': ['peste'],
                     'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
@@ -792,26 +727,22 @@ class NutritionalRuleEngine:
                 'pește': {
                     'categories': ['peste'],
                     'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
-                                'crap', 'șalău', 'salau', 'fish', 'seafood']
+                                'crap', 'șalău', 'salau',                     'fish', 'seafood']
                 },
-                # Crustacee
                 'crustacee': {
                     'categories': [],
                     'keywords': ['crustacee', 'creveți', 'creveti', 'crab', 'homar', 'langustă', 
                                 'langusta', 'shrimp', 'lobster', 'crab']
                 },
-                # Arahide
                 'arahide': {
                     'categories': [],
                     'keywords': ['arahide', 'alune de pământ', 'alune de pamant', 'peanut', 'peanuts']
                 }
             }
             
-            # Verifică fiecare alergie a utilizatorului
             for user_allergy in user_allergies:
                 user_allergy_clean = user_allergy.strip().lower()
                 
-                # Verifică dacă există mapping pentru această alergie
                 allergy_info = None
                 for allergy_key, mapping in allergy_mappings.items():
                     if allergy_key == user_allergy_clean or user_allergy_clean in allergy_key or allergy_key in user_allergy_clean:
@@ -819,41 +750,33 @@ class NutritionalRuleEngine:
                         break
                 
                 if allergy_info:
-                    # Verifică categoria alimentului
                     if allergy_info['categories'] and food_category_lower in allergy_info['categories']:
                         return False
                     
-                    # Verifică cuvintele cheie în nume și categorie
                     for keyword in allergy_info['keywords']:
                         if keyword in food_name_lower or keyword in food_category_lower:
                             return False
                 
-                # Verifică alergii generale prin câmpul allergens (pentru alergia curentă)
                 if food.allergens:
                     food_allergens = [a.strip().lower() for a in food.allergens.split(',') if a.strip()]
                     for allergen in food_allergens:
-                        # Verifică potrivire exactă sau parțială
                         if user_allergy_clean in allergen or allergen in user_allergy_clean:
                             return False
                 
-                # Verifică și în numele alimentului și categorie (fallback)
                 if user_allergy_clean and (user_allergy_clean in food_name_lower or user_allergy_clean in food_category_lower):
                     return False
         
-        # Verifică condiții medicale
         if user.medical_conditions:
             conditions_lower = user.medical_conditions.lower()
             food_name_lower = food.name.lower() if food.name else ''
             food_category_lower = food.category.lower() if food.category else ''
             
-            # Parsează restricțiile din condițiile medicale
             restrictions = self._parse_food_restrictions(user.medical_conditions)
             
-            # Verifică dacă categoria alimentului este interzisă
             for forbidden_category in restrictions['forbidden_categories']:
                 if forbidden_category in food_category_lower:
                     return False
-                # Verifică și variante ale categoriei
+                
                 category_mappings = {
                     'legume': ['legume', 'leguma', 'vegetable', 'vegetables', 'leguminoase'],
                     'fructe': ['fructe', 'fructa', 'fruit', 'fruits'],
@@ -873,30 +796,25 @@ class NutritionalRuleEngine:
                         if variant in food_category_lower or variant in food_name_lower:
                             return False
             
-            # Verifică cuvinte cheie interzise (din expresii generale)
             for keyword in restrictions['forbidden_keywords']:
                 if keyword in food_name_lower or keyword in food_category_lower:
                     return False
             
-            # Probleme cu rinichii - evită oxalați ridicați
             if 'rinichi' in conditions_lower or 'oxalat' in conditions_lower or 'renal' in conditions_lower:
                 high_oxalate_foods = ['spanac', 'rabarbar', 'nucă', 'ciocolată', 'ceai']
                 if any(ox in food_name_lower or ox in food_category_lower for ox in high_oxalate_foods):
                     return False
             
-            # Diabet - evită alimente cu indice glicemic foarte ridicat
             if 'diabet' in conditions_lower or 'glicemie' in conditions_lower:
                 high_gi_foods = ['zahăr', 'sirop', 'dulceață', 'bomboane']
                 if any(gi in food_name_lower for gi in high_gi_foods):
                     return False
             
-            # Hipertensiune - evită alimente cu sodiu ridicat
             if 'hipertensiune' in conditions_lower or 'tensiune' in conditions_lower:
                 high_sodium_foods = ['sare', 'salam', 'cârnați', 'conservă']
                 if any(sod in food_name_lower or sod in food_category_lower for sod in high_sodium_foods):
                     return False
             
-            # Verificări specifice pentru semințe (pentru compatibilitate cu codul existent)
             seed_restrictions = [
                 'nu am voie seminte', 'nu am voie semințe', 'fără seminte', 'fără semințe',
                 'no seeds', 'no seeds allowed', 'fara seminte', 'fara semințe',
@@ -913,7 +831,6 @@ class NutritionalRuleEngine:
                 if any(keyword in food_name_lower for keyword in seed_keywords):
                     return False
             
-            # Verificări specifice pentru nuci
             nuts_restrictions = [
                 'nu am voie nuci', 'nu am voie nucă', 'fără nuci', 'fără nucă',
                 'no nuts', 'no nuts allowed', 'fara nuci', 'fara nucă',
@@ -926,7 +843,6 @@ class NutritionalRuleEngine:
                 if any(keyword in food_name_lower or keyword in food_category_lower for keyword in nuts_keywords):
                     return False
             
-            # Verificări specifice pentru lactate
             dairy_restrictions = [
                 'nu am voie lactate', 'nu am voie lapte', 'fără lactate', 'fără lapte',
                 'no dairy', 'no milk', 'fara lactate', 'fara lapte',
@@ -953,12 +869,11 @@ class NutritionalRuleEngine:
         total_weighted_coverage = 0
         total_weight = 0
         
-        # Mapare extinsă pentru toți nutrienții
         nutrient_mapping = {
             'iron': food.iron or 0,
             'magnesium': food.magnesium or 0,
             'calcium': food.calcium or 0,
-            'vitamin_d': food.vitamin_d or 0,  # IU
+            'vitamin_d': food.vitamin_d or 0,
             'vitamin_b12': food.vitamin_b12 or 0,
             'zinc': food.zinc or 0,
             'vitamin_c': food.vitamin_c or 0,

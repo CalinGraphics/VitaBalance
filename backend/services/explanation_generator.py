@@ -25,26 +25,7 @@ class ExplanationGenerator:
         explanations: Optional[List[str]] = None,
         matched_rules: Optional[List[str]] = None
     ) -> Dict:
-        """
-        Generează o explicație completă pentru o recomandare
-        
-        Această metodă poate funcționa în două moduri:
-        1. Cu explicații pre-generate de rule engine (preferat)
-        2. Fără explicații pre-generate (fallback pentru compatibilitate)
-        
-        Args:
-            food: Alimentul recomandat
-            user: Utilizatorul
-            deficits: Deficiențele nutriționale
-            score: Scorul recomandării
-            coverage: Procentul de acoperire a deficitului
-            explanations: Lista de explicații generate de rule engine (opțional)
-            matched_rules: Lista regulilor care s-au potrivit (opțional)
-        
-        Returns:
-            Dicționar cu explicația completă
-        """
-        # Dacă există explicații pre-generate de rule engine, folosește-le
+        """Generează o explicație completă pentru o recomandare"""
         if explanations and len(explanations) > 0:
             return self._generate_from_rule_explanations(
                 food=food,
@@ -53,7 +34,6 @@ class ExplanationGenerator:
                 coverage=coverage
             )
         
-        # Fallback: generează explicație tradițională (pentru compatibilitate)
         return self._generate_traditional_explanation(
             food=food,
             user=user,
@@ -100,29 +80,19 @@ class ExplanationGenerator:
         score: float,
         coverage: float
     ) -> Dict:
-        """
-        Generează explicație tradițională (fallback pentru compatibilitate)
-        
-        Această metodă este folosită când nu există explicații pre-generate
-        de rule engine (pentru compatibilitate cu codul vechi).
-        """
+        """Generează explicație tradițională (fallback)"""
         portion = 150
         reasons = []
         tips = []
         alternatives = []
         
-        # Identifică nutrienții principali care justifică recomandarea
         top_nutrients = self._get_top_nutrients(food, deficits)
-        
-        # Construiește explicația principală
         main_text = f"Am recomandat {food.name.lower()} pentru că "
         
         nutrient_descriptions = []
         for nutrient, value in top_nutrients:
             nutrient_ro = self.nutrient_names.get(nutrient, nutrient)
             portion_value = (value * portion) / 100
-            
-            # Găsește deficitul corespunzător
             deficit = deficits.get(nutrient, 0)
             if deficit > 0:
                 coverage_pct = min(100, (portion_value / deficit) * 100)
@@ -134,8 +104,7 @@ class ExplanationGenerator:
         
         main_text += "; ".join(nutrient_descriptions) + "."
         
-        # Adaugă motivele pentru recomandare
-        for nutrient, value in top_nutrients[:3]:  # Top 3 nutrienți
+        for nutrient, value in top_nutrients[:3]:
             nutrient_ro = self.nutrient_names.get(nutrient, nutrient)
             reasons.append(f"Conține {value:.1f} mg {nutrient_ro} per 100g")
             
@@ -147,20 +116,17 @@ class ExplanationGenerator:
                     f"O porție de {portion}g acoperă {coverage_pct:.1f}% din deficitul tău de {nutrient_ro}"
                 )
         
-        # Verifică compatibilitatea cu dieta
         if user.diet_type in ['vegetarian', 'vegan']:
             reasons.append("Compatibil cu regim vegetarian")
         elif user.diet_type == 'vegan':
             reasons.append("Compatibil cu regim vegan")
         
-        # Adaugă contraindicări dacă există
         if user.medical_conditions:
             conditions = [c.strip().lower() for c in user.medical_conditions.split(',')]
             if 'rinichi' in str(conditions) or 'oxalati' in str(conditions):
                 if 'spanac' in food.name.lower() or 'rabarbar' in food.name.lower():
                     reasons.append("⚠️ Exclus dacă ai probleme cu rinichii (oxalați ridicați)")
         
-        # Generează sfaturi
         if food.iron > 1.0:
             tips.append("Sfat: Combină-l cu vitamina C (ex: lămâie) pentru absorbție mai bună a fierului!")
         
@@ -170,7 +136,6 @@ class ExplanationGenerator:
         if food.vitamin_d > 0:
             tips.append("Sfat: Expunerea la soare (10-15 minute zilnic) ajută la sinteza vitaminei D!")
         
-        # Generează alternative similare (placeholder - ar trebui implementat cu baza de date)
         if food.category == 'legume':
             alternatives.append("Dacă nu-ți place, încearcă alte legume verzi: linte, fasole, mazăre")
         elif food.category == 'carne':
@@ -185,9 +150,7 @@ class ExplanationGenerator:
         }
     
     def _get_top_nutrients(self, food: Food, deficits: Dict[str, float]) -> List[tuple]:
-        """
-        Identifică nutrienții principali din aliment care corespund deficitelor
-        """
+        """Identifică nutrienții principali din aliment care corespund deficitelor"""
         nutrient_values = {
             'iron': food.iron,
             'calcium': food.calcium,
@@ -198,17 +161,13 @@ class ExplanationGenerator:
             'zinc': food.zinc
         }
         
-        # Calculează relevanța fiecărui nutrient (valoare * deficit)
         relevance = []
         for nutrient, value in nutrient_values.items():
             deficit = deficits.get(nutrient, 0)
             if deficit > 0 and value > 0:
                 relevance.append((nutrient, value, value * deficit))
         
-        # Sortează după relevanță
         relevance.sort(key=lambda x: x[2], reverse=True)
-        
-        # Returnează doar nutrientul și valoarea
         return [(nutrient, value) for nutrient, value, _ in relevance[:3]]
     
     def _generate_tips_from_rules(self, matched_rules: List[str], food: Food) -> List[str]:
