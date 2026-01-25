@@ -15,16 +15,15 @@ from schemas import (
 from services.recommender import RecommenderService
 from services.deficit_calculator import DeficitCalculator
 from services.explanation_generator import ExplanationGenerator
-<<<<<<< Updated upstream
-=======
 from services.auth import authenticate_user, create_user
 from routers import supabase as supabase_router
 from config import get_settings
 from supabase_client import get_supabase_client
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 import inspect
 import hashlib
 import os
->>>>>>> Stashed changes
 
 # Creează tabelele în baza de date
 Base.metadata.create_all(bind=engine)
@@ -35,12 +34,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-<<<<<<< Updated upstream
-# CORS middleware pentru a permite comunicarea cu frontend-ul
-=======
 settings = get_settings()
 
->>>>>>> Stashed changes
+# CORS middleware pentru a permite comunicarea cu frontend-ul
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -49,12 +45,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-<<<<<<< Updated upstream
-# Dependency pentru a obține sesiunea de bază de date
-=======
 app.include_router(supabase_router.router)
 
->>>>>>> Stashed changes
+# Dependency pentru a obține sesiunea de bază de date
 def get_db():
     db = SessionLocal()
     try:
@@ -66,8 +59,6 @@ def get_db():
 async def root():
     return {"message": "VitaBalance API - Sistem de recomandare nutrițională"}
 
-<<<<<<< Updated upstream
-=======
 # Health/config endpoints
 @app.get("/health")
 async def health_check(settings=Depends(get_settings)):
@@ -214,7 +205,6 @@ async def register(user_data: RegisterRequest):
         print(f"Eroare detaliată la crearea contului: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Eroare la crearea contului: {str(e)}")
 
->>>>>>> Stashed changes
 @app.post("/api/profile", response_model=UserResponse)
 async def create_profile(user: UserCreate, db: Session = Depends(get_db)):
     """Creează sau actualizează profilul utilizatorului"""
@@ -322,24 +312,18 @@ async def get_recommendations(
     db: Session = Depends(get_db),
     force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor")
 ):
-<<<<<<< Updated upstream
-    """Generează recomandări personalizate pentru utilizator"""
-=======
     """
     Generează recomandări personalizate pentru utilizator
     Dacă există deja recomandări, le returnează pe cele existente.
     Pentru regenerare, folosește DELETE /api/recommendations/{user_id} apoi POST din nou.
     Sau trimite force_regenerate=True în query params.
     """
->>>>>>> Stashed changes
     try:
         # Obține utilizatorul
         user = db.query(User).filter(User.id == request.user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
         
-<<<<<<< Updated upstream
-=======
         # Reîncarcă utilizatorul pentru a obține datele actualizate
         db.refresh(user)
         
@@ -356,7 +340,18 @@ async def get_recommendations(
             db.query(Recommendation).filter(Recommendation.user_id == request.user_id).delete()
             db.commit()
         
->>>>>>> Stashed changes
+        # Obține feedback-urile utilizatorului (dacă există)
+        user_feedbacks = db.query(Feedback).filter(Feedback.user_id == request.user_id).all()
+        feedback_by_food = {}
+        for feedback in user_feedbacks:
+            if feedback.recommendation_id:
+                rec = db.query(Recommendation).filter(Recommendation.id == feedback.recommendation_id).first()
+                if rec:
+                    food_id = rec.food_id
+                    if food_id not in feedback_by_food:
+                        feedback_by_food[food_id] = []
+                    feedback_by_food[food_id].append(feedback)
+        
         # Obține rezultatele analizelor
         lab_results = db.query(LabResult).filter(
             LabResult.user_id == request.user_id
@@ -369,17 +364,6 @@ async def get_recommendations(
         calculator = DeficitCalculator()
         deficits = calculator.calculate_deficits(user, lab_results)
         
-<<<<<<< Updated upstream
-        # Generează recomandări
-        recommender = RecommenderService()
-        recommendations = recommender.generate_recommendations(
-            user=user,
-            deficits=deficits,
-            foods=foods,
-            lab_results=lab_results
-        )
-        
-=======
         # Verifică dacă există alimente în baza de date
         if not foods:
             raise HTTPException(
@@ -455,7 +439,6 @@ async def get_recommendations(
             if recommendations_with_explanations:
                 return recommendations_with_explanations
         
->>>>>>> Stashed changes
         # Generează explicații pentru fiecare recomandare
         explanation_gen = ExplanationGenerator()
         recommendations_with_explanations = []
@@ -558,13 +541,6 @@ async def get_recommendations(
 @app.post("/api/feedback")
 async def create_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
     """Salvează feedback-ul utilizatorului pentru o recomandare"""
-<<<<<<< Updated upstream
-    db_feedback = Feedback(**feedback.dict())
-    db.add(db_feedback)
-    db.commit()
-    db.refresh(db_feedback)
-    return {"message": "Feedback salvat cu succes", "id": db_feedback.id}
-=======
     # Validare rating
     if feedback.rating < -1 or feedback.rating > 5:
         raise HTTPException(
@@ -623,7 +599,6 @@ async def create_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Eroare la salvarea feedback-ului: {str(e)}")
->>>>>>> Stashed changes
 
 @app.get("/api/foods")
 async def get_foods(db: Session = Depends(get_db)):

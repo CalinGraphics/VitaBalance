@@ -16,7 +16,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: { email?: string; password?: string } = {};
     if (!form.email) newErrors.email = 'Introdu adresa de email.';
@@ -24,15 +24,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length === 0) {
-<<<<<<< Updated upstream
-      // Mock login: trimitem un user fake
-      onLogin({
-        fullName: 'User Demo',
-        email: form.email,
-        bio: 'Explorator al echilibrului digital și fizic.',
-        avatarUrl: null,
-      });
-=======
       try {
         // Apel API pentru login
         const apiUrl = import.meta.env.VITE_API_URL || '/api';
@@ -90,7 +81,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
         }
         setErrors({ password: errorMessage });
       }
->>>>>>> Stashed changes
     }
   };
 

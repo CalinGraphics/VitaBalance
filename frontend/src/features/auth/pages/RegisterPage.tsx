@@ -44,7 +44,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: {
       fullName?: string;
@@ -63,14 +63,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-<<<<<<< Updated upstream
-      onRegister({
-        fullName: form.fullName,
-        email: form.email,
-        bio: 'Spune lumii cine ești.',
-        avatarUrl: form.avatarPreview,
-      });
-=======
       try {
         // Apel API pentru register
         const apiUrl = import.meta.env.VITE_API_URL || '/api';
@@ -143,7 +135,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
         }
         setErrors({ email: errorMessage });
       }
->>>>>>> Stashed changes
     }
   };
 

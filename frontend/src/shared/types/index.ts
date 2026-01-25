@@ -19,4 +19,4 @@ export interface AuthUser {
   avatarUrl: string | null
 }
 
-export type Route = 'login' | 'register' | 'medical-profile' | 'lab-results' | 'recommendations'
+export type Route = 'login' | 'register' | 'medical-profile' | 'lab-results' | 'recommendations' | 'edit-profile'

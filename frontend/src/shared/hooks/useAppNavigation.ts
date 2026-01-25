@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Route, AuthUser, User } from '../types'
+import { profileService } from '../../services/api'
 
 export const useAppNavigation = () => {
   const [route, setRoute] = useState<Route>('login')
@@ -11,11 +12,6 @@ export const useAppNavigation = () => {
     setRoute(newRoute)
   }, [])
 
-<<<<<<< Updated upstream
-  const handleLogin = useCallback((loggedUser: AuthUser) => {
-    setAuthUser(loggedUser)
-    setRoute('medical-profile')
-=======
   const handleLogin = useCallback(async (loggedUser: AuthUser) => {
     if (import.meta.env.DEV) {
       console.log('handleLogin called with:', loggedUser)
@@ -29,7 +25,9 @@ export const useAppNavigation = () => {
         if (import.meta.env.DEV) {
           console.log('Caută profil pentru email:', loggedUser.email)
         }
+        
         const existingProfile = await profileService.getByEmail(loggedUser.email)
+        
         if (import.meta.env.DEV) {
           console.log('Profil găsit:', existingProfile)
         }
@@ -72,7 +70,6 @@ export const useAppNavigation = () => {
     } finally {
       setIsLoading(false)
     }
->>>>>>> Stashed changes
   }, [])
 
   const handleRegister = useCallback((newUser: AuthUser) => {
@@ -86,6 +83,11 @@ export const useAppNavigation = () => {
   }, [])
 
   const handleLabResultsComplete = useCallback(() => {
+    setRoute('recommendations')
+  }, [])
+
+  const handleProfileUpdate = useCallback((updatedUser: User) => {
+    setMedicalUser(updatedUser)
     setRoute('recommendations')
   }, [])
 
@@ -105,6 +107,7 @@ export const useAppNavigation = () => {
     handleRegister,
     handleMedicalProfileComplete,
     handleLabResultsComplete,
+    handleProfileUpdate,
     handleLogout,
   }
 }

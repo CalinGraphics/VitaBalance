@@ -10,8 +10,6 @@ const api = axios.create({
   },
 })
 
-<<<<<<< Updated upstream
-=======
 // Helper function pentru extragerea mesajului de eroare
 const extractErrorMessage = (error: any): string => {
   // Dacă există un detail în răspuns
@@ -75,11 +73,22 @@ api.interceptors.response.use(
   }
 )
 
->>>>>>> Stashed changes
 // API Services
 export const profileService = {
   create: async (data: Partial<User>) => {
     const response = await api.post('/profile', data)
+    return response.data
+  },
+  getByEmail: async (email: string) => {
+    const response = await api.get(`/profile/by-email/${email}`)
+    return response.data
+  },
+  get: async (userId: number) => {
+    const response = await api.get(`/profile/${userId}`)
+    return response.data
+  },
+  update: async (userId: number, data: Partial<User>) => {
+    const response = await api.post('/profile', { ...data, id: userId })
     return response.data
   },
 }
@@ -92,9 +101,6 @@ export const labResultsService = {
 }
 
 export const recommendationsService = {
-<<<<<<< Updated upstream
-  get: async (userId: number) => {
-=======
   get: async (userId: number, forceRegenerate: boolean = false) => {
     // Trimite force_regenerate ca query parameter
     const response = await api.post(
@@ -111,7 +117,6 @@ export const recommendationsService = {
       // Ignoră eroarea dacă nu există recomandări de șters
       console.log('Nu există recomandări de șters:', err)
     }
->>>>>>> Stashed changes
     const response = await api.post('/recommendations', { user_id: userId })
     return response.data
   },

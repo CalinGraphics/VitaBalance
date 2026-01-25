@@ -71,12 +71,9 @@ class DeficitCalculator:
     }
     
     def get_age_group(self, age: int) -> str:
-<<<<<<< Updated upstream
         """Determină grupa de vârstă"""
-=======
         if age is None:
             return '18-50'  # Default pentru vârsta lipsă
->>>>>>> Stashed changes
         if age < 18:
             return '18-30'
         elif age < 30:

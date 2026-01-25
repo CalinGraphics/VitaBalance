@@ -1,9 +1,4 @@
-<<<<<<< Updated upstream
-from typing import List, Dict
-=======
-
 from typing import List, Dict, Optional
->>>>>>> Stashed changes
 from models import Food, User
 
 class ExplanationGenerator:
@@ -26,14 +21,12 @@ class ExplanationGenerator:
         user: User,
         deficits: Dict[str, float],
         score: float,
-        coverage: float
+        coverage: float,
+        explanations: Optional[List[str]] = None,
+        matched_rules: Optional[List[str]] = None
     ) -> Dict:
         """
         Generează o explicație completă pentru o recomandare
-<<<<<<< Updated upstream
-        """
-        portion = 150  # Porție standard în grame
-=======
         
         Această metodă poate funcționa în două moduri:
         1. Cu explicații pre-generate de rule engine (preferat)
@@ -114,7 +107,6 @@ class ExplanationGenerator:
         de rule engine (pentru compatibilitate cu codul vechi).
         """
         portion = 150
->>>>>>> Stashed changes
         reasons = []
         tips = []
         alternatives = []
@@ -218,4 +210,33 @@ class ExplanationGenerator:
         
         # Returnează doar nutrientul și valoarea
         return [(nutrient, value) for nutrient, value, _ in relevance[:3]]
+    
+    def _generate_tips_from_rules(self, matched_rules: List[str], food: Food) -> List[str]:
+        """Generează sfaturi bazate pe regulile care s-au potrivit"""
+        tips = []
+        
+        # Sfaturi generale bazate pe aliment
+        if food.iron and food.iron > 1.0:
+            tips.append("Sfat: Combină-l cu vitamina C (ex: lămâie) pentru absorbție mai bună a fierului!")
+        
+        if food.calcium and food.calcium > 50:
+            tips.append("Sfat: Evită consumul simultan cu alimente bogate în fier, pentru o absorbție optimă!")
+        
+        if food.vitamin_d and food.vitamin_d > 0:
+            tips.append("Sfat: Expunerea la soare (10-15 minute zilnic) ajută la sinteza vitaminei D!")
+        
+        return tips
+    
+    def _generate_alternatives(self, food: Food) -> List[str]:
+        """Generează alternative similare pentru aliment"""
+        alternatives = []
+        
+        if food.category == 'legume':
+            alternatives.append("Dacă nu-ți place, încearcă alte legume verzi: linte, fasole, mazăre")
+        elif food.category == 'carne':
+            alternatives.append("Alternative: ficat de vită, carne de porc, pește")
+        elif food.category == 'lactate':
+            alternatives.append("Alternative: iaurt, brânză, lapte")
+        
+        return alternatives
 

@@ -1,5 +1,6 @@
 
 from typing import List, Dict, Optional, Tuple
+import re
 from models import Food, User, LabResult
 from dataclasses import dataclass
 from enum import Enum
@@ -575,6 +576,136 @@ class NutritionalRuleEngine:
         else:
             return DeficiencyLevel.NONE
     
+    def _parse_food_restrictions(self, medical_conditions: str) -> Dict[str, List[str]]:
+        """
+        Parsează condițiile medicale și identifică interziceri pentru categorii de alimente.
+        
+        Returnează un dicționar cu:
+        - 'forbidden_categories': lista de categorii interzise
+        - 'forbidden_keywords': lista de cuvinte cheie interzise
+        """
+        if not medical_conditions:
+            return {'forbidden_categories': [], 'forbidden_keywords': []}
+        
+        conditions_lower = medical_conditions.lower()
+        forbidden_categories = []
+        forbidden_keywords = []
+        
+        # Mapping de expresii către categorii
+        category_patterns = {
+            'legume': [
+                'nu mananc legume', 'nu mănânc legume', 'nu mananc leguma', 'nu mănânc leguma',
+                'fara legume', 'fără legume', 'no vegetables', 'no veggies',
+                'evit legume', 'interzis legume', 'nu pot legume', 'nu pot mânca legume'
+            ],
+            'fructe': [
+                'nu mananc fructe', 'nu mănânc fructe', 'nu mananc fructa', 'nu mănânc fructa',
+                'fara fructe', 'fără fructe', 'no fruits', 'no fruit',
+                'evit fructe', 'interzis fructe', 'nu pot fructe', 'nu pot mânca fructe'
+            ],
+            'cereale': [
+                'nu mananc cereale', 'nu mănânc cereale', 'nu mananc cereala', 'nu mănânc cereala',
+                'fara cereale', 'fără cereale', 'no grains', 'no cereals',
+                'evit cereale', 'interzis cereale', 'nu pot cereale', 'nu pot mânca cereale'
+            ],
+            'carne': [
+                'nu mananc carne', 'nu mănânc carne', 'fara carne', 'fără carne',
+                'no meat', 'no red meat', 'evit carne', 'interzis carne',
+                'nu pot carne', 'nu pot mânca carne'
+            ],
+            'peste': [
+                'nu mananc peste', 'nu mănânc pește', 'nu mananc pesti', 'nu mănânc pești',
+                'fara peste', 'fără pește', 'no fish', 'no seafood',
+                'evit peste', 'interzis peste', 'nu pot peste', 'nu pot mânca peste'
+            ],
+            'lactate': [
+                'nu mananc lactate', 'nu mănânc lactate', 'nu mananc lapte', 'nu mănânc lapte',
+                'fara lactate', 'fără lactate', 'fara lapte', 'fără lapte',
+                'no dairy', 'no milk', 'evit lactate', 'interzis lactate'
+            ],
+            'semințe': [
+                'nu mananc seminte', 'nu mănânc semințe', 'nu am voie seminte', 'nu am voie semințe',
+                'fara seminte', 'fără semințe', 'no seeds', 'evit seminte', 'interzis seminte'
+            ],
+            'nuci': [
+                'nu mananc nuci', 'nu mănânc nuci', 'nu mananc nuca', 'nu mănânc nucă',
+                'fara nuci', 'fără nuci', 'no nuts', 'evit nuci', 'interzis nuci'
+            ],
+            'leguminoase': [
+                'nu mananc leguminoase', 'nu mănânc leguminoase', 'nu mananc fasole', 'nu mănânc fasole',
+                'nu mananc linte', 'nu mănânc linte', 'fara leguminoase', 'fără leguminoase',
+                'no legumes', 'no beans', 'evit leguminoase', 'interzis leguminoase'
+            ],
+            'ouă': [
+                'nu mananc oua', 'nu mănânc ouă', 'nu mananc ou', 'nu mănânc ou',
+                'fara oua', 'fără ouă', 'no eggs', 'evit oua', 'interzis oua'
+            ],
+            'soia': [
+                'nu mananc soia', 'nu mănânc soia', 'fara soia', 'fără soia',
+                'no soy', 'evit soia', 'interzis soia'
+            ]
+        }
+        
+        # Verifică fiecare categorie
+        for category, patterns in category_patterns.items():
+            if any(pattern in conditions_lower for pattern in patterns):
+                forbidden_categories.append(category)
+        
+        # Verifică și expresii generale precum "nu mănânc X" unde X este orice aliment
+        general_patterns = [
+            r'nu\s+(?:mănânc|mananc|pot\s+mânca|pot\s+mananca)\s+([a-zăâîșț]+)',
+            r'fără\s+([a-zăâîșț]+)',
+            r'fara\s+([a-zăâîșț]+)',
+            r'evit\s+([a-zăâîșț]+)',
+            r'interzis\s+([a-zăâîșț]+)'
+        ]
+        
+        for pattern in general_patterns:
+            matches = re.findall(pattern, conditions_lower)
+            for match in matches:
+                if match and len(match) > 2:  # Ignoră cuvinte prea scurte
+                    forbidden_keywords.append(match)
+        
+        # Verifică și cazurile simple: dacă utilizatorul scrie doar numele alimentului/categoriei
+        # (fără "nu mănânc", "fără", etc.), presupunem că este o interzicere
+        simple_food_keywords = {
+            'ouă': ['ouă', 'oua', 'ou', 'eggs'],
+            'legume': ['legume', 'leguma', 'vegetable', 'vegetables'],
+            'fructe': ['fructe', 'fructa', 'fruit', 'fruits'],
+            'cereale': ['cereale', 'cereala', 'grain', 'grains', 'cereal'],
+            'carne': ['carne', 'meat'],
+            'peste': ['peste', 'pește', 'fish', 'seafood'],
+            'lactate': ['lactate', 'lapte', 'dairy', 'milk'],
+            'semințe': ['semințe', 'seminte', 'seeds'],
+            'nuci': ['nuci', 'nucă', 'nuts'],
+            'leguminoase': ['leguminoase', 'fasole', 'linte', 'legumes', 'beans'],
+            'soia': ['soia', 'soy'],
+            'gluten': ['gluten', 'grâu', 'grau', 'wheat']
+        }
+        
+        # Verifică dacă există cuvinte cheie standalone (nu în expresii complexe)
+        words = re.split(r'[,\s\.;]+', conditions_lower)
+        for word in words:
+            word = word.strip()
+            if len(word) > 2:  # Ignoră cuvinte prea scurte
+                # Verifică dacă cuvântul este un aliment/categorie cunoscut
+                for category, keywords in simple_food_keywords.items():
+                    if word in keywords:
+                        # Verifică că nu este deja în forbidden_categories
+                        if category not in forbidden_categories:
+                            # Verifică că nu apare într-o expresie care indică că poate mânca
+                            if not any(positive in conditions_lower for positive in [
+                                'pot mânca', 'pot mananca', 'pot consuma', 'mănânc', 'mananc',
+                                'consum', 'mănâncă', 'mananca'
+                            ]):
+                                forbidden_categories.append(category)
+                                break
+        
+        return {
+            'forbidden_categories': forbidden_categories,
+            'forbidden_keywords': forbidden_keywords
+        }
+    
     def _is_compatible(self, food: Food, user: User) -> bool:
         """Verifică dacă alimentul este compatibil cu profilul utilizatorului"""
         # Verifică restricții dietetice
@@ -711,26 +842,102 @@ class NutritionalRuleEngine:
         
         # Verifică condiții medicale
         if user.medical_conditions:
-            conditions = [c.strip().lower() for c in user.medical_conditions.split(',')]
+            conditions_lower = user.medical_conditions.lower()
             food_name_lower = food.name.lower() if food.name else ''
             food_category_lower = food.category.lower() if food.category else ''
             
+            # Parsează restricțiile din condițiile medicale
+            restrictions = self._parse_food_restrictions(user.medical_conditions)
+            
+            # Verifică dacă categoria alimentului este interzisă
+            for forbidden_category in restrictions['forbidden_categories']:
+                if forbidden_category in food_category_lower:
+                    return False
+                # Verifică și variante ale categoriei
+                category_mappings = {
+                    'legume': ['legume', 'leguma', 'vegetable', 'vegetables', 'leguminoase'],
+                    'fructe': ['fructe', 'fructa', 'fruit', 'fruits'],
+                    'cereale': ['cereale', 'cereala', 'grain', 'grains', 'cereal'],
+                    'carne': ['carne', 'meat', 'pui', 'porc', 'vita', 'miel'],
+                    'peste': ['peste', 'pește', 'pescăruș', 'fish', 'seafood'],
+                    'lactate': ['lactate', 'lapte', 'dairy', 'milk'],
+                    'semințe': ['semințe', 'seminte', 'seeds'],
+                    'nuci': ['nuci', 'nucă', 'nuts'],
+                    'leguminoase': ['leguminoase', 'fasole', 'linte', 'legumes', 'beans'],
+                    'ouă': ['ouă', 'oua', 'ou', 'eggs'],
+                    'soia': ['soia', 'soy']
+                }
+                
+                if forbidden_category in category_mappings:
+                    for variant in category_mappings[forbidden_category]:
+                        if variant in food_category_lower or variant in food_name_lower:
+                            return False
+            
+            # Verifică cuvinte cheie interzise (din expresii generale)
+            for keyword in restrictions['forbidden_keywords']:
+                if keyword in food_name_lower or keyword in food_category_lower:
+                    return False
+            
             # Probleme cu rinichii - evită oxalați ridicați
-            if any('rinichi' in c or 'oxalat' in c or 'renal' in c for c in conditions):
+            if 'rinichi' in conditions_lower or 'oxalat' in conditions_lower or 'renal' in conditions_lower:
                 high_oxalate_foods = ['spanac', 'rabarbar', 'nucă', 'ciocolată', 'ceai']
                 if any(ox in food_name_lower or ox in food_category_lower for ox in high_oxalate_foods):
                     return False
             
             # Diabet - evită alimente cu indice glicemic foarte ridicat
-            if any('diabet' in c or 'glicemie' in c for c in conditions):
+            if 'diabet' in conditions_lower or 'glicemie' in conditions_lower:
                 high_gi_foods = ['zahăr', 'sirop', 'dulceață', 'bomboane']
                 if any(gi in food_name_lower for gi in high_gi_foods):
                     return False
             
             # Hipertensiune - evită alimente cu sodiu ridicat
-            if any('hipertensiune' in c or 'tensiune' in c for c in conditions):
+            if 'hipertensiune' in conditions_lower or 'tensiune' in conditions_lower:
                 high_sodium_foods = ['sare', 'salam', 'cârnați', 'conservă']
                 if any(sod in food_name_lower or sod in food_category_lower for sod in high_sodium_foods):
+                    return False
+            
+            # Verificări specifice pentru semințe (pentru compatibilitate cu codul existent)
+            seed_restrictions = [
+                'nu am voie seminte', 'nu am voie semințe', 'fără seminte', 'fără semințe',
+                'no seeds', 'no seeds allowed', 'fara seminte', 'fara semințe',
+                'interzis seminte', 'interzis semințe', 'evit seminte', 'evit semințe'
+            ]
+            seed_keywords = ['semințe', 'seminte', 'semințe de', 'seminte de', 'chia', 'flax',
+                           'in', 'sunflower', 'pumpkin', 'sesame', 'sezam', 'semințe de in',
+                           'semințe de chia', 'semințe de dovleac', 'semințe de susan',
+                           'semințe de floarea-soarelui', 'seminte de floarea-soarelui']
+            
+            if any(restriction in conditions_lower for restriction in seed_restrictions):
+                if 'semințe' in food_category_lower or 'seminte' in food_category_lower:
+                    return False
+                if any(keyword in food_name_lower for keyword in seed_keywords):
+                    return False
+            
+            # Verificări specifice pentru nuci
+            nuts_restrictions = [
+                'nu am voie nuci', 'nu am voie nucă', 'fără nuci', 'fără nucă',
+                'no nuts', 'no nuts allowed', 'fara nuci', 'fara nucă',
+                'interzis nuci', 'interzis nucă', 'evit nuci', 'evit nucă'
+            ]
+            nuts_keywords = ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic',
+                           'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+            
+            if any(restriction in conditions_lower for restriction in nuts_restrictions):
+                if any(keyword in food_name_lower or keyword in food_category_lower for keyword in nuts_keywords):
+                    return False
+            
+            # Verificări specifice pentru lactate
+            dairy_restrictions = [
+                'nu am voie lactate', 'nu am voie lapte', 'fără lactate', 'fără lapte',
+                'no dairy', 'no milk', 'fara lactate', 'fara lapte',
+                'interzis lactate', 'interzis lapte', 'evit lactate', 'evit lapte'
+            ]
+            dairy_keywords = ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea',
+                            'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan',
+                            'cheddar', 'feta', 'brie', 'camembert', 'dairy']
+            
+            if any(restriction in conditions_lower for restriction in dairy_restrictions):
+                if any(keyword in food_name_lower or keyword in food_category_lower for keyword in dairy_keywords):
                     return False
         
         return True

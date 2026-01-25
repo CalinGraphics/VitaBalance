@@ -42,42 +42,19 @@ const Recommendations = ({ user }: RecommendationsProps) => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchRecommendations()
-  }, [])
-
-<<<<<<< Updated upstream
-  const fetchRecommendations = async () => {
-=======
-    if (hasChanged) {
-      // Regenerează recomandările dacă s-au schimbat criteriile
-      fetchRecommendations(true)
-      setPrevUserValues({
-        diet_type: user.diet_type,
-        activity_level: user.activity_level,
-        allergies: user.allergies,
-        medical_conditions: user.medical_conditions
-      })
-    } else {
-      // Altfel, doar încarcă recomandările existente
-      fetchRecommendations(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id, user.diet_type, user.activity_level, user.allergies, user.medical_conditions])
+  const [prevUserValues, setPrevUserValues] = useState({
+    diet_type: user.diet_type,
+    activity_level: user.activity_level,
+    allergies: user.allergies,
+    medical_conditions: user.medical_conditions
+  })
 
   const fetchRecommendations = async (forceRegenerate: boolean = false) => {
->>>>>>> Stashed changes
     try {
       if (import.meta.env.DEV) {
         console.log('fetchRecommendations called for user.id:', user.id, 'forceRegenerate:', forceRegenerate)
       }
       setLoading(true)
-<<<<<<< Updated upstream
-      if (user.id) {
-        const data = await recommendationsService.get(user.id)
-        setRecommendations(data)
-=======
       setError(null)
       if (!user || !user.id) {
         console.error('User sau user.id lipsește!', user)
@@ -100,13 +77,9 @@ const Recommendations = ({ user }: RecommendationsProps) => {
         }
         setError('Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele medicale.')
         setRecommendations([])
->>>>>>> Stashed changes
       }
     } catch (err) {
       console.error('Eroare la obținerea recomandărilor:', err)
-<<<<<<< Updated upstream
-      setError('Nu s-au putut genera recomandări. Vă rugăm să încercați din nou.')
-=======
       // Extrage mesajul de eroare - axios interceptor-ul ar trebui să-l extragă deja
       let errorMessage = 'Nu s-au putut genera recomandări. Vă rugăm să încercați din nou.'
       
@@ -125,11 +98,33 @@ const Recommendations = ({ user }: RecommendationsProps) => {
       
       setError(errorMessage)
       setRecommendations([])
->>>>>>> Stashed changes
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const hasChanged = 
+      prevUserValues.diet_type !== user.diet_type ||
+      prevUserValues.activity_level !== user.activity_level ||
+      prevUserValues.allergies !== user.allergies ||
+      prevUserValues.medical_conditions !== user.medical_conditions
+
+    if (hasChanged) {
+      // Regenerează recomandările dacă s-au schimbat criteriile
+      fetchRecommendations(true)
+      setPrevUserValues({
+        diet_type: user.diet_type,
+        activity_level: user.activity_level,
+        allergies: user.allergies,
+        medical_conditions: user.medical_conditions
+      })
+    } else {
+      // Altfel, doar încarcă recomandările existente
+      fetchRecommendations(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id, user.diet_type, user.activity_level, user.allergies, user.medical_conditions])
 
 
   const exportToPDF = () => {

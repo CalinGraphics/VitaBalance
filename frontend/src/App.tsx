@@ -1,37 +1,9 @@
 import { ThemeProvider } from './shared/contexts'
 import { Layout, Disclaimer } from './shared'
 import { LoginPage, RegisterPage } from './features/auth/pages'
-import { MedicalProfilePage, MedicalLabResultsPage } from './features/medical/pages'
+import { MedicalProfilePage, MedicalLabResultsPage, EditProfilePage } from './features/medical/pages'
 import { Recommendations } from './features/recommendations/components'
 import { useAppNavigation } from './shared/hooks'
-
-import { useState, useEffect } from 'react'
-import { supabase } from '../utils/supabase'
-
-function Page() {
-  const [todos, setTodos] = useState([])
-
-  useEffect(() => {
-    function getTodos() {
-      const { data: todos } = await supabase.from('todos').select()
-
-      if (todos.length > 1) {
-        setTodos(todos)
-      }
-    }
-
-    getTodos()
-  }, [])
-
-  return (
-    <div>
-      {todos.map((todo) => (
-        <li key={todo}>{todo}</li>
-      ))}
-    </div>
-  )
-}
-export default Page
 
 function App() {
   const {
@@ -44,6 +16,7 @@ function App() {
     handleRegister,
     handleMedicalProfileComplete,
     handleLabResultsComplete,
+    handleProfileUpdate,
     handleLogout,
   } = useAppNavigation()
 
@@ -57,6 +30,8 @@ function App() {
       <Layout 
         onLogout={handleLogout}
         showLogout={route === 'recommendations' && !!medicalUser}
+        onProfileClick={() => navigate('edit-profile')}
+        showProfile={route === 'recommendations' && !!medicalUser}
       >
         {/* Loading state - prioritate maximă */}
         {isLoading ? (
@@ -64,8 +39,6 @@ function App() {
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neonCyan mb-4"></div>
             <p className="text-slate-300">Se încarcă...</p>
           </div>
-<<<<<<< Updated upstream
-=======
         ) : (
           <>
             {route === 'login' && (
@@ -164,7 +137,6 @@ function App() {
               </div>
             )}
           </>
->>>>>>> Stashed changes
         )}
       </Layout>
     </ThemeProvider>
