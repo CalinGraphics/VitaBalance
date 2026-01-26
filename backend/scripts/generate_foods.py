@@ -460,7 +460,6 @@ FOODS_DATA = [
         'calories': 81
     },
     
-    # ALIMENTE ADĂUGATE PENTRU REGULILE DIN IMPLEMENTARE_PDF.md
     {
         'name': 'Năut',
         'category': 'legume',
