@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { User } from '../shared/types'
+import { getToken, clearToken } from './authStorage'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -8,6 +9,14 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+})
+
+api.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 // Helper function pentru extragerea mesajului de eroare
@@ -62,16 +71,35 @@ const extractErrorMessage = (error: any): string => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Pentru 404, nu modifica eroarea - lasă-o să fie propagată pentru a putea fi gestionată specific
+    if (error.response?.status === 401) {
+      clearToken()
+    }
     if (error.response?.status === 404) {
       return Promise.reject(error)
     }
-    
-    // Extrage mesajul de eroare folosind funcția helper
     error.message = extractErrorMessage(error)
     return Promise.reject(error)
   }
 )
+
+// Auth (magic link + JWT)
+export const authService = {
+  requestMagicLink: async (email: string, fullName?: string) => {
+    const response = await api.post('/auth/request-magic-link', {
+      email: email.trim(),
+      ...(fullName ? { fullName: fullName.trim() } : {}),
+    })
+    return response.data
+  },
+  verifyMagicLink: async (token: string) => {
+    const response = await api.post('/auth/verify-magic-link', { token })
+    return response.data
+  },
+  me: async () => {
+    const response = await api.get('/auth/me')
+    return response.data
+  },
+}
 
 // API Services
 export const profileService = {

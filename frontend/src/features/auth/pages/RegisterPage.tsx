@@ -5,7 +5,7 @@ import type { AuthUser } from '../../../shared/types';
 
 interface RegisterPageProps {
   onNavigate: (page: 'login' | 'register') => void;
-  onRegister: (user: AuthUser) => void;
+  onRegister: (user: AuthUser, accessToken?: string) => void;
 }
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) => {
@@ -113,11 +113,15 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
         }
 
         const user = await response.json();
-        onRegister({
-          fullName: user.fullName,
-          email: user.email,
-          bio: user.bio,
-        });
+        onRegister(
+          {
+            fullName: user.fullName,
+            email: user.email,
+            bio: user.bio,
+            avatarUrl: null,
+          },
+          user.access_token
+        );
       } catch (error: any) {
         console.error('Eroare la înregistrare:', error);
         let errorMessage = 'Eroare la conectare. Vă rugăm să încercați din nou.';

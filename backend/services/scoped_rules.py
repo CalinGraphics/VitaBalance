@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 import re
-from models import User, Food, LabResult
+from domain.models import UserProfile, FoodItem, LabResultItem
 
 
 class NutrientType(str, Enum):
@@ -379,7 +379,7 @@ class ScopedRulesEngine:
         
         return rules
     
-    def get_user_scopes(self, user: User, lab_results: Optional[LabResult] = None) -> List[ScopeType]:
+    def get_user_scopes(self, user: UserProfile, lab_results: Optional[LabResultItem] = None) -> List[ScopeType]:
         scopes = []
         
         if user.diet_type == 'vegan':
@@ -448,10 +448,10 @@ class ScopedRulesEngine:
     def evaluate_rules_for_nutrient(
         self,
         nutrient: NutrientType,
-        food: Food,
-        user: User,
+        food: FoodItem,
+        user: UserProfile,
         deficit: float,
-        lab_results: Optional[LabResult] = None
+        lab_results: Optional[LabResultItem] = None
     ) -> List[ScopedRuleResult]:
         """Evaluează regulile pentru un nutrient și returnează cele care se potrivesc"""
         if nutrient not in self.rules:
@@ -493,7 +493,7 @@ class ScopedRulesEngine:
         
         return matching_rules
     
-    def _get_nutrient_value(self, food: Food, nutrient: NutrientType) -> float:
+    def _get_nutrient_value(self, food: FoodItem, nutrient: NutrientType) -> float:
         """Extrage valoarea nutrientului din aliment"""
         mapping = {
             NutrientType.IRON: food.iron or 0,
@@ -511,7 +511,7 @@ class ScopedRulesEngine:
         }
         return mapping.get(nutrient, 0)
     
-    def _food_matches_recommendations(self, food: Food, recommended_foods: List[str]) -> bool:
+    def _food_matches_recommendations(self, food: FoodItem, recommended_foods: List[str]) -> bool:
         if not recommended_foods:
             return True
         
@@ -531,10 +531,10 @@ class ScopedRulesEngine:
     def _generate_explanation(
         self,
         rule: ScopedRule,
-        food: Food,
+        food: FoodItem,
         nutrient_value: float,
         deficit: float,
-        lab_results: Optional[LabResult] = None
+        lab_results: Optional[LabResultItem] = None
     ) -> str:
         """Generează explicația pentru regulă"""
         context_label = self._get_scope_label(rule.scope)
@@ -576,8 +576,10 @@ class ScopedRulesEngine:
         
         return explanation
     
-    def _get_biomarker_value(self, lab_results: LabResult, nutrient: NutrientType) -> Optional[float]:
+    def _get_biomarker_value(self, lab_results: Optional[LabResultItem], nutrient: NutrientType) -> Optional[float]:
         """Extrage valoarea biomarkerului pentru nutrient"""
+        if lab_results is None:
+            return None
         mapping = {
             NutrientType.IRON: lab_results.ferritin,
             NutrientType.CALCIUM: lab_results.calcium,
@@ -750,7 +752,7 @@ class ScopedRulesEngine:
             'forbidden_keywords': forbidden_keywords
         }
     
-    def _is_compatible(self, food: Food, user: User) -> bool:
+    def _is_compatible(self, food: FoodItem, user: UserProfile) -> bool:
         """Verifică compatibilitatea alimentului cu restricțiile utilizatorului"""
         if user.diet_type == 'vegetarian' or user.diet_type == 'vegan':
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']
@@ -969,7 +971,7 @@ class ScopedRulesEngine:
         
         return True
     
-    def _is_food_compatible_with_rule(self, food: Food, rule: ScopedRule, user: User) -> bool:
+    def _is_food_compatible_with_rule(self, food: FoodItem, rule: ScopedRule, user: UserProfile) -> bool:
         """Verifică dacă alimentul este compatibil cu regula specifică"""
         if rule.scope == ScopeType.DIET_VEGAN:
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']

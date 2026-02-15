@@ -15,9 +15,6 @@ import argparse
 import os
 from typing import Any, Iterable, Optional, Tuple
 
-from sqlalchemy.orm import Session
-from database import SessionLocal
-from models import Food
 from typing import List, Dict
 def _looks_like_postgres_url(url: str) -> bool:
     u = (url or "").lower()
@@ -658,92 +655,14 @@ def classify_food(food_data: Dict) -> Dict[str, bool]:
     return classifications
 
 
-def generate_foods(db: Session, clear_existing: bool = False):
-    """
-    Generează și inserează alimente în baza de date
-    
-    Args:
-        db: Sesiunea de bază de date
-        clear_existing: Dacă True, șterge toate alimentele existente
-    """
-    if clear_existing:
-        print("Șterg alimentele existente...")
-        db.query(Food).delete()
-        db.commit()
-        print("[OK] Alimentele existente au fost sterse")
-    
-    print(f"\nGenerez {len(FOODS_DATA)} alimente...")
-    
-    classifications_summary = {
-        'high_iron': [],
-        'high_magnesium': [],
-        'high_calcium': [],
-        'high_protein': [],
-        'high_fiber': []
-    }
-    
-    for food_data in FOODS_DATA:
-        food_data = _prepare_food_payload(food_data)
-        
-        # Clasifică alimentul
-        classifications = classify_food(food_data)
-        
-        # Adaugă la sumar
-        for key, value in classifications.items():
-            if value:
-                classifications_summary[key].append(food_data['name'])
-        
-        # Verifică dacă alimentul există deja
-        existing = db.query(Food).filter(Food.name == food_data['name']).first()
-        
-        if existing:
-            print(f"  [SKIP] {food_data['name']} exista deja, trec peste...")
-            continue
-        
-        # Creează alimentul nou
-        food = Food(**food_data)
-        db.add(food)
-        print(f"  [OK] {food_data['name']} - {food_data['category']}")
-    
-    db.commit()
-    print(f"\n[OK] {len(FOODS_DATA)} alimente procesate!")
-    
-    # Afișează clasificările
-    print("\n" + "="*60)
-    print("CLASIFICARE ALIMENTE")
-    print("="*60)
-    
-    print("\nALIMENTE BOGATE IN FIER (>=3mg/100g):")
-    for food_name in classifications_summary['high_iron']:
-        print(f"   - {food_name}")
-    
-    print("\nALIMENTE BOGATE IN MAGNEZIU (>=100mg/100g):")
-    for food_name in classifications_summary['high_magnesium']:
-        print(f"   - {food_name}")
-    
-    print("\nALIMENTE BOGATE IN CALCIU (>=200mg/100g):")
-    for food_name in classifications_summary['high_calcium']:
-        print(f"   - {food_name}")
-    
-    print("\nALIMENTE BOGATE IN PROTEINE (>=20g/100g):")
-    for food_name in classifications_summary['high_protein']:
-        print(f"   - {food_name}")
-    
-    print("\nALIMENTE BOGATE IN FIBRE (>=5g/100g):")
-    for food_name in classifications_summary['high_fiber']:
-        print(f"   - {food_name}")
-    
-    print("\n" + "="*60)
-
-
 def main():
     """Funcție principală"""
     parser = argparse.ArgumentParser(description="Generator alimente VitaBalance")
     parser.add_argument(
         "--mode",
-        choices=["auto", "sqlalchemy", "supabase"],
+        choices=["auto", "supabase"],
         default="auto",
-        help="auto: folosește DATABASE_URL dacă există, altfel Supabase dacă există credențiale, altfel SQLite",
+        help="supabase only (SQLite removed). auto = use Supabase if creds set.",
     )
     parser.add_argument(
         "--clear",
@@ -769,41 +688,18 @@ def main():
 
     mode = args.mode
     if mode == "auto":
-        if _looks_like_postgres_url(database_url):
-            mode = "sqlalchemy"
-        elif has_supabase_creds:
-            mode = "supabase"
-        else:
-            mode = "sqlalchemy"
+        mode = "supabase" if has_supabase_creds else "supabase"
 
-    if mode == "supabase":
-        print("Mod: Supabase (REST client)")
-        total_foods = generate_foods_supabase(clear_existing=args.clear_existing)
-        print(f"\nTotal alimente in baza de date: {total_foods}")
-        print("\n[OK] Procesul s-a finalizat cu succes!")
-        return
+    if not has_supabase_creds:
+        print("Eroare: SUPABASE_URL și SUPABASE_KEY trebuie setate în .env")
+        return 1
 
-    # SQLAlchemy (Postgres dacă DATABASE_URL e setat, altfel SQLite fallback din database.py)
-    if _looks_like_postgres_url(database_url):
-        print("Mod: SQLAlchemy -> PostgreSQL/Supabase (DATABASE_URL)")
-    else:
-        print("Mod: SQLAlchemy -> SQLite (fallback, DATABASE_URL lipsa)")
-
-    db = SessionLocal()
-    try:
-        generate_foods(db, clear_existing=args.clear_existing)
-        total_foods = db.query(Food).count()
-        print(f"\nTotal alimente in baza de date: {total_foods}")
-        print("\n[OK] Procesul s-a finalizat cu succes!")
-    except Exception as e:
-        db.rollback()
-        print(f"\n[ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise
-    finally:
-        db.close()
+    print("Mod: Supabase (singura sursă de date)")
+    total_foods = generate_foods_supabase(clear_existing=args.clear_existing)
+    print(f"\nTotal alimente in baza de date: {total_foods}")
+    print("\n[OK] Procesul s-a finalizat cu succes!")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    exit(main() or 0)

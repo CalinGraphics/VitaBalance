@@ -1,45 +1,52 @@
+"""
+VitaBalance API – production-ready.
+Data: Supabase only. Auth: JWT middleware (to be added). No SQLite.
+"""
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
 import uvicorn
+import inspect
+import hashlib
+import os
 
-from database import SessionLocal, engine, Base
-from models import User, LabResult, Food, Recommendation, Feedback
+from config import get_settings
+from routers import supabase as supabase_router
 from schemas import (
-    UserCreate, UserResponse,
-    LabResultCreate, LabResultResponse,
-    RecommendationRequest, RecommendationResponse,
-    FeedbackCreate
+    UserCreate,
+    UserResponse,
+    LabResultCreate,
+    LabResultResponse,
+    RecommendationRequest,
+    FeedbackCreate,
 )
 from services.recommender import RecommenderService
 from services.deficit_calculator import DeficitCalculator
 from services.explanation_generator import ExplanationGenerator
 from services.auth import authenticate_user, create_user
-from routers import supabase as supabase_router
-from config import get_settings
-from supabase_client import get_supabase_client
-from pydantic import BaseModel, EmailStr
-from typing import Optional
-import inspect
-import hashlib
-import os
-
-# Creează tabelele în baza de date
-Base.metadata.create_all(bind=engine)
+from domain.models import UserProfile, FoodItem
+from repositories import (
+    UserRepository,
+    FoodRepository,
+    LabResultRepository,
+    RecommendationRepository,
+    FeedbackRepository,
+)
+from services.auth import request_magic_link, verify_magic_link
+from middleware.auth import get_current_user
 
 app = FastAPI(
     title="VitaBalance API",
     description="Sistem de recomandare cu explicații personalizate pentru deficiențe nutriționale",
-    version="1.0.0"
+    version="2.0.0",
 )
 
 settings = get_settings()
 
-# CORS middleware pentru a permite comunicarea cu frontend-ul
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=settings.get_cors_origins_list(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,37 +54,42 @@ app.add_middleware(
 
 app.include_router(supabase_router.router)
 
-# Dependency pentru a obține sesiunea de bază de date
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
+def _profile_to_response(p: UserProfile) -> dict:
+    """Map UserProfile to API response shape."""
+    return {
+        "id": p.id,
+        "email": p.email,
+        "name": p.name,
+        "age": p.age,
+        "sex": p.sex,
+        "weight": p.weight,
+        "height": p.height,
+        "activity_level": p.activity_level,
+        "diet_type": p.diet_type,
+        "allergies": p.allergies,
+        "medical_conditions": p.medical_conditions,
+        "created_at": p.created_at or None,
+    }
+
+
+# ---------- Public / health ----------
 @app.get("/")
 async def root():
     return {"message": "VitaBalance API - Sistem de recomandare nutrițională"}
 
-# Health/config endpoints
+
 @app.get("/health")
 async def health_check(settings=Depends(get_settings)):
-    """
-    Health check simplu care confirmă că aplicația și setările sunt încărcate.
-    """
     return {
         "status": "healthy",
         "app_name": settings.app_name,
-        "debug": settings.debug
+        "debug": settings.debug,
     }
 
 
 @app.get("/debug/rule-engine")
 async def debug_rule_engine():
-    """
-    Debug endpoint: arată exact ce fișier `services/rule_engine.py` este încărcat
-    și o amprentă a funcției `evaluate_food` (ca să evităm situațiile cu cod vechi/cached).
-    """
     try:
         from services import rule_engine as re_mod
         src = inspect.getsource(re_mod.NutritionalRuleEngine.evaluate_food)
@@ -94,18 +106,14 @@ async def debug_rule_engine():
 
 @app.get("/config")
 async def get_config(settings=Depends(get_settings)):
-    """
-    Expune configurația de bază pentru debug (fără secrete).
-    """
-    return {
-        "app_name": settings.app_name,
-        "debug": settings.debug
-    }
+    return {"app_name": settings.app_name, "debug": settings.debug}
 
-# Schemas pentru autentificare
+
+# ---------- Auth (legacy password – will be replaced by magic link) ----------
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -113,499 +121,523 @@ class RegisterRequest(BaseModel):
     fullName: str
     bio: Optional[str] = None
 
+
 class AuthResponse(BaseModel):
     email: str
     fullName: str
     bio: str
+    access_token: Optional[str] = None
+    token_type: str = "bearer"
+
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+    fullName: Optional[str] = None  # pentru înregistrare prin magic link
+
+
+class MagicLinkVerifyRequest(BaseModel):
+    token: str
+
+
+class MagicLinkResponse(BaseModel):
+    message: str
+
+
+class VerifyMagicLinkResponse(BaseModel):
+    email: str
+    fullName: str
+    bio: str
+    access_token: str
+    token_type: str = "bearer"
+
+
+@app.post("/api/auth/request-magic-link", response_model=MagicLinkResponse)
+async def api_request_magic_link(body: MagicLinkRequest):
+    """Trimite link magic pe email. Opțional fullName pentru înregistrare."""
+    if not body.email or not str(body.email).strip():
+        raise HTTPException(status_code=400, detail="Email obligatoriu")
+    request_magic_link(str(body.email).strip(), full_name=body.fullName)
+    return MagicLinkResponse(message="Dacă acest email este valid, vei primi un link de autentificare în câteva minute.")
+
+
+@app.post("/api/auth/verify-magic-link", response_model=VerifyMagicLinkResponse)
+async def api_verify_magic_link(body: MagicLinkVerifyRequest):
+    """Validează tokenul magic, invalidează tokenul, returnează user + JWT."""
+    if not body.token or not body.token.strip():
+        raise HTTPException(status_code=400, detail="Token obligatoriu")
+    result = verify_magic_link(body.token.strip())
+    if not result:
+        raise HTTPException(status_code=401, detail="Link invalid, expirat sau deja folosit")
+    return VerifyMagicLinkResponse(
+        email=result["email"],
+        fullName=result["fullName"],
+        bio=result["bio"],
+        access_token=result["access_token"],
+        token_type=result.get("token_type", "bearer"),
+    )
+
+
+@app.get("/api/auth/me", response_model=AuthResponse)
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """Returnează utilizatorul curent din JWT (pentru restabilire sesiune)."""
+    from repositories import UserRepository
+    repo = UserRepository()
+    profile = repo.get_by_email(current_user["email"])
+    full_name = (profile.full_name or profile.name or "") if profile else current_user.get("email", "")
+    bio = (profile.bio or "") if profile else ""
+    return AuthResponse(
+        email=current_user["email"],
+        fullName=full_name,
+        bio=bio,
+    )
+
+
+def _ensure_user_resource(current_user: dict, user_id: int) -> UserProfile:
+    """Verifică că resursa aparține utilizatorului autentificat. Returnează UserProfile."""
+    repo = UserRepository()
+    profile = repo.get_by_email(current_user["email"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profilul nu a fost găsit")
+    if profile.id != user_id:
+        raise HTTPException(status_code=403, detail="Nu ai acces la această resursă")
+    return profile
+
 
 @app.get("/api/profile/by-email/{email}")
-async def get_profile_by_email(email: str, db: Session = Depends(get_db)):
-    """Obține profilul utilizatorului după email"""
-    user = db.query(User).filter(User.email == email).first()
+async def get_profile_by_email(email: str, current_user: dict = Depends(get_current_user)):
+    if current_user.get("email", "").lower() != email.lower():
+        raise HTTPException(status_code=403, detail="Nu ai acces la acest profil")
+    repo = UserRepository()
+    user = repo.get_by_email(email)
     if not user:
-        # Returnează 404 pentru a permite frontend-ului să gestioneze corect
         raise HTTPException(status_code=404, detail="Profilul nu a fost găsit")
-    return user
+    return _profile_to_response(user)
+
 
 @app.post("/api/auth/login", response_model=AuthResponse)
 async def login(credentials: LoginRequest):
-    """Autentifică un utilizator"""
     user = authenticate_user(credentials.email, credentials.password)
     if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Email sau parolă incorectă"
-        )
+        raise HTTPException(status_code=401, detail="Email sau parolă incorectă")
+    from services.auth import create_access_token
+    access_token = create_access_token({"sub": user["email"], "email": user["email"]})
     return AuthResponse(
         email=user["email"],
         fullName=user["fullName"],
-        bio=user["bio"]
+        bio=user["bio"],
+        access_token=access_token,
+        token_type="bearer",
     )
+
 
 @app.post("/api/auth/register", response_model=AuthResponse)
 async def register(user_data: RegisterRequest):
-    """Creează un cont nou"""
+    if not user_data.email or not user_data.email.strip():
+        raise HTTPException(status_code=400, detail="Email-ul este obligatoriu")
+    if not user_data.fullName or not user_data.fullName.strip():
+        raise HTTPException(status_code=400, detail="Numele complet este obligatoriu")
+    if not user_data.password:
+        raise HTTPException(status_code=400, detail="Parola este obligatorie")
+    password_stripped = user_data.password.strip()
+    if len(password_stripped) == 0:
+        raise HTTPException(status_code=400, detail="Parola nu poate conține doar spații")
+    if len(password_stripped) < 6:
+        raise HTTPException(status_code=400, detail="Parola trebuie să aibă minim 6 caractere")
     try:
-        # Validare email
-        if not user_data.email or len(user_data.email.strip()) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Email-ul este obligatoriu"
-            )
-        
-        # Validare nume complet
-        if not user_data.fullName or len(user_data.fullName.strip()) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Numele complet este obligatoriu"
-            )
-        
-        # Validare că parola există și nu este goală
-        if not user_data.password:
-            raise HTTPException(
-                status_code=400,
-                detail="Parola este obligatorie"
-            )
-        
-        # Elimină spațiile de la început și sfârșit, dar păstrează parola originală pentru hash
-        password_stripped = user_data.password.strip()
-        if len(password_stripped) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Parola nu poate conține doar spații"
-            )
-        
-        # Validare lungime parolă - minim 6 caractere
-        if len(password_stripped) < 6:
-            raise HTTPException(
-                status_code=400,
-                detail="Parola trebuie să aibă minim 6 caractere"
-            )
-        
-        # Folosește parola originală (fără trim) pentru hash, dar validăm că nu este doar spații
         new_user = create_user(
             email=user_data.email.strip(),
-            password=user_data.password,  # Folosim parola originală pentru hash
+            password=user_data.password,
             fullName=user_data.fullName.strip(),
-            bio=user_data.bio.strip() if user_data.bio else None
+            bio=user_data.bio.strip() if user_data.bio else None,
         )
-        
+        from services.auth import create_access_token
+        access_token = create_access_token({"sub": new_user["email"], "email": new_user["email"]})
         return AuthResponse(
             email=new_user["email"],
             fullName=new_user["fullName"],
-            bio=new_user["bio"]
+            bio=new_user["bio"],
+            access_token=access_token,
+            token_type="bearer",
         )
-    except HTTPException:
-        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         import traceback
-        error_msg = str(e)
-        print(f"Eroare detaliată la crearea contului: {traceback.format_exc()}")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Eroare la crearea contului: {str(e)}")
 
+
+# ---------- Profile (Supabase) – protejat ----------
 @app.post("/api/profile", response_model=UserResponse)
-async def create_profile(user: UserCreate, db: Session = Depends(get_db)):
-    """Creează sau actualizează profilul utilizatorului"""
-    db_user = db.query(User).filter(User.email == user.email).first()
-    
-    # Verifică dacă s-au schimbat alergiile, diet_type sau medical_conditions
-    # pentru a șterge recomandările vechi
-    should_delete_recommendations = False
-    if db_user:
-        old_allergies = db_user.allergies or ''
-        old_diet_type = db_user.diet_type or ''
-        old_medical_conditions = db_user.medical_conditions or ''
-        
-        new_allergies = user.allergies or ''
-        new_diet_type = user.diet_type or ''
-        new_medical_conditions = user.medical_conditions or ''
-        
-        # Dacă s-au schimbat alergiile, tipul de dietă sau condițiile medicale,
-        # șterge recomandările vechi pentru a forța regenerarea
-        if (old_allergies != new_allergies or 
-            old_diet_type != new_diet_type or 
-            old_medical_conditions != new_medical_conditions):
-            should_delete_recommendations = True
-        
-        # Actualizează profilul existent
-        for key, value in user.dict(exclude_unset=True).items():
-            setattr(db_user, key, value)
+async def create_profile(user: UserCreate, current_user: dict = Depends(get_current_user)):
+    if current_user.get("email", "").lower() != user.email.lower():
+        raise HTTPException(status_code=403, detail="Poți actualiza doar propriul profil")
+    repo = UserRepository()
+    rec_repo = RecommendationRepository()
+    existing = repo.get_by_email(user.email)
+    if existing:
+        old_allergies = existing.allergies or ""
+        old_diet_type = existing.diet_type or ""
+        old_medical = existing.medical_conditions or ""
+        new_allergies = user.allergies or ""
+        new_diet_type = user.diet_type or ""
+        new_medical = user.medical_conditions or ""
+        if old_allergies != new_allergies or old_diet_type != new_diet_type or old_medical != new_medical:
+            rec_repo.delete_by_user_id(existing.id)
+        updated = repo.upsert(
+            user.email,
+            name=user.name,
+            age=user.age,
+            sex=user.sex,
+            weight=user.weight,
+            height=user.height,
+            activity_level=user.activity_level,
+            diet_type=user.diet_type,
+            allergies=user.allergies,
+            medical_conditions=user.medical_conditions,
+            user_id=existing.id,
+        )
     else:
-        # Creează profil nou
-        db_user = User(**user.dict())
-        db.add(db_user)
-    
-    # Șterge recomandările vechi dacă s-au schimbat criteriile relevante
-    if should_delete_recommendations and db_user.id:
-        db.query(Recommendation).filter(Recommendation.user_id == db_user.id).delete()
-    
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+        updated = repo.upsert(
+            user.email,
+            name=user.name,
+            age=user.age,
+            sex=user.sex,
+            weight=user.weight,
+            height=user.height,
+            activity_level=user.activity_level,
+            diet_type=user.diet_type,
+            allergies=user.allergies,
+            medical_conditions=user.medical_conditions,
+        )
+    return _profile_to_response(updated)
+
 
 @app.get("/api/profile/{user_id}", response_model=UserResponse)
-async def get_profile(user_id: int, db: Session = Depends(get_db)):
-    """Obține profilul utilizatorului"""
-    user = db.query(User).filter(User.id == user_id).first()
+async def get_profile(user_id: int, current_user: dict = Depends(get_current_user)):
+    _ensure_user_resource(current_user, user_id)
+    repo = UserRepository()
+    user = repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
-    return user
+    return _profile_to_response(user)
 
+
+# ---------- Lab results (Supabase) – protejat ----------
 @app.post("/api/lab-results", response_model=LabResultResponse)
-async def create_lab_results(lab_result: LabResultCreate, db: Session = Depends(get_db)):
-    """Salvează rezultatele analizelor medicale"""
-    db_lab_result = LabResult(**lab_result.dict())
-    db.add(db_lab_result)
-    db.commit()
-    db.refresh(db_lab_result)
-    
-    # Sincronizează cu Supabase
-    try:
-        supabase = get_supabase_client()
-        
-        # Pregătește datele pentru Supabase
-        supabase_data = {
-            "user_id": db_lab_result.user_id,
-            "hemoglobin": db_lab_result.hemoglobin,
-            "ferritin": db_lab_result.ferritin,
-            "vitamin_d": db_lab_result.vitamin_d,
-            "vitamin_b12": db_lab_result.vitamin_b12,
-            "calcium": db_lab_result.calcium,
-            "magnesium": db_lab_result.magnesium,
-            "zinc": db_lab_result.zinc,
-            "protein": db_lab_result.protein,
-            "folate": db_lab_result.folate,
-            "vitamin_a": db_lab_result.vitamin_a,
-            "iodine": db_lab_result.iodine,
-            "vitamin_k": db_lab_result.vitamin_k,
-            "potassium": db_lab_result.potassium,
-            "notes": db_lab_result.notes,
-            "created_at": db_lab_result.created_at.isoformat() if db_lab_result.created_at else None
-        }
-        
-        # Elimină câmpurile None pentru a nu suprascrie cu null în Supabase
-        supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
-        
-        # Inserează în Supabase
-        supabase_response = supabase.table('lab_results').insert(supabase_data).execute()
-        
-        if not supabase_response.data:
-            print(f"Warning: Supabase insert returned no data for lab_result user_id {db_lab_result.user_id}")
-    except Exception as e:
-        # Loghează eroarea dar nu oprește procesul dacă actualizarea în Supabase eșuează
-        print(f"Warning: Failed to sync lab_result to Supabase: {str(e)}")
-        # Nu aruncăm eroare pentru a nu afecta funcționalitatea principală
-    
-    return db_lab_result
+async def create_lab_results(lab_result: LabResultCreate, current_user: dict = Depends(get_current_user)):
+    _ensure_user_resource(current_user, lab_result.user_id)
+    repo = LabResultRepository()
+    data = lab_result.model_dump(exclude={"user_id"})
+    created = repo.create(lab_result.user_id, data)
+    return LabResultResponse(
+        id=created.id,
+        user_id=created.user_id,
+        hemoglobin=created.hemoglobin,
+        ferritin=created.ferritin,
+        vitamin_d=created.vitamin_d,
+        vitamin_b12=created.vitamin_b12,
+        calcium=created.calcium,
+        magnesium=created.magnesium,
+        zinc=created.zinc,
+        protein=created.protein,
+        folate=created.folate,
+        vitamin_a=created.vitamin_a,
+        iodine=created.iodine,
+        vitamin_k=created.vitamin_k,
+        potassium=created.potassium,
+        notes=created.notes,
+        created_at=created.created_at,
+    )
 
-@app.get("/api/lab-results/{user_id}", response_model=list[LabResultResponse])
-async def get_lab_results(user_id: int, db: Session = Depends(get_db)):
-    """Obține rezultatele analizelor pentru un utilizator"""
-    lab_results = db.query(LabResult).filter(LabResult.user_id == user_id).all()
-    return lab_results
 
-@app.post("/api/recommendations", response_model=list[RecommendationResponse])
+@app.get("/api/lab-results/{user_id}", response_model=List[LabResultResponse])
+async def get_lab_results(user_id: int, current_user: dict = Depends(get_current_user)):
+    _ensure_user_resource(current_user, user_id)
+    repo = LabResultRepository()
+    items = repo.get_all_by_user_id(user_id)
+    return [
+        LabResultResponse(
+            id=x.id,
+            user_id=x.user_id,
+            hemoglobin=x.hemoglobin,
+            ferritin=x.ferritin,
+            vitamin_d=x.vitamin_d,
+            vitamin_b12=x.vitamin_b12,
+            calcium=x.calcium,
+            magnesium=x.magnesium,
+            zinc=x.zinc,
+            protein=x.protein,
+            folate=x.folate,
+            vitamin_a=x.vitamin_a,
+            iodine=x.iodine,
+            vitamin_k=x.vitamin_k,
+            potassium=x.potassium,
+            notes=x.notes,
+            created_at=x.created_at,
+        )
+        for x in items
+    ]
+
+
+# ---------- Recommendations (Supabase) – protejat ----------
+@app.post("/api/recommendations")
 async def get_recommendations(
     request: RecommendationRequest,
-    db: Session = Depends(get_db),
-    force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor")
+    force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor"),
+    current_user: dict = Depends(get_current_user),
 ):
-    """
-    Generează recomandări personalizate pentru utilizator
-    Dacă există deja recomandări, le returnează pe cele existente.
-    Pentru regenerare, folosește DELETE /api/recommendations/{user_id} apoi POST din nou.
-    Sau trimite force_regenerate=True în query params.
-    """
-    try:
-        # Obține utilizatorul
-        user = db.query(User).filter(User.id == request.user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
-        
-        # Reîncarcă utilizatorul pentru a obține datele actualizate
-        db.refresh(user)
-        
-        # Verifică dacă există recomandări existente
-        existing_recommendations = db.query(Recommendation).filter(
-            Recommendation.user_id == request.user_id
-        ).first()
-        
-        # Flag pentru a indica dacă trebuie să generăm recomandări noi
-        should_generate_new = force_regenerate or not existing_recommendations
-        
-        # Dacă se forțează regenerarea sau nu există recomandări, șterge cele vechi
-        if force_regenerate and existing_recommendations:
-            db.query(Recommendation).filter(Recommendation.user_id == request.user_id).delete()
-            db.commit()
-        
-        # Obține feedback-urile utilizatorului (dacă există)
-        user_feedbacks = db.query(Feedback).filter(Feedback.user_id == request.user_id).all()
-        feedback_by_food = {}
-        for feedback in user_feedbacks:
-            if feedback.recommendation_id:
-                rec = db.query(Recommendation).filter(Recommendation.id == feedback.recommendation_id).first()
-                if rec:
-                    food_id = rec.food_id
-                    if food_id not in feedback_by_food:
-                        feedback_by_food[food_id] = []
-                    feedback_by_food[food_id].append(feedback)
-        
-        # Obține rezultatele analizelor
-        lab_results = db.query(LabResult).filter(
-            LabResult.user_id == request.user_id
-        ).order_by(LabResult.created_at.desc()).first()
-        
-        # Obține toate alimentele
-        foods = db.query(Food).all()
-        
-        # Calculează deficiențele
-        calculator = DeficitCalculator()
-        deficits = calculator.calculate_deficits(user, lab_results)
-        
-        # Verifică dacă există alimente în baza de date
-        if not foods:
-            raise HTTPException(
-                status_code=404, 
-                detail="Nu există alimente în baza de date. Vă rugăm să contactați administratorul."
-            )
-        
-        # Generează recomandări doar dacă trebuie (force_regenerate sau nu există recomandări)
-        recommendations = []
-        if should_generate_new:
-            recommender = RecommenderService()
-            recommendations = recommender.generate_recommendations(
+    _ensure_user_resource(current_user, request.user_id)
+    user_repo = UserRepository()
+    food_repo = FoodRepository()
+    lab_repo = LabResultRepository()
+    rec_repo = RecommendationRepository()
+    feedback_repo = FeedbackRepository()
+
+    user = user_repo.get_by_id(request.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
+
+    foods = food_repo.get_all()
+    if not foods:
+        raise HTTPException(
+            status_code=404,
+            detail="Nu există alimente în baza de date. Vă rugăm să contactați administratorul.",
+        )
+
+    lab_results = lab_repo.get_latest_by_user_id(request.user_id)
+    user_feedbacks = feedback_repo.get_by_user_id(request.user_id)
+
+    feedback_by_food: dict = {}
+    for fb in user_feedbacks:
+        if fb.recommendation_id is None:
+            continue
+        recs = rec_repo.get_by_user_id(request.user_id, limit=1000)
+        for r in recs:
+            if r.id == fb.recommendation_id:
+                if r.food_id not in feedback_by_food:
+                    feedback_by_food[r.food_id] = []
+                feedback_by_food[r.food_id].append(fb)
+                break
+
+    existing = rec_repo.get_first_by_user_id(request.user_id)
+    should_generate = force_regenerate or (existing is None)
+
+    if force_regenerate and existing:
+        rec_repo.delete_by_user_id(request.user_id)
+
+    calculator = DeficitCalculator()
+    deficits = calculator.calculate_deficits(user, lab_results)
+
+    recommendations: List[dict] = []
+    if should_generate:
+        recommender = RecommenderService()
+        rec_list = recommender.generate_recommendations(
+            user=user,
+            deficits=deficits,
+            foods=foods,
+            lab_results=lab_results,
+            user_feedbacks=user_feedbacks,
+            feedback_by_food=feedback_by_food,
+        )
+        explanation_gen = ExplanationGenerator()
+        to_insert = []
+        for rec in rec_list[:10]:
+            food = next((f for f in foods if f.id == rec["food_id"]), None)
+            if not food:
+                continue
+            explanation = explanation_gen.generate_explanation(
+                food=food,
                 user=user,
                 deficits=deficits,
-                foods=foods,
-                lab_results=lab_results,
-                user_feedbacks=user_feedbacks,
-                feedback_by_food=feedback_by_food
+                score=rec["score"],
+                coverage=rec["coverage"],
+                explanations=rec.get("explanations"),
+                matched_rules=rec.get("matched_rules"),
             )
-        
-        # Verifică dacă s-au generat recomandări
-        if not recommendations and should_generate_new:
-            # Încearcă să genereze recomandări generale dacă nu există deficiențe
-            if not any(d > 0 for d in deficits.values()):
-                # Generează recomandări bazate pe valoarea nutrițională generală
-                recommendations = recommender.generate_recommendations(
-                    user=user,
-                    deficits={},  # Fără deficiențe pentru recomandări generale
-                    foods=foods,
-                    lab_results=lab_results,
-                    user_feedbacks=user_feedbacks,
-                    feedback_by_food=feedback_by_food
-                )
-            
-            if not recommendations:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Nu s-au găsit alimente compatibile cu criteriile dumneavoastră. Vă rugăm să verificați profilul și restricțiile dietetice."
-                )
-        
-        # Dacă nu trebuie să generăm recomandări noi și există recomandări, returnează-le pe cele existente
-        if not should_generate_new and existing_recommendations and not recommendations:
-            existing_recs = db.query(Recommendation).filter(
-                Recommendation.user_id == request.user_id
-            ).order_by(Recommendation.coverage_percentage.desc(), Recommendation.score.desc()).limit(10).all()
-            
-            recommendations_with_explanations = []
-            for rec in existing_recs:
-                food = db.query(Food).filter(Food.id == rec.food_id).first()
+            to_insert.append({
+                "user_id": user.id,
+                "food_id": food.id,
+                "score": rec["score"],
+                "explanation": explanation["text"],
+                "portion_suggested": explanation["portion"],
+                "coverage_percentage": rec["coverage"],
+            })
+        if to_insert:
+            inserted = rec_repo.insert_many(to_insert)
+            food_by_id = {f.id: f for f in foods}
+            for i, rec in enumerate(inserted):
+                if i >= len(rec_list):
+                    break
+                food = food_by_id.get(rec.food_id)
                 if not food:
                     continue
-                
-                recommendations_with_explanations.append({
-                    'food_id': food.id,
-                    'food': {
-                        'id': food.id,
-                        'name': food.name,
-                        'category': food.category,
-                        'image_url': food.image_url
-                    },
-                    'score': rec.score,
-                    'coverage': rec.coverage_percentage or 0,
-                    'explanation': {
-                        'text': rec.explanation,
-                        'portion': rec.portion_suggested or 150,
-                        'reasons': [rec.explanation],
-                        'tips': None,
-                        'alternatives': None
-                    },
-                    'recommendation_id': rec.id
-                })
-            
-            if recommendations_with_explanations:
-                return recommendations_with_explanations
-        
-        # Generează explicații pentru fiecare recomandare
-        explanation_gen = ExplanationGenerator()
-        recommendations_with_explanations = []
-        
-        for rec in recommendations[:10]:  # Top 10 recomandări
-            food = next((f for f in foods if f.id == rec['food_id']), None)
-            if food:
-                explanation = explanation_gen.generate_explanation(
+                orig = rec_list[i]
+                expl = explanation_gen.generate_explanation(
                     food=food,
                     user=user,
                     deficits=deficits,
-                    score=rec['score'],
-                    coverage=rec['coverage']
+                    score=orig["score"],
+                    coverage=orig["coverage"],
+                    explanations=orig.get("explanations"),
+                    matched_rules=orig.get("matched_rules"),
                 )
-                
-                # Pregătește recomandarea pentru salvare
-                db_recommendation = Recommendation(
-                    user_id=user.id,
-                    food_id=food.id,
-                    score=rec['score'],
-                    explanation=explanation['text'],
-                    portion_suggested=explanation['portion'],
-                    coverage_percentage=rec['coverage']
-                )
-                db.add(db_recommendation)
-                db.flush()  # Flush pentru a obține ID-ul fără commit complet
-                
-                recommendations_with_explanations.append({
-                    'food_id': food.id,
-                    'food': {
-                        'id': food.id,
-                        'name': food.name,
-                        'category': food.category,
-                        'image_url': food.image_url
-                    },
-                    'score': rec['score'],
-                    'coverage': rec['coverage'],
-                    'explanation': explanation,
-                    'recommendation_id': db_recommendation.id
+                recommendations.append({
+                    "food_id": food.id,
+                    "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                    "score": rec.score,
+                    "coverage": rec.coverage_percentage or 0,
+                    "explanation": expl,
+                    "recommendation_id": rec.id,
                 })
-        
-        db.commit()  # Commit toate recomandările odată
-        
-        # Sincronizează recomandările cu Supabase
-        try:
-            supabase = get_supabase_client()
-            
-            # Pregătește datele pentru Supabase pentru fiecare recomandare
-            supabase_recommendations = []
-            for rec_explanation in recommendations_with_explanations:
-                # Folosește recommendation_id direct din rec_explanation
-                recommendation_id = rec_explanation.get('recommendation_id')
-                if not recommendation_id:
-                    continue
-                
-                # Găsește recomandarea din baza de date folosind ID-ul
-                db_rec = db.query(Recommendation).filter(
-                    Recommendation.id == recommendation_id
-                ).first()
-                
-                if db_rec:
-                    supabase_data = {
-                        "user_id": db_rec.user_id,
-                        "food_id": db_rec.food_id,
-                        "score": db_rec.score,
-                        "explanation": db_rec.explanation,
-                        "portion_suggested": db_rec.portion_suggested,
-                        "coverage_percentage": db_rec.coverage_percentage,
-                        "created_at": db_rec.created_at.isoformat() if db_rec.created_at else None
-                    }
-                    
-                    # Elimină câmpurile None
-                    supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
-                    supabase_recommendations.append(supabase_data)
-            
-            # Inserează toate recomandările în Supabase (dacă există)
-            if supabase_recommendations:
-                # Șterge recomandările vechi pentru acest utilizator în Supabase (dacă există)
-                try:
-                    supabase.table('recommendations').delete().eq('user_id', user.id).execute()
-                except Exception as e:
-                    print(f"Warning: Could not delete old recommendations in Supabase: {str(e)}")
-                
-                # Inserează noile recomandări
-                supabase_response = supabase.table('recommendations').insert(supabase_recommendations).execute()
-                
-                if not supabase_response.data:
-                    print(f"Warning: Supabase insert returned no data for recommendations user_id {user.id}")
-        except Exception as e:
-            # Loghează eroarea dar nu oprește procesul dacă actualizarea în Supabase eșuează
-            print(f"Warning: Failed to sync recommendations to Supabase: {str(e)}")
-            # Nu aruncăm eroare pentru a nu afecta funcționalitatea principală
-        
-        return recommendations_with_explanations
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Eroare la generarea recomandărilor: {str(e)}")
+    else:
+        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=10)
+        food_by_id = {f.id: f for f in foods}
+        for rec in existing_recs:
+            food = food_by_id.get(rec.food_id)
+            if not food:
+                continue
+            recommendations.append({
+                "food_id": food.id,
+                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                "score": rec.score,
+                "coverage": rec.coverage_percentage or 0,
+                "explanation": {
+                    "text": rec.explanation,
+                    "portion": rec.portion_suggested,
+                    "reasons": [rec.explanation],
+                    "tips": None,
+                    "alternatives": None,
+                },
+                "recommendation_id": rec.id,
+            })
 
-@app.post("/api/feedback")
-async def create_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
-    """Salvează feedback-ul utilizatorului pentru o recomandare"""
-    # Validare rating
-    if feedback.rating < -1 or feedback.rating > 5:
-        raise HTTPException(
-            status_code=400, 
-            detail="Rating trebuie să fie între -1 (dislike) și 5 (excelent)"
+    if not recommendations and should_generate:
+        recommender = RecommenderService()
+        rec_list = recommender.generate_recommendations(
+            user=user,
+            deficits={},
+            foods=foods,
+            lab_results=lab_results,
+            user_feedbacks=user_feedbacks,
+            feedback_by_food=feedback_by_food,
         )
-    
-    # Verifică dacă utilizatorul există
-    user = db.query(User).filter(User.id == feedback.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
-    
-    # Verifică dacă recomandarea există (dacă este specificată)
-    if feedback.recommendation_id:
-        recommendation = db.query(Recommendation).filter(
-            Recommendation.id == feedback.recommendation_id
-        ).first()
-        if not recommendation:
-            raise HTTPException(status_code=404, detail="Recomandarea nu a fost găsită")
-    
-    try:
-        db_feedback = Feedback(**feedback.dict())
-        db.add(db_feedback)
-        db.commit()
-        db.refresh(db_feedback)
-        
-        # Sincronizează cu Supabase
-        try:
-            supabase = get_supabase_client()
-            
-            # Pregătește datele pentru Supabase
-            supabase_data = {
-                "user_id": db_feedback.user_id,
-                "recommendation_id": db_feedback.recommendation_id,
-                "rating": db_feedback.rating,
-                "comment": db_feedback.comment,
-                "tried": db_feedback.tried,
-                "worked": db_feedback.worked,
-                "created_at": db_feedback.created_at.isoformat() if db_feedback.created_at else None
-            }
-            
-            # Elimină câmpurile None pentru a nu suprascrie cu null în Supabase
-            supabase_data = {k: v for k, v in supabase_data.items() if v is not None}
-            
-            # Inserează în Supabase
-            supabase_response = supabase.table('feedback').insert(supabase_data).execute()
-            
-            if not supabase_response.data:
-                print(f"Warning: Supabase insert returned no data for feedback id {db_feedback.id}")
-        except Exception as e:
-            # Loghează eroarea dar nu oprește procesul dacă actualizarea în Supabase eșuează
-            print(f"Warning: Failed to sync feedback to Supabase: {str(e)}")
-            # Nu aruncăm eroare pentru a nu afecta funcționalitatea principală
-        
-        return {"message": "Feedback salvat cu succes", "id": db_feedback.id}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Eroare la salvarea feedback-ului: {str(e)}")
+        if not rec_list:
+            raise HTTPException(
+                status_code=404,
+                detail="Nu s-au găsit alimente compatibile cu criteriile dumneavoastră.",
+            )
+        explanation_gen = ExplanationGenerator()
+        to_insert = []
+        for rec in rec_list[:10]:
+            food = next((f for f in foods if f.id == rec["food_id"]), None)
+            if not food:
+                continue
+            explanation = explanation_gen.generate_explanation(
+                food=food,
+                user=user,
+                deficits=deficits,
+                score=rec["score"],
+                coverage=rec["coverage"],
+                explanations=rec.get("explanations"),
+                matched_rules=rec.get("matched_rules"),
+            )
+            to_insert.append({
+                "user_id": user.id,
+                "food_id": food.id,
+                "score": rec["score"],
+                "explanation": explanation["text"],
+                "portion_suggested": explanation["portion"],
+                "coverage_percentage": rec["coverage"],
+            })
+        inserted = rec_repo.insert_many(to_insert)
+        food_by_id = {f.id: f for f in foods}
+        for i, rec in enumerate(inserted):
+            if i >= len(rec_list):
+                break
+            food = food_by_id.get(rec.food_id)
+            if not food:
+                continue
+            orig = rec_list[i]
+            expl = explanation_gen.generate_explanation(
+                food=food,
+                user=user,
+                deficits=deficits,
+                score=orig["score"],
+                coverage=orig["coverage"],
+                explanations=orig.get("explanations"),
+                matched_rules=orig.get("matched_rules"),
+            )
+            recommendations.append({
+                "food_id": food.id,
+                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                "score": rec.score,
+                "coverage": rec.coverage_percentage or 0,
+                "explanation": expl,
+                "recommendation_id": rec.id,
+            })
 
+    return recommendations
+
+
+@app.delete("/api/recommendations/{user_id}")
+async def delete_recommendations(user_id: int, current_user: dict = Depends(get_current_user)):
+    _ensure_user_resource(current_user, user_id)
+    rec_repo = RecommendationRepository()
+    rec_repo.delete_by_user_id(user_id)
+    return {"message": "Recomandări șterse"}
+
+
+# ---------- Feedback (Supabase) – protejat ----------
+@app.post("/api/feedback")
+async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends(get_current_user)):
+    _ensure_user_resource(current_user, feedback.user_id)
+    if feedback.rating < -1 or feedback.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating trebuie să fie între -1 și 5")
+    repo = FeedbackRepository()
+    created = repo.create(
+        feedback.user_id,
+        feedback.rating,
+        recommendation_id=feedback.recommendation_id,
+        comment=feedback.comment,
+        tried=feedback.tried,
+        worked=feedback.worked,
+    )
+    return {"message": "Feedback salvat cu succes", "id": created.id}
+
+
+# ---------- Foods (Supabase) – protejat (catalog public dar API consistent) ----------
 @app.get("/api/foods")
-async def get_foods(db: Session = Depends(get_db)):
-    """Obține lista tuturor alimentelor"""
-    foods = db.query(Food).all()
-    return foods
+async def get_foods(current_user: dict = Depends(get_current_user)):
+    repo = FoodRepository()
+    items = repo.get_all()
+    return [
+        {
+            "id": f.id,
+            "name": f.name,
+            "category": f.category,
+            "iron": f.iron,
+            "calcium": f.calcium,
+            "vitamin_d": f.vitamin_d,
+            "vitamin_b12": f.vitamin_b12,
+            "magnesium": f.magnesium,
+            "protein": f.protein,
+            "zinc": f.zinc,
+            "vitamin_c": f.vitamin_c,
+            "fiber": f.fiber,
+            "calories": f.calories,
+            "folate": f.folate,
+            "vitamin_a": f.vitamin_a,
+            "iodine": f.iodine,
+            "vitamin_k": f.vitamin_k,
+            "potassium": f.potassium,
+            "allergens": f.allergens,
+            "image_url": f.image_url,
+            "created_at": f.created_at,
+        }
+        for f in items
+    ]
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

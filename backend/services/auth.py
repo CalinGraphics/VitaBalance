@@ -1,18 +1,20 @@
 """
-Serviciu de autentificare folosind Supabase
+Serviciu de autentificare: Magic Link (preferat) + JWT. Parole păstrate temporar pentru migrare.
 """
-from typing import Optional, Dict
-from passlib.context import CryptContext
-from datetime import datetime
+from typing import Optional, Dict, Any
+from datetime import datetime, timezone, timedelta
 import sys
 from pathlib import Path
 import bcrypt
+from passlib.context import CryptContext
 
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
 from supabase_client import get_supabase_client
 from supabase import Client
+from config import get_settings
+from jose import JWTError, jwt
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
@@ -183,4 +185,85 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         if isinstance(e, ValueError):
             raise
         raise ValueError(f"Eroare la crearea contului: {error_msg}")
+
+
+# ---------- JWT (pentru sesiune după Magic Link sau login cu parolă) ----------
+def create_access_token(data: Dict[str, Any]) -> str:
+    """Creează JWT cu email și sub (user id sau email)."""
+    settings = get_settings()
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
+    to_encode["exp"] = expire
+    to_encode["iat"] = datetime.now(timezone.utc)
+    return jwt.encode(to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
+    """Verifică JWT și returnează payload (ex.: email, sub) sau None."""
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        return payload
+    except JWTError:
+        return None
+
+
+# ---------- Magic Link ----------
+def request_magic_link(email: str, full_name: Optional[str] = None) -> bool:
+    """
+    Generează token magic, îl salvează, trimite email.
+    full_name opțional pentru înregistrare (salvat în token).
+    Returnează True dacă request-ul a fost procesat.
+    """
+    email = email.strip().lower()
+    if not email:
+        return False
+    from repositories.magic_link_repository import create_token
+    from services.email_service import send_magic_link_email
+    settings = get_settings()
+    token = create_token(email, full_name=full_name)
+    link_url = f"{settings.frontend_base_url.rstrip('/')}/auth/verify?token={token}"
+    send_magic_link_email(email, link_url)
+    return True
+
+
+def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
+    """
+    Validează tokenul magic, îl invalidează, creează user dacă nu există, returnează user info + access_token.
+    Returnează None dacă token invalid/expirat/folosit.
+    """
+    from repositories.magic_link_repository import consume_token
+    from repositories import UserRepository
+    from supabase_client import get_supabase_client
+    data = consume_token(token)
+    if not data:
+        return None
+    email = data["email"]
+    full_name_from_token = data.get("full_name") or ""
+    repo = UserRepository()
+    user_profile = repo.get_by_email(email)
+    if not user_profile:
+        # Creează utilizator minimal (fără parolă) pentru magic link sign-up
+        try:
+            supabase: Client = get_supabase_client()
+            supabase.table("users").insert({
+                "email": email,
+                "full_name": full_name_from_token or email.split("@")[0],
+                "name": full_name_from_token or email.split("@")[0],
+                "bio": "Spune lumii cine ești.",
+            }).execute()
+            user_profile = repo.get_by_email(email)
+        except Exception as e:
+            print("Eroare la crearea user la verify_magic_link:", e)
+            user_profile = None
+    full_name = (user_profile.full_name or user_profile.name or full_name_from_token or "") if user_profile else full_name_from_token
+    bio = (user_profile.bio or "") if user_profile else ""
+    access_token = create_access_token({"sub": email, "email": email})
+    return {
+        "email": email,
+        "fullName": full_name,
+        "bio": bio,
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
 

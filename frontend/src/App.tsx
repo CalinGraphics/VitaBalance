@@ -1,6 +1,6 @@
 import { ThemeProvider } from './shared/contexts'
 import { Layout, Disclaimer } from './shared'
-import { LoginPage, RegisterPage } from './features/auth/pages'
+import { LoginPage, RegisterPage, AuthVerifyPage } from './features/auth/pages'
 import { MedicalProfilePage, MedicalLabResultsPage, EditProfilePage } from './features/medical/pages'
 import { Recommendations } from './features/recommendations/components'
 import { useAppNavigation } from './shared/hooks'
@@ -51,6 +51,12 @@ function App() {
               <RegisterPage 
                 onNavigate={navigate} 
                 onRegister={handleRegister} 
+              />
+            )}
+            {route === 'auth-verify' && (
+              <AuthVerifyPage
+                onLogin={handleLogin}
+                onNavigate={navigate}
               />
             )}
             {route === 'medical-profile' && authUser && (
@@ -124,7 +130,7 @@ function App() {
             )}
             
             {/* Fallback pentru rute necunoscute */}
-            {!['login', 'register', 'medical-profile', 'lab-results', 'recommendations', 'edit-profile'].includes(route) && (
+            {!['login', 'register', 'auth-verify', 'medical-profile', 'lab-results', 'recommendations', 'edit-profile'].includes(route) && (
               <div className="w-full max-w-md text-center">
                 <p className="text-slate-300 mb-4">Rută necunoscută</p>
                 <p className="text-slate-500 text-sm mb-4">Route: {route}</p>

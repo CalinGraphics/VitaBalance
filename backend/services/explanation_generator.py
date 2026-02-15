@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional
-from models import Food, User
+from domain.models import FoodItem, UserProfile
+
 
 class ExplanationGenerator:
     """Generează explicații detaliate și personalizate pentru fiecare recomandare"""
@@ -17,8 +18,8 @@ class ExplanationGenerator:
     
     def generate_explanation(
         self,
-        food: Food,
-        user: User,
+        food: FoodItem,
+        user: UserProfile,
         deficits: Dict[str, float],
         score: float,
         coverage: float,
@@ -44,7 +45,7 @@ class ExplanationGenerator:
     
     def _generate_from_rule_explanations(
         self,
-        food: Food,
+        food: FoodItem,
         explanations: List[str],
         matched_rules: List[str],
         coverage: float
@@ -74,8 +75,8 @@ class ExplanationGenerator:
     
     def _generate_traditional_explanation(
         self,
-        food: Food,
-        user: User,
+        food: FoodItem,
+        user: UserProfile,
         deficits: Dict[str, float],
         score: float,
         coverage: float
@@ -149,7 +150,7 @@ class ExplanationGenerator:
             'alternatives': alternatives if alternatives else None
         }
     
-    def _get_top_nutrients(self, food: Food, deficits: Dict[str, float]) -> List[tuple]:
+    def _get_top_nutrients(self, food: FoodItem, deficits: Dict[str, float]) -> List[tuple]:
         """Identifică nutrienții principali din aliment care corespund deficitelor"""
         nutrient_values = {
             'iron': food.iron,
@@ -170,7 +171,7 @@ class ExplanationGenerator:
         relevance.sort(key=lambda x: x[2], reverse=True)
         return [(nutrient, value) for nutrient, value, _ in relevance[:3]]
     
-    def _generate_tips_from_rules(self, matched_rules: List[str], food: Food) -> List[str]:
+    def _generate_tips_from_rules(self, matched_rules: List[str], food: FoodItem) -> List[str]:
         """Generează sfaturi bazate pe regulile care s-au potrivit"""
         tips = []
         
@@ -186,7 +187,7 @@ class ExplanationGenerator:
         
         return tips
     
-    def _generate_alternatives(self, food: Food) -> List[str]:
+    def _generate_alternatives(self, food: FoodItem) -> List[str]:
         """Generează alternative similare pentru aliment"""
         alternatives = []
         

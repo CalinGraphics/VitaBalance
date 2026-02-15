@@ -1,58 +1,47 @@
 # VitaBalance
 
-Sistem de recomandare cu explicații personalizate pentru deficiențe nutriționale.
+Aplicație web pentru recomandări nutriționale personalizate: utilizatorul își completează profilul (vârstă, activitate, dietă, alergii), introduce rezultatele analizelor medicale, iar sistemul sugerează alimente potrivite cu explicații și export PDF.
 
-## Descriere
+Datele sunt stocate în **Supabase**; autentificarea se face prin parolă sau prin **magic link** (link trimis pe email). Toate rutele API sunt protejate cu JWT.
 
-VitaBalance este o aplicație web care oferă recomandări nutriționale personalizate bazate pe profilul utilizatorului și rezultatele analizelor medicale. Aplicația folosește algoritmi de machine learning (content-based filtering) pentru a genera recomandări relevante și oferă explicații detaliate pentru fiecare sugestie.
+---
 
-## Caracteristici
+## Ce ai nevoie
 
-- ✅ Profil utilizator complet (vârstă, sex, activitate, dietă, alergii)
-- ✅ Introducere rezultate analize medicale
-- ✅ Algoritmi de recomandare content-based cu cosine similarity
-- ✅ Reguli medicale pentru cazuri critice
-- ✅ Explicații detaliate pentru fiecare recomandare
-- ✅ Filtrare automată (alergii, restricții dietetice)
-- ✅ Visualizări grafice (comparare aport vs necesar)
-- ✅ Sistem de feedback
-- ✅ Export PDF pentru recomandări
-- ✅ Disclaimer medical vizibil
-- ✅ Interfață modernă, responsive, cu animații
-
-## Tehnologii
-
-### Backend
 - Python 3.10+
-- FastAPI
-- SQLAlchemy
-- SQLite
-- NumPy, Pandas
+- Node.js (pentru frontend)
+- Cont Supabase (URL + cheie API)
+- Opțional: cont Resend pentru trimitere email (magic link); fără Resend, linkul apare doar în consola backend-ului
 
-### Frontend
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS
-- Framer Motion (animații)
-- Recharts (grafice)
-- Axios
-- jsPDF
+---
 
-## Instalare și Rulare
+## Pornire rapidă
 
-### Backend
+**1. Backend**
 
 ```bash
 cd backend
-venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python seed_data.py  # Populează baza de date cu alimente
-uvicorn main:app --reload
 ```
 
-Backend-ul va rula pe `http://localhost:8000`
+Creează fișierul `backend/.env` cu:
 
-### Frontend
+```
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_KEY=eyJ...
+```
+
+Apoi:
+
+```bash
+python run.py
+```
+
+API-ul rulează pe **http://localhost:8000**. Documentație: http://localhost:8000/docs
+
+**2. Frontend**
+
+Într-un al doilea terminal:
 
 ```bash
 cd frontend
@@ -60,62 +49,56 @@ npm install
 npm run dev
 ```
 
-Frontend-ul va rula pe `http://localhost:3000`
+Interfața este pe **http://localhost:5173**.
 
-## Structura Proiectului
+---
 
-```
-VitaBalance/
-├── backend/
-│   ├── main.py
-│   ├── database.py
-│   ├── models.py
-│   ├── schemas.py
-│   ├── seed_data.py
-│   └── services/
-│       ├── deficit_calculator.py
-│       ├── recommender.py
-│       └── explanation_generator.py
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Header.tsx
-│   │   │   ├── Disclaimer.tsx
-│   │   │   ├── ProfileForm.tsx
-│   │   │   ├── LabResultsForm.tsx
-│   │   │   ├── Recommendations.tsx
-│   │   │   ├── RecommendationCard.tsx
-│   │   │   └── NutrientChart.tsx
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── package.json
-└── README.md
+## Variabile de mediu (backend)
+
+| Variabilă | Obligatoriu | Descriere |
+|-----------|-------------|-----------|
+| `SUPABASE_URL` | Da | URL-ul proiectului Supabase |
+| `SUPABASE_KEY` | Da | Cheia API (service role sau anon, în funcție de RLS) |
+| `JWT_SECRET` | Recomandat | Secret pentru semnarea token-urilor; în producție folosește un string lung și aleatoriu |
+| `RESEND_API_KEY` | Nu | Dacă e setat, magic link-ul se trimite pe email; altfel linkul apare în consolă |
+| `RESEND_FROM_EMAIL` | Nu | Adresa expeditor (implicit `onboarding@resend.dev`) |
+| `FRONTEND_BASE_URL` | Nu | URL-ul frontend-ului pentru linkul din email (implicit `http://localhost:5173`) |
+
+---
+
+## Alimente în baza de date
+
+Tabelele (users, foods, lab_results, recommendations, feedback, magic_links) se creează și gestionează din **Supabase** (Dashboard sau migrări).
+
+Pentru a popula tabelul `foods` cu alimente predefinite:
+
+```bash
+cd backend
+python scripts/generate_foods.py
 ```
 
-## Algoritmi
+Poți rula cu `--clear` dacă vrei să ștergi alimentele existente înainte.
 
-### Calculul Deficitelor
-- Folosește RDI (Recommended Daily Intake) bazat pe vârstă, sex, activitate
-- Prioritizează rezultatele analizelor medicale când sunt disponibile
-- Estimează aportul curent bazat pe tipul de dietă
+---
 
-### Scorarea Alimentelor
-- Content-based filtering cu cosine similarity
-- Vectori nutriționali normalizați
-- Aplicare penalități pentru alergii și incompatibilități
-- Reguli medicale pentru cazuri critice (ferritin < 15, vitamina D < 20, etc.)
+## Structura proiectului
 
-### Explicații
-- Explicații detaliate pentru fiecare recomandare
-- Calculul acoperirii deficitului
-- Sfaturi pentru combinări favorabile
-- Alternative similare
+- **backend** – FastAPI: rute în `main.py`, logică în `services/`, acces date prin `repositories/` (doar Supabase), modele de domeniu în `domain/`, auth și JWT în `middleware/` și `services/auth.py`.
+- **frontend** – React (Vite, TypeScript): pagini în `src/features/`, API și auth în `src/services/`, export PDF în `src/features/recommendations/pdf/`.
+
+---
+
+## Tehnologii
+
+Backend: FastAPI, Supabase (PostgreSQL), JWT, Resend (opțional).  
+Frontend: React 18, TypeScript, Vite, Tailwind, Framer Motion, Recharts, @react-pdf/renderer pentru PDF.
+
+---
 
 ## Disclaimer
 
-Această aplicație oferă sugestii generale și nu înlocuiește consultul medical. Pentru probleme de sănătate, vă rugăm să consultați un specialist.
+Recomandările sunt sugestii generale și nu înlocuiesc consultul medical. Pentru decizii legate de dietă și sănătate, consultă un medic sau nutriționist.
 
-## Licență
+---
 
 Proiect realizat pentru licență 2026.
-

@@ -1,18 +1,20 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Route, AuthUser, User } from '../types'
-import { profileService } from '../../services/api'
+import { profileService, authService } from '../../services/api'
+import { getToken, setToken, clearToken } from '../../services/authStorage'
 
 export const useAppNavigation = () => {
   const [route, setRoute] = useState<Route>('login')
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [medicalUser, setMedicalUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const navigate = useCallback((newRoute: Route) => {
     setRoute(newRoute)
   }, [])
 
-  const handleLogin = useCallback(async (loggedUser: AuthUser) => {
+  const handleLogin = useCallback(async (loggedUser: AuthUser, accessToken?: string) => {
+    if (accessToken) setToken(accessToken)
     if (import.meta.env.DEV) {
       console.log('handleLogin called with:', loggedUser)
     }
@@ -72,7 +74,8 @@ export const useAppNavigation = () => {
     }
   }, [])
 
-  const handleRegister = useCallback((newUser: AuthUser) => {
+  const handleRegister = useCallback((newUser: AuthUser, accessToken?: string) => {
+    if (accessToken) setToken(accessToken)
     setAuthUser(newUser)
     setRoute('medical-profile')
   }, [])
@@ -92,9 +95,45 @@ export const useAppNavigation = () => {
   }, [])
 
   const handleLogout = useCallback(() => {
+    clearToken()
     setAuthUser(null)
     setMedicalUser(null)
     setRoute('login')
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const magicToken = params.get('token')
+    if (magicToken) {
+      setRoute('auth-verify')
+      setIsLoading(false)
+      return
+    }
+    const token = getToken()
+    if (!token) {
+      setIsLoading(false)
+      return
+    }
+    authService
+      .me()
+      .then((me: AuthUser) => {
+        setAuthUser(me)
+        return profileService.getByEmail(me.email)
+      })
+      .then((existingProfile: User) => {
+        if (existingProfile?.id) {
+          setMedicalUser(existingProfile)
+          setRoute('recommendations')
+        } else {
+          setRoute('medical-profile')
+        }
+      })
+      .catch(() => {
+        setRoute('login')
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
   }, [])
 
   return {

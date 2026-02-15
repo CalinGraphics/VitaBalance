@@ -1,6 +1,5 @@
 from typing import List, Dict, Optional
-import numpy as np
-from models import User, Food, LabResult, Feedback
+from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
 
 class RecommenderService:
@@ -15,11 +14,11 @@ class RecommenderService:
     
     def generate_recommendations(
         self,
-        user: User,
+        user: UserProfile,
         deficits: Dict[str, float],
-        foods: List[Food],
-        lab_results: Optional[LabResult] = None,
-        user_feedbacks: Optional[List[Feedback]] = None,
+        foods: List[FoodItem],
+        lab_results: Optional[LabResultItem] = None,
+        user_feedbacks: Optional[List[FeedbackItem]] = None,
         feedback_by_food: Optional[Dict[int, List]] = None
     ) -> List[Dict]:
         """Generează recomandări personalizate pentru utilizator"""
@@ -65,9 +64,9 @@ class RecommenderService:
     def _apply_feedback_adjustments(
         self,
         score: float,
-        food: Food,
-        user: User,
-        user_feedbacks: Optional[List[Feedback]] = None,
+        food: FoodItem,
+        user: UserProfile,
+        user_feedbacks: Optional[List[FeedbackItem]] = None,
         feedback_by_food: Optional[Dict[int, List]] = None
     ) -> float:
         """Aplică ajustări la scor bazate pe feedback-ul utilizatorului"""

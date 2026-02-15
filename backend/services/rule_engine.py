@@ -1,8 +1,8 @@
 
 from typing import List, Dict, Optional, Tuple
 import re
-from models import Food, User, LabResult
 from dataclasses import dataclass
+from domain.models import FoodItem, UserProfile, LabResultItem
 from enum import Enum
 from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
 
@@ -68,10 +68,10 @@ class NutritionalRuleEngine:
     
     def evaluate_food(
         self,
-        food: Food,
-        user: User,
+        food: FoodItem,
+        user: UserProfile,
         deficits: Dict[str, float],
-        lab_results: Optional[LabResult] = None
+        lab_results: Optional[LabResultItem] = None
     ) -> Optional[FoodRecommendation]:
         """Evaluează un aliment folosind toate regulile disponibile"""
         if not self._is_compatible(food, user):
@@ -193,10 +193,10 @@ class NutritionalRuleEngine:
     
     def _evaluate_iron_rules(
         self,
-        food: Food,
-        user: User,
+        food: FoodItem,
+        user: UserProfile,
         deficits: Dict[str, float],
-        lab_results: Optional[LabResult]
+        lab_results: Optional[LabResultItem]
     ) -> Optional[RuleResult]:
         """Evaluează regulile pentru fier"""
         deficit = deficits.get(NutrientType.IRON.value, 0)
@@ -294,10 +294,10 @@ class NutritionalRuleEngine:
     
     def _evaluate_magnesium_rules(
         self,
-        food: Food,
-        user: User,
+        food: FoodItem,
+        user: UserProfile,
         deficits: Dict[str, float],
-        lab_results: Optional[LabResult]
+        lab_results: Optional[LabResultItem]
     ) -> Optional[RuleResult]:
         """
         REGULĂ IF-ELSE pentru Magnesium
@@ -398,10 +398,10 @@ class NutritionalRuleEngine:
     
     def _evaluate_calcium_rules(
         self,
-        food: Food,
-        user: User,
+        food: FoodItem,
+        user: UserProfile,
         deficits: Dict[str, float],
-        lab_results: Optional[LabResult]
+        lab_results: Optional[LabResultItem]
     ) -> Optional[RuleResult]:
         """
         REGULĂ IF-ELSE pentru Calcium
@@ -649,7 +649,7 @@ class NutritionalRuleEngine:
             'forbidden_keywords': forbidden_keywords
         }
     
-    def _is_compatible(self, food: Food, user: User) -> bool:
+    def _is_compatible(self, food: FoodItem, user: UserProfile) -> bool:
         """Verifică dacă alimentul este compatibil cu profilul utilizatorului"""
         if user.diet_type == 'vegetarian' or user.diet_type == 'vegan':
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']
@@ -860,7 +860,7 @@ class NutritionalRuleEngine:
     
     def _calculate_coverage(
         self,
-        food: Food,
+        food: FoodItem,
         deficits: Dict[str, float],
         nutrients_covered: List[str]
     ) -> float:

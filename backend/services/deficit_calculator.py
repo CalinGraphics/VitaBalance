@@ -1,5 +1,6 @@
 from typing import Dict, Optional
-from models import User, LabResult
+from domain.models import UserProfile, LabResultItem
+
 
 class DeficitCalculator:
     RDI_TABLES = {
@@ -85,7 +86,7 @@ class DeficitCalculator:
         else:
             return '70+'
     
-    def get_rdi(self, nutrient: str, user: User) -> float:
+    def get_rdi(self, nutrient: str, user: UserProfile) -> float:
         if nutrient not in self.RDI_TABLES:
             return 0
         
@@ -108,7 +109,7 @@ class DeficitCalculator:
                 # Fallback la prima valoare disponibilă
                 return list(table[sex].values())[0]
     
-    def estimate_current_intake(self, nutrient: str, user: User) -> float:
+    def estimate_current_intake(self, nutrient: str, user: UserProfile) -> float:
         estimates = {
             'iron': {
                 'omnivore': 12,
@@ -195,7 +196,7 @@ class DeficitCalculator:
             return estimates[nutrient][diet]
         return 0
     
-    def calculate_deficits(self, user: User, lab_results: Optional[LabResult] = None) -> Dict[str, float]:
+    def calculate_deficits(self, user: UserProfile, lab_results: Optional[LabResultItem] = None) -> Dict[str, float]:
         deficits = {}
         
         # Toți nutrienții conform tabelului de deficiențe nutriționale
@@ -222,7 +223,7 @@ class DeficitCalculator:
         
         return deficits
     
-    def _get_lab_value(self, nutrient: str, lab_results: LabResult) -> Optional[float]:
+    def _get_lab_value(self, nutrient: str, lab_results: LabResultItem) -> Optional[float]:
         mapping = {
             'iron': lab_results.ferritin,  # Ferritin este indicator pentru fier
             'calcium': lab_results.calcium,

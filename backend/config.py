@@ -17,12 +17,20 @@ class Settings(BaseSettings):
     app_name: str = os.getenv("APP_NAME", "VitaBalance API")
     debug: bool = os.getenv("DEBUG", "false").lower() in ("1", "true", "yes")
     
-    # Supabase Configuration
+    # Supabase Configuration (singura sursă de date)
     supabase_url: Optional[str] = os.getenv("SUPABASE_URL")
     supabase_key: Optional[str] = os.getenv("SUPABASE_KEY")
     
-    # Database URL (pentru SQLAlchemy - fallback)
-    database_url: Optional[str] = os.getenv("DATABASE_URL")
+    # Auth: JWT + Magic Link
+    jwt_secret: str = os.getenv("JWT_SECRET", "change-me-in-production-use-long-random-string")
+    jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
+    jwt_expire_minutes: int = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+    magic_link_expire_hours: int = int(os.getenv("MAGIC_LINK_EXPIRE_HOURS", "24"))
+    
+    # Email (Resend) – opțional; fără RESEND_* magic link-ul apare doar în consolă (dev)
+    resend_api_key: Optional[str] = os.getenv("RESEND_API_KEY")
+    resend_from_email: str = os.getenv("RESEND_FROM_EMAIL", "VitaBalance <onboarding@resend.dev>")
+    frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
     
     # CORS Origins (poate fi string separată prin virgulă sau listă)
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")

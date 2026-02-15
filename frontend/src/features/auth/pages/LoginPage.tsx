@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import { motion } from 'framer-motion';
 import type { AuthUser } from '../../../shared/types';
+import { authService } from '../../../services/api';
 
 interface LoginPageProps {
   onNavigate: (page: 'register' | 'login') => void;
-  onLogin: (user: AuthUser) => void;
+  onLogin: (user: AuthUser, accessToken?: string) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
 
   const handleChange = (field: 'email' | 'password') => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -59,11 +62,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
         }
 
         const user = await response.json();
-        onLogin({
-          fullName: user.fullName,
-          email: user.email,
-          bio: user.bio,
-        });
+        onLogin(
+          {
+            fullName: user.fullName,
+            email: user.email,
+            bio: user.bio,
+            avatarUrl: null,
+          },
+          user.access_token
+        );
       } catch (error: any) {
         console.error('Eroare la autentificare:', error);
         let errorMessage = 'Eroare la conectare. Vă rugăm să încercați din nou.';
@@ -140,6 +147,52 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
             </PrimaryButton>
           </div>
         </form>
+
+        <div className="my-5 flex items-center gap-2 text-xs text-slate-500">
+          <span className="flex-1 border-t border-slate-600" />
+          <span>sau</span>
+          <span className="flex-1 border-t border-slate-600" />
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-xs text-slate-400">
+            Autentificare fără parolă – primești un link pe email.
+          </p>
+          {magicLinkSent ? (
+            <p className="rounded-lg border border-slate-500/50 bg-slate-800/30 px-3 py-3 text-sm text-neonCyan">
+              Verifică emailul și apasă pe linkul primit. Linkul expiră în 24h.
+            </p>
+          ) : (
+            <>
+              <InputField
+                label="Email (pentru link magic)"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="exemplu@email.com"
+                error={magicLinkError ?? undefined}
+              />
+              <PrimaryButton
+                type="button"
+                onClick={async () => {
+                  if (!form.email?.trim()) {
+                    setMagicLinkError('Introdu adresa de email.');
+                    return;
+                  }
+                  setMagicLinkError(null);
+                  try {
+                    await authService.requestMagicLink(form.email.trim());
+                    setMagicLinkSent(true);
+                  } catch (e: any) {
+                    setMagicLinkError(e?.message || 'Eroare la trimitere.');
+                  }
+                }}
+              >
+                <span>Trimite link magic</span>
+              </PrimaryButton>
+            </>
+          )}
+        </div>
 
         <div className="mt-5 flex items-center justify-between text-xs">
           <span className="text-slate-400">
