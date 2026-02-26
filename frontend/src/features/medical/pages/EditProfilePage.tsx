@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { UserCog, ArrowRight, Save } from 'lucide-react'
 import React from 'react'
-import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector } from '../../../shared/components'
+import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
 import type { User } from '../../../shared/types'
 
@@ -233,11 +233,11 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack }: EditProfilePageProp
               placeholder="Selectează alergiile tale"
             />
 
-            <InputField
+            <MedicalConditionSelector
               label="Condiții medicale"
               value={formData.medical_conditions || ''}
-              onChange={(e) => setFormData({ ...formData, medical_conditions: e.target.value })}
-              placeholder="EX: diabet, hipertensiune"
+              onChange={(value) => setFormData({ ...formData, medical_conditions: value })}
+              placeholder="Selectează condițiile medicale"
             />
 
             <div className="mt-6 flex gap-4">

@@ -8,7 +8,7 @@ Datele sunt stocate în **Supabase**; autentificarea se face prin parolă sau pr
 
 ## Ce ai nevoie
 
-- Python 3.10+
+- Python 3.10–3.12 (recomandat 3.11)
 - Node.js (pentru frontend)
 - Cont Supabase (URL + cheie API)
 - Opțional: cont Resend pentru trimitere email (magic link); fără Resend, linkul apare doar în consola backend-ului
@@ -21,7 +21,9 @@ Datele sunt stocate în **Supabase**; autentificarea se face prin parolă sau pr
 
 ```bash
 cd backend
-pip install -r requirements.txt
+.\.venv\Scripts\activate
+python -m pip install -r requirements.txt
+python run.py
 ```
 
 Creează fișierul `backend/.env` cu:
@@ -29,12 +31,6 @@ Creează fișierul `backend/.env` cu:
 ```
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_KEY=eyJ...
-```
-
-Apoi:
-
-```bash
-python run.py
 ```
 
 API-ul rulează pe **http://localhost:8000**. Documentație: http://localhost:8000/docs

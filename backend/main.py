@@ -42,6 +42,21 @@ app = FastAPI(
     version="2.0.0",
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Asigură că orice excepție neprinsă returnează JSON cu detail, nu HTML."""
+    from fastapi.responses import JSONResponse
+    import traceback
+    traceback.print_exc()
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Eroare server: {str(exc)}"},
+    )
+
+
 settings = get_settings()
 
 app.add_middleware(
@@ -252,10 +267,11 @@ async def register(user_data: RegisterRequest):
         )
         from services.auth import create_access_token
         access_token = create_access_token({"sub": new_user["email"], "email": new_user["email"]})
+        # Asigură că toate câmpurile sunt string (niciodată None) pentru AuthResponse
         return AuthResponse(
-            email=new_user["email"],
-            fullName=new_user["fullName"],
-            bio=new_user["bio"],
+            email=new_user.get("email") or user_data.email,
+            fullName=new_user.get("fullName") or user_data.fullName,
+            bio=new_user.get("bio") or "",
             access_token=access_token,
             token_type="bearer",
         )
@@ -263,8 +279,9 @@ async def register(user_data: RegisterRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         import traceback
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Eroare la crearea contului: {str(e)}")
+        traceback.print_exc()
+        err_msg = str(e)
+        raise HTTPException(status_code=500, detail=f"Eroare la crearea contului: {err_msg}")
 
 
 # ---------- Profile (Supabase) – protejat ----------
@@ -272,45 +289,54 @@ async def register(user_data: RegisterRequest):
 async def create_profile(user: UserCreate, current_user: dict = Depends(get_current_user)):
     if current_user.get("email", "").lower() != user.email.lower():
         raise HTTPException(status_code=403, detail="Poți actualiza doar propriul profil")
-    repo = UserRepository()
-    rec_repo = RecommendationRepository()
-    existing = repo.get_by_email(user.email)
-    if existing:
-        old_allergies = existing.allergies or ""
-        old_diet_type = existing.diet_type or ""
-        old_medical = existing.medical_conditions or ""
-        new_allergies = user.allergies or ""
-        new_diet_type = user.diet_type or ""
-        new_medical = user.medical_conditions or ""
-        if old_allergies != new_allergies or old_diet_type != new_diet_type or old_medical != new_medical:
-            rec_repo.delete_by_user_id(existing.id)
-        updated = repo.upsert(
-            user.email,
-            name=user.name,
-            age=user.age,
-            sex=user.sex,
-            weight=user.weight,
-            height=user.height,
-            activity_level=user.activity_level,
-            diet_type=user.diet_type,
-            allergies=user.allergies,
-            medical_conditions=user.medical_conditions,
-            user_id=existing.id,
-        )
-    else:
-        updated = repo.upsert(
-            user.email,
-            name=user.name,
-            age=user.age,
-            sex=user.sex,
-            weight=user.weight,
-            height=user.height,
-            activity_level=user.activity_level,
-            diet_type=user.diet_type,
-            allergies=user.allergies,
-            medical_conditions=user.medical_conditions,
-        )
-    return _profile_to_response(updated)
+    try:
+        repo = UserRepository()
+        rec_repo = RecommendationRepository()
+        existing = repo.get_by_email(user.email)
+        allergies_val = user.allergies or ""
+        medical_val = user.medical_conditions or ""
+        if existing:
+            old_allergies = existing.allergies or ""
+            old_diet_type = existing.diet_type or ""
+            old_medical = existing.medical_conditions or ""
+            new_allergies = allergies_val
+            new_diet_type = user.diet_type or ""
+            new_medical = medical_val
+            if old_allergies != new_allergies or old_diet_type != new_diet_type or old_medical != new_medical:
+                rec_repo.delete_by_user_id(existing.id)
+            updated = repo.upsert(
+                user.email,
+                name=user.name,
+                age=user.age,
+                sex=user.sex,
+                weight=user.weight,
+                height=user.height,
+                activity_level=user.activity_level,
+                diet_type=user.diet_type,
+                allergies=allergies_val,
+                medical_conditions=medical_val,
+                user_id=existing.id,
+            )
+        else:
+            updated = repo.upsert(
+                user.email,
+                name=user.name,
+                age=user.age,
+                sex=user.sex,
+                weight=user.weight,
+                height=user.height,
+                activity_level=user.activity_level,
+                diet_type=user.diet_type,
+                allergies=allergies_val,
+                medical_conditions=medical_val,
+            )
+        return _profile_to_response(updated)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Eroare la salvarea profilului: {str(e)}")
 
 
 @app.get("/api/profile/{user_id}", response_model=UserResponse)

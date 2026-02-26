@@ -53,9 +53,8 @@ class UserRepository:
             "height": height,
             "activity_level": activity_level,
             "diet_type": diet_type,
-            "allergies": allergies,
-            "medical_conditions": medical_conditions,
-            "bio": bio or "",
+            "allergies": allergies if allergies is not None else "",
+            "medical_conditions": medical_conditions if medical_conditions is not None else "",
         }
         if user_id is not None:
             resp = self._client.table(self.TABLE).update(row).eq("id", user_id).execute()

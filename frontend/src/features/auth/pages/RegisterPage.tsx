@@ -82,20 +82,29 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
         if (!response.ok) {
           let errorMessage = 'Eroare la crearea contului';
           try {
-            const errorData = await response.json();
-            const detail = errorData.detail || errorData.message;
-            if (typeof detail === 'string') {
-              errorMessage = detail;
-            } else if (Array.isArray(detail)) {
-              errorMessage = detail.map((e: any) => {
-                const msg = e.msg || JSON.stringify(e);
-                const loc = e.loc ? e.loc.join('.') : '';
-                return loc ? `${loc}: ${msg}` : msg;
-              }).join('; ');
-            } else if (detail && typeof detail === 'object') {
-              errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+            const text = await response.text();
+            try {
+              const errorData = JSON.parse(text);
+              const detail = errorData.detail || errorData.message;
+              if (typeof detail === 'string') {
+                errorMessage = detail;
+              } else if (Array.isArray(detail)) {
+                errorMessage = detail.map((e: any) => {
+                  const msg = e.msg || JSON.stringify(e);
+                  const loc = e.loc ? e.loc.join('.') : '';
+                  return loc ? `${loc}: ${msg}` : msg;
+                }).join('; ');
+              } else if (detail && typeof detail === 'object') {
+                errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+              }
+            } catch {
+              // Răspunsul nu e JSON (ex.: pagină de eroare) – afișăm primele 200 caractere
+              if (text && text.length > 0) {
+                errorMessage = text.length > 200 ? text.slice(0, 200) + '…' : text;
+              } else {
+                errorMessage = `Eroare server (${response.status}). Verifică că backend-ul rulează pe portul 8000.`;
+              }
             }
-            
             // Identifică tipul de eroare și setează eroarea corespunzătoare
             const lowerMessage = errorMessage.toLowerCase();
             if (lowerMessage.includes('email') || lowerMessage.includes('deja înregistrat')) {
@@ -106,8 +115,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
               setErrors({ email: errorMessage });
             }
           } catch (parseError) {
-            // Dacă nu poate parsa JSON-ul, folosește mesajul de eroare generic
-            setErrors({ email: errorMessage });
+            setErrors({ email: `${errorMessage} (${response.status})` });
           }
           return;
         }

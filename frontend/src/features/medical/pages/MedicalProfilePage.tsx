@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { UserPlus, ArrowRight } from 'lucide-react'
 import React from 'react'
-import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector } from '../../../shared/components'
+import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
 import type { User, AuthUser } from '../../../shared/types'
 
@@ -39,11 +39,8 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
     } catch (err: any) {
       console.error('Eroare la salvarea profilului:', err)
       let errorMessage = 'Eroare la salvarea profilului. Te rugăm să încerci din nou.'
-      
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.response?.data?.detail) {
-        const detail = err.response.data.detail
+      const detail = err?.response?.data?.detail
+      if (detail !== undefined && detail !== null) {
         if (typeof detail === 'string') {
           errorMessage = detail
         } else if (Array.isArray(detail)) {
@@ -51,8 +48,9 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
         } else if (typeof detail === 'object') {
           errorMessage = detail.msg || detail.message || JSON.stringify(detail)
         }
+      } else if (err?.message) {
+        errorMessage = err.message
       }
-      
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -169,11 +167,11 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
               placeholder="Selectează alergiile tale"
             />
 
-            <InputField
+            <MedicalConditionSelector
               label="Condiții medicale"
               value={formData.medical_conditions || ''}
-              onChange={(e) => setFormData({ ...formData, medical_conditions: e.target.value })}
-              placeholder="EX: diabet, hipertensiune"
+              onChange={(value) => setFormData({ ...formData, medical_conditions: value })}
+              placeholder="Selectează condițiile medicale"
             />
 
             <div className="mt-6">

@@ -105,7 +105,8 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
             return {
                 "email": user.get('email'),
                 "fullName": user.get('full_name') or user.get('name', ''),
-                "bio": user.get('bio', ''),
+                # Coloana `bio` a fost eliminată din tabelul `users` – folosim fallback gol.
+                "bio": user.get('bio', '') or "",
             }
         
         return None
@@ -154,7 +155,7 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
             "password_hash": password_hash,
             "full_name": fullName.strip(),
             "name": fullName.strip(),  # Păstrăm și name pentru compatibilitate
-            "bio": (bio.strip() if bio else "Spune lumii cine ești."),
+            # Coloana `bio` a fost ștearsă din Supabase – nu o mai trimitem.
         }
         
         try:
@@ -170,11 +171,13 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
             raise ValueError("Eroare la crearea utilizatorului - nu s-au returnat date")
         
         created_user = response.data[0]
-        
+        email_val = created_user.get('email') or email.strip()
+        full_name_val = created_user.get('full_name') or created_user.get('name') or fullName.strip()
+        bio_val = (bio.strip() if bio else "") or ""
         return {
-            "email": created_user.get('email'),
-            "fullName": created_user.get('full_name') or created_user.get('name', ''),
-            "bio": created_user.get('bio', ''),
+            "email": email_val,
+            "fullName": full_name_val,
+            "bio": bio_val,
         }
     except ValueError:
         raise
@@ -250,7 +253,6 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
                 "email": email,
                 "full_name": full_name_from_token or email.split("@")[0],
                 "name": full_name_from_token or email.split("@")[0],
-                "bio": "Spune lumii cine ești.",
             }).execute()
             user_profile = repo.get_by_email(email)
         except Exception as e:
