@@ -46,6 +46,7 @@ export const formatFoodCategory = (category: string | undefined | null): string 
 // Formatare alergie - folosește label-urile din COMMON_ALLERGIES
 import { COMMON_ALLERGIES } from '../constants/allergies'
 import { parseAllergies } from '../constants/allergies'
+import { COMMON_MEDICAL_CONDITIONS, parseMedicalConditions } from '../constants/medicalConditions'
 
 export const formatAllergy = (allergyValue: string): string => {
   const allergy = COMMON_ALLERGIES.find(a => a.value === allergyValue.toLowerCase().trim())
@@ -58,4 +59,19 @@ export const formatAllergiesString = (allergiesString: string | undefined | null
   
   const allergies = parseAllergies(allergiesString)
   return allergies.map(formatAllergy).join(', ')
+}
+
+export const formatMedicalCondition = (conditionValue: string): string => {
+  const key = conditionValue.toLowerCase().trim()
+  const item = COMMON_MEDICAL_CONDITIONS.find(c => c.value === key)
+  if (item) return item.label
+  // fallback: înlocuiește underscore-uri și capitalizează
+  const cleaned = conditionValue.replace(/_/g, ' ').trim()
+  return cleaned.length > 0 ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase() : ''
+}
+
+export const formatMedicalConditionsString = (conditionsString: string | undefined | null): string => {
+  if (!conditionsString) return ''
+  const conditions = parseMedicalConditions(conditionsString)
+  return conditions.map(formatMedicalCondition).join(', ')
 }

@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
+from datetime import datetime
 import uvicorn
 import inspect
 import hashlib
@@ -296,13 +297,29 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
         allergies_val = user.allergies or ""
         medical_val = user.medical_conditions or ""
         if existing:
-            old_allergies = existing.allergies or ""
-            old_diet_type = existing.diet_type or ""
-            old_medical = existing.medical_conditions or ""
-            new_allergies = allergies_val
-            new_diet_type = user.diet_type or ""
-            new_medical = medical_val
-            if old_allergies != new_allergies or old_diet_type != new_diet_type or old_medical != new_medical:
+            # Dacă se schimbă oricare dintre datele care influențează recomandările,
+            # invalidăm recomandările curente ca să fie regenerate pe noile valori.
+            old_snapshot = {
+                "age": existing.age,
+                "sex": existing.sex,
+                "weight": existing.weight,
+                "height": existing.height,
+                "activity_level": existing.activity_level,
+                "diet_type": existing.diet_type,
+                "allergies": existing.allergies or "",
+                "medical_conditions": existing.medical_conditions or "",
+            }
+            new_snapshot = {
+                "age": user.age,
+                "sex": user.sex,
+                "weight": user.weight,
+                "height": user.height,
+                "activity_level": user.activity_level,
+                "diet_type": user.diet_type,
+                "allergies": allergies_val,
+                "medical_conditions": medical_val,
+            }
+            if old_snapshot != new_snapshot:
                 rec_repo.delete_by_user_id(existing.id)
             updated = repo.upsert(
                 user.email,
@@ -448,6 +465,27 @@ async def get_recommendations(
 
     existing = rec_repo.get_first_by_user_id(request.user_id)
     should_generate = force_regenerate or (existing is None)
+
+    def _to_dt(v):
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            s = v.replace("Z", "+00:00")
+            try:
+                return datetime.fromisoformat(s)
+            except Exception:
+                return None
+        return None
+
+    # Dacă user-ul și-a actualizat analizele după ce s-au generat recomandările,
+    # regenerează automat ca să reflecte valorile medicale curente.
+    if not force_regenerate and existing is not None and lab_results is not None:
+        rec_dt = _to_dt(getattr(existing, "created_at", None))
+        lab_dt = _to_dt(getattr(lab_results, "created_at", None))
+        if lab_dt and (rec_dt is None or lab_dt > rec_dt):
+            should_generate = True
 
     if force_regenerate and existing:
         rec_repo.delete_by_user_id(request.user_id)

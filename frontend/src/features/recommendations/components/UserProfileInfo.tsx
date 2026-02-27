@@ -1,7 +1,7 @@
 import { User, Activity, Scale, Ruler, Heart, AlertTriangle } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
 import type { User as UserType } from '../../../shared/types'
-import { formatAllergiesString } from '../../../shared/utils/formatters'
+import { formatAllergiesString, formatMedicalConditionsString } from '../../../shared/utils/formatters'
 
 interface UserProfileInfoProps {
   user: UserType
@@ -128,7 +128,7 @@ const UserProfileInfo = ({ user }: UserProfileInfoProps) => {
               <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs text-slate-400 mb-1">Condiții medicale</p>
-                <p className="text-sm text-slate-200">{user.medical_conditions}</p>
+                <p className="text-sm text-slate-200">{formatMedicalConditionsString(user.medical_conditions)}</p>
               </div>
             </div>
           )}

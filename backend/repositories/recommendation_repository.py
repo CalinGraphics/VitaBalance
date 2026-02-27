@@ -46,6 +46,7 @@ class RecommendationRepository:
             self._client.table(self.TABLE)
             .select("*")
             .eq("user_id", user_id)
+            .order("created_at", desc=True)
             .limit(1)
             .execute()
         )
