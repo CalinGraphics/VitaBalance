@@ -102,9 +102,18 @@ export const useAppNavigation = () => {
   }, [])
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const magicToken = params.get('token')
+    // Token din query (?token=) sau din hash (#token=) – pentru compatibilitate cu diverse redirecturi.
+    // Îl salvăm și în sessionStorage ca fallback, pentru cazuri în care URL-ul este modificat de browser/hosting.
+    const queryParams = new URLSearchParams(window.location.search)
+    const hashPart = window.location.hash.replace(/^#/, '').replace(/^\?/, '')
+    const hashParams = new URLSearchParams(hashPart)
+    const magicToken = queryParams.get('token') || hashParams.get('token')
     if (magicToken) {
+      try {
+        sessionStorage.setItem('vitabalance_magic_token', magicToken)
+      } catch {
+        // ignoră dacă sessionStorage nu este disponibil
+      }
       setRoute('auth-verify')
       setIsLoading(false)
       return

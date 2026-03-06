@@ -225,7 +225,9 @@ def request_magic_link(email: str, full_name: Optional[str] = None) -> bool:
     from services.email_service import send_magic_link_email
     settings = get_settings()
     token = create_token(email, full_name=full_name)
-    link_url = f"{settings.frontend_base_url.rstrip('/')}/auth/verify?token={token}"
+    # URL relativ /?token= funcționează pe orice path (SPA servește index.html). Pentru hosting: seteză FRONTEND_BASE_URL în .env
+    base = settings.frontend_base_url.rstrip('/')
+    link_url = f"{base}/?token={token}"
     send_magic_link_email(email, link_url)
     return True
 
@@ -238,8 +240,18 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
     from repositories.magic_link_repository import consume_token
     from repositories import UserRepository
     from supabase_client import get_supabase_client
+    # Debug logging pentru a înțelege de ce unele token-uri eșuează în dev
+    try:
+        print(f"[MagicLink] verify_magic_link: primit token={token}")
+    except Exception:
+        pass
+
     data = consume_token(token)
     if not data:
+        try:
+            print(f"[MagicLink] verify_magic_link: token invalid/expirat/deja folosit: {token}")
+        except Exception:
+            pass
         return None
     email = data["email"]
     full_name_from_token = data.get("full_name") or ""
@@ -261,6 +273,10 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
     full_name = (user_profile.full_name or user_profile.name or full_name_from_token or "") if user_profile else full_name_from_token
     bio = (user_profile.bio or "") if user_profile else ""
     access_token = create_access_token({"sub": email, "email": email})
+    try:
+        print(f"[MagicLink] verify_magic_link: succes pentru {email}")
+    except Exception:
+        pass
     return {
         "email": email,
         "fullName": full_name,

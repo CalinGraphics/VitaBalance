@@ -29,9 +29,9 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
             "subject": "VitaBalance – Autentificare",
             "html": f"""
             <p>Bună,</p>
-            <p>Apasă link-ul de mai jos pentru a te autentifica în VitaBalance:</p>
-            <p><a href="{magic_link_url}" style="color:#00f5ff;">Autentificare</a></p>
-            <p>Link-ul expiră în {settings.magic_link_expire_hours} ore și poate fi folosit o singură dată.</p>
+            <p>Apasă link-ul de mai jos pentru a te conecta în VitaBalance:</p>
+            <p><a href="{magic_link_url}" style="color:#00f5ff; font-weight: bold;">Conectare</a></p>
+            <p>Dacă nu ai cont, acesta va fi creat automat la prima utilizare. Link-ul expiră în {settings.magic_link_expire_hours} ore și poate fi folosit o singură dată.</p>
             <p>Dacă nu ai cerut acest email, poți să îl ignori.</p>
             <p>— VitaBalance</p>
             """,

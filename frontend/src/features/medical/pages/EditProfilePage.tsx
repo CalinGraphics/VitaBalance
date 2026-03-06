@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { UserCog, ArrowRight, Save } from 'lucide-react'
+import { UserCog, Save, FlaskConical } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
@@ -10,9 +10,10 @@ interface EditProfilePageProps {
   user: User
   onUpdate: (user: User) => void
   onNavigateBack: () => void
+  onNavigateToLabResults?: () => void
 }
 
-const EditProfilePage = ({ user, onUpdate, onNavigateBack }: EditProfilePageProps) => {
+const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResults }: EditProfilePageProps) => {
   const [formData, setFormData] = useState<Partial<User>>({
     email: user.email,
     name: user.name,
@@ -239,6 +240,22 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack }: EditProfilePageProp
               onChange={(value) => setFormData({ ...formData, medical_conditions: value })}
               placeholder="Selectează condițiile medicale"
             />
+
+            {onNavigateToLabResults && (
+              <div className="mb-6 p-4 rounded-xl border border-neonPurple/30 bg-neonPurple/10">
+                <p className="text-sm text-slate-300 mb-3">
+                  Actualizează și rezultatele analizelor medicale pentru recomandări mai precise pe baza valorilor tale (hemoglobină, feritină, vitamine etc.).
+                </p>
+                <button
+                  type="button"
+                  onClick={onNavigateToLabResults}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-neonPurple/50 text-neonPurple hover:bg-neonPurple/20 transition font-medium text-sm"
+                >
+                  <FlaskConical className="w-5 h-5" />
+                  Actualizează analize medicale
+                </button>
+              </div>
+            )}
 
             <div className="mt-6 flex gap-4">
               <PrimaryButton type="submit" disabled={loading}>

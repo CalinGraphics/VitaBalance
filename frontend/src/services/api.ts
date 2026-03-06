@@ -71,10 +71,19 @@ const extractErrorMessage = (error: any): string => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    const url: string = error.config?.url || ''
+
+    // Nu șterge tokenul dacă 401 vine de la verificarea magic link-ului.
+    // În dev, React StrictMode poate apela de două ori verificarea, iar al doilea apel va eșua cu 401.
+    if (
+      status === 401 &&
+      !url.includes('/auth/verify-magic-link') &&
+      !url.includes('/auth/request-magic-link')
+    ) {
       clearToken()
     }
-    if (error.response?.status === 404) {
+    if (status === 404) {
       return Promise.reject(error)
     }
     error.message = extractErrorMessage(error)
@@ -124,6 +133,14 @@ export const profileService = {
 export const labResultsService = {
   create: async (data: any) => {
     const response = await api.post('/lab-results', data)
+    return response.data
+  },
+  getByUserId: async (userId: number) => {
+    const response = await api.get(`/lab-results/${userId}`)
+    return response.data
+  },
+  extractFromText: async (text: string) => {
+    const response = await api.post('/lab-results/extract-from-text', { text })
     return response.data
   },
 }

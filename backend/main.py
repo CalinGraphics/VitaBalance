@@ -19,6 +19,7 @@ from schemas import (
     UserResponse,
     LabResultCreate,
     LabResultResponse,
+    LabResultExtractFromTextRequest,
     RecommendationRequest,
     FeedbackCreate,
 )
@@ -421,6 +422,17 @@ async def get_lab_results(user_id: int, current_user: dict = Depends(get_current
         )
         for x in items
     ]
+
+
+@app.post("/api/lab-results/extract-from-text")
+async def extract_lab_values_from_text(
+    body: LabResultExtractFromTextRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Extrage valorile analizelor medicale din textul unui raport (ex. din PDF)."""
+    from services.lab_text_extractor import extract_lab_values_from_text
+    extracted = extract_lab_values_from_text(body.text)
+    return extracted
 
 
 # ---------- Recommendations (Supabase) – protejat ----------

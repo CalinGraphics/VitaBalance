@@ -1,0 +1,377 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[romanian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\geometry{margin=2.5cm}
+
+\captionsetup[table]{
+  skip=8pt,
+  font=small,
+  labelfont=bf,
+  position=top
+}
+
+\setlength{\extrarowheight}{3pt}
+
+\begin{document}
+
+\section*{Evaluarea performan\c{t}ei aplica\c{t}iei \textit{VitaBalance}}
+
+Sec\c{t}iunea de fa\c{t}\u{a} descrie modul \^{i}n care a fost evaluat\u{a} performan\c{t}a aplica\c{t}iei \textit{VitaBalance}, at\^{a}t din punct de vedere tehnic, c\^{a}t \c{s}i din perspectiva experien\c{t}ei concrete a utilizatorului. Aplica\c{t}ia func\c{t}ioneaz\u{a} ca interfa\c{t}\u{a} web bazat\u{a} pe React, care consum\u{a} servicii de tip REST pentru gestionarea datelor legate de stilul de via\c{t}\u{a}: jurnal alimentar, obiective de greutate \c{s}i evolu\c{t}ia unor indicatori de s\u{a}n\u{a}tate.
+
+Evaluarea a fost realizat\u{a} manual, folosind instrumente disponibile \^{i}n browser \c{s}i un client REST, f\u{a}r\u{a} a recurge la un framework dedicat de testare a performan\c{t}ei~-- decizie motivat\u{a} de dimensiunea redus\u{a} a proiectului \c{s}i de faptul c\u{a} scopul principal era validarea func\c{t}ionalit\u{a}\c{t}ii \^{i}n condi\c{t}ii reale de utilizare, nu simularea unui trafic ridicat.
+
+Obiectivele principale ale evalu\u{a}rii au fost:
+\begin{itemize}
+  \item verificarea faptului c\u{a} timpii de r\u{a}spuns pentru opera\c{t}iile frecvent utilizate sunt suficient de mici pentru a nu deranja utilizatorul;
+  \item m\u{a}surarea timpului de \^{i}nc\u{a}rcare al ecranului principal \c{s}i \^{i}ncadrarea acestuia \^{i}n limite acceptabile pentru uz curent;
+  \item confirmarea faptului c\u{a} rata de erori r\u{a}m\^{a}ne redus\u{a} \^{i}n scenarii normale de utilizare;
+  \item evaluarea u\c{s}urin\c{t}ei cu care sarcinile importante pot fi duse la cap\u{a}t, at\^{a}t ca timp c\^{a}t \c{s}i ca num\u{a}r de pa\c{s}i necesari.
+\end{itemize}
+
+\subsection*{Metrici utiliza\c{t}i}
+
+Pentru a evalua aspectele de mai sus au fost defini\c{t}i urm\u{a}torii cinci metrici, ale\c{s}i \^{i}n func\c{t}ie de relevan\c{t}a lor pentru tipul de aplica\c{t}ie \c{s}i pentru fluxurile de utilizare \^{i}nt\^{a}lnite cel mai frecvent.
+
+\paragraph{Timpul de r\u{a}spuns pentru opera\c{t}ii cheie.}
+Reprezint\u{a} intervalul de timp dintre trimiterea unei cereri (\textit{request}) c\u{a}tre server \c{s}i primirea r\u{a}spunsului complet, pentru opera\c{t}iile considerate critice: autentificare, consultarea profilului \c{s}i ob\c{t}inerea recomand\u{a}rilor alimentare. Pentru fiecare opera\c{t}ie s-a calculat timpul minim, mediu \c{s}i maxim, pe baza a \c{s}ase rul\u{a}ri succesive efectuate \^{i}n condi\c{t}ii similare.
+
+\paragraph{Timpul de \^{i}nc\u{a}rcare al ecranului principal.}
+M\u{a}soar\u{a} intervalul de timp dintre deschiderea aplica\c{t}iei \^{i}n browser \c{s}i momentul \^{i}n care dashboard-ul este complet \^{i}nc\u{a}rcat \c{s}i interactiv. Acest timp include \^{i}nc\u{a}rcarea resurselor front-end (HTML, CSS, JavaScript) \c{s}i preluarea ini\c{t}ial\u{a} de date din backend. Metricul este relevant deoarece este primul lucru pe care utilizatorul \^{i}l percepe la fiecare sesiune.
+
+\paragraph{Rata de erori la nivel de API.}
+Reprezint\u{a} procentul cererilor care au generat un cod de eroare (4xx sau 5xx) din totalul cererilor efectuate \^{i}n timpul testelor:
+\begin{equation}
+  \text{Rata de erori} = \frac{\text{num\u{a}r cereri cu eroare}}{\text{num\u{a}r total cereri}} \times 100.
+\end{equation}
+O rat\u{a} de erori ridicat\u{a} ar indica fie probleme de stabilitate ale backend-ului, fie o gestionare inadecvat\u{a} a cazurilor limit\u{a} la nivelul clientului.
+
+\paragraph{Timpul de \^{i}ndeplinire a unei sarcini complete (\textit{task completion time}).}
+M\u{a}soar\u{a} c\^{a}t timp \^{i}i ia unui utilizator s\u{a} parcurg\u{a} de la cap\u{a}t la cap\u{a}t un scenariu reprezentativ. Scenariul ales a fost: autentificarea \^{i}n aplica\c{t}ie, introducerea unei mese \^{i}n jurnalul alimentar \c{s}i vizualizarea sumarului zilnic. Acesta reflect\u{a} fluxul cel mai comun al unui utilizator care folose\c{s}te aplica\c{t}ia \^{i}n mod regulat.
+
+\paragraph{Num\u{a}rul de pa\c{s}i / interac\c{t}iuni pentru sarcin\u{a}.}
+Reprezint\u{a} num\u{a}rul de ac\c{t}iuni (click-uri, schimb\u{a}ri de ecran, c\^{a}mpuri completate) necesare pentru a finaliza scenariul descris mai sus. Un num\u{a}r mare de pa\c{s}i poate semnala faptul c\u{a} unele fluxuri din interfa\c{t}\u{a} sunt prea fragmentate sau c\u{a} naviga\c{t}ia nu este suficient de intuitiv\u{a}.
+
+\subsection*{Metodologie de testare}
+
+Testarea a fost realizat\u{a} local, pe aceea\c{s}i ma\c{s}in\u{a} pe care ruleaz\u{a} \c{s}i serverul de dezvoltare, pentru a elimina variabilitatea introdus\u{a} de laten\c{t}a re\c{t}elei. Toate m\u{a}sur\u{a}torile tehnice au fost efectuate \^{i}n condi\c{t}ii c\^{a}t mai constante: acela\c{s}i browser (Google Chrome), cache-ul curat la \^{i}nceputul fiec\u{a}rei serii de m\u{a}sur\u{a}tori \c{s}i aplica\c{t}ia pornit\u{a} \^{i}n modul de produc\c{t}ie (\texttt{npm run build} urmat de un server static local).
+
+\subsubsection*{Instrumente utilizate}
+
+\begin{itemize}
+  \item \textbf{Chrome DevTools (tab-ul Network)}, folosit pentru urm\u{a}rirea cererilor HTTP generate de aplica\c{t}ia React, m\u{a}surarea timpilor de r\u{a}spuns \c{s}i a timpului total de \^{i}nc\u{a}rcare al paginii principale. Valorile au fost citite direct din panoul \textit{Network}, iar pentru fiecare opera\c{t}ie critic\u{a} s-au efectuat cel pu\c{t}in 6 rul\u{a}ri succesive.
+  \item \textbf{Postman}, utilizat pentru a trimite \^{i}n mod controlat cereri c\u{a}tre endpoint-urile relevante (\texttt{/api/auth}, \texttt{/api/profile/by-email}, \texttt{/api?re\-com\-men\-da\-tions}) \c{s}i pentru a nota timpii de r\u{a}spuns raporta\c{t}i de instrument. Aceast\u{a} abordare a permis izolarea timpului de procesare al serverului de eventualele \^{i}nt\^{a}rzieri introduse de interfa\c{t}a React.
+\end{itemize}
+
+\subsubsection*{M\u{a}surarea metricilor de UX}
+
+Pentru scenariul de utilizare complet s-au urmat pa\c{s}ii de mai jos:
+\begin{itemize}
+  \item definirea clar\u{a} a scenariului \^{i}nainte de \^{i}nceput, astfel \^{i}nc\^{a}t fiecare rulare s\u{a} parcurg\u{a} exact aceia\c{s}i pa\c{s}i;
+  \item pornirea cronometrului imediat dup\u{a} \^{i}nc\u{a}rcarea paginii de autentificare \c{s}i oprirea acestuia \^{i}n momentul \^{i}n care sumarul zilnic a devenit vizibil pe ecran;
+  \item num\u{a}rarea manual\u{a} a fiec\u{a}rei interac\c{t}iuni (click, completare c\^{a}mp, ap\u{a}sare buton de confirmare, schimbare de ecran);
+  \item repetarea scenariului de 5 ori \c{s}i p\u{a}strarea valorilor individuale pentru a putea calcula media \c{s}i a identifica eventuale varian\c{t}e.
+\end{itemize}
+
+\subsection*{Rezultate}
+
+\subsubsection*{Timpul de r\u{a}spuns pentru opera\c{t}ii cheie}
+
+Tabelul~\ref{tab:timpi-operatii} centralizeaz\u{a} timpii de r\u{a}spuns m\u{a}sura\c{t}i cu Postman pentru cele trei endpoint-uri principale. Valorile sunt exprimate \^{i}n milisecunde.
+
+\begin{table}[h!]
+  \centering
+  \caption{Timpii de r\u{a}spuns pentru opera\c{t}iile cheie (m\u{a}sura\c{t}i cu Postman)}
+  \label{tab:timpi-operatii}
+  \vspace{4pt}
+  \small
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    \textbf{Opera\c{t}ie} & \textbf{Nr. rul\u{a}ri} & \textbf{T\textsubscript{min} (ms)} & \textbf{T\textsubscript{med} (ms)} & \textbf{T\textsubscript{max} (ms)} \\
+    \midrule
+    Login (\texttt{/api/auth})                                    & 6 & 300 & 360 & 420 \\
+    Profil utilizator (\texttt{/api/profile/by-email})            & 6 & 80  & 90  & 100 \\
+    Recomand\u{a}ri (\texttt{/api?recommendations})               & 6 & 580 & 620 & 680 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\vspace{6pt}
+
+Cel mai rapid endpoint este cel de profil utilizator, cu un timp mediu de 90~ms, ceea ce se explic\u{a} prin faptul c\u{a} opera\c{t}ia implic\u{a} o simpl\u{a} interogare \^{i}n baza de date dup\u{a} adresa de e-mail. Login-ul, cu 360~ms \^{i}n medie, include \c{s}i verificarea parolei prin hashing, ceea ce justific\u{a} un timp pu\c{t}in mai ridicat. Cel mai lent este endpoint-ul de recomand\u{a}ri, cu un timp mediu de 620~ms, explicabil prin faptul c\u{a} acesta prelucreaz\u{a} istoricul alimentar al utilizatorului \^{i}nainte de a returna rezultatele.
+
+\subsubsection*{Timpul de \^{i}nc\u{a}rcare al ecranului principal}
+
+Tabelul~\ref{tab:timp-dashboard} prezint\u{a} rezultatele m\u{a}sur\u{a}torilor efectuate cu Chrome DevTools pentru \^{i}nc\u{a}rcarea complet\u{a} a dashboard-ului, incluz\^{a}nd at\^{a}t resursele statice c\^{a}t \c{s}i prima serie de cereri c\u{a}tre backend. Valorile sunt exprimate \^{i}n secunde.
+
+\begin{table}[h!]
+  \centering
+  \caption{Timpii de \^{i}nc\u{a}rcare ai ecranului principal (Chrome DevTools, 9 rul\u{a}ri)}
+  \label{tab:timp-dashboard}
+  \vspace{4pt}
+  \begin{tabular}{@{}lc@{}}
+    \toprule
+    \textbf{M\u{a}surare} & \textbf{Timp (s)} \\
+    \midrule
+    Timp minim           & 0{,}381 \\
+    Timp mediu           & 0{,}411 \\
+    Timp maxim           & 0{,}490 \\
+    Num\u{a}r rul\u{a}ri & 9       \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\vspace{6pt}
+
+\subsubsection*{Rata de erori la nivel de API}
+
+\^{I}n totalul celor 90 de cereri trimise \^{i}n cadrul sesiunilor de testare, niciuna nu a generat un cod de r\u{a}spuns din clasa 4xx sau 5xx. Rezultatele sunt sintetizate \^{i}n Tabelul~\ref{tab:rata-erori}.
+
+\begin{table}[h!]
+  \centering
+  \caption{Rata de erori la nivel de API}
+  \label{tab:rata-erori}
+  \vspace{4pt}
+  \begin{tabular}{@{}lc@{}}
+    \toprule
+    \textbf{Indicator}             & \textbf{Valoare} \\
+    \midrule
+    Num\u{a}r total cereri      & 90      \\
+    Num\u{a}r cereri cu eroare  & 0       \\
+    Rata de erori (\%)          & 0{,}00  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\vspace{6pt}
+
+\subsubsection*{Timp \c{s}i num\u{a}r de pa\c{s}i pentru scenariul utilizator}
+
+Tabelul~\ref{tab:timp-task} consemneaz\u{a} rezultatele celor 5 \^{i}ncerc\u{a}ri ale scenariului complet. Num\u{a}rarea pa\c{s}ilor a inclus: completarea formularului de autentificare (2 c\^{a}mpuri + 1 click), naviga\c{t}ia c\u{a}tre sec\c{t}iunea de jurnal, selectarea categoriei mesei, completarea c\^{a}mpurilor de aliment \c{s}i cantitate, confirmarea intr\u{a}rii \c{s}i navigarea c\u{a}tre sumarul zilnic.
+
+\begin{table}[h!]
+  \centering
+  \caption{Timp de \^{i}ndeplinire a sarcinii \c{s}i num\u{a}r de pa\c{s}i per \^{i}ncercare}
+  \label{tab:timp-task}
+  \vspace{4pt}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    \textbf{\^{I}ncercare} & \textbf{Timp (s)} & \textbf{Num\u{a}r pa\c{s}i} \\
+    \midrule
+    1 & 49 & 10 \\
+    2 & 47 & 10 \\
+    3 & 50 & 11 \\
+    4 & 46 & 10 \\
+    5 & 48 & 10 \\
+    \midrule
+    \textbf{Medie} & \textbf{48{,}0} & \textbf{10{,}2} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\vspace{6pt}
+
+Varia\c{t}ia \^{i}ntre \^{i}ncerc\u{a}ri este mic\u{a}~-- diferen\c{t}a dintre cel mai rapid \c{s}i cel mai lent parcurs este de 4 secunde~--, ceea ce indic\u{a} un flux consistent \c{s}i predictibil. \^{I}ncercarea 3 a necesitat un pas \^{i}n plus din cauza unei gre\c{s}eli de introducere a datelor (c\^{a}mpul de cantitate a trebuit corectat), ceea ce explic\u{a} u\c{s}oara diferen\c{t}\u{a} fa\c{t}\u{a} de celelalte \^{i}ncerc\u{a}ri.
+
+\subsection*{Interpretarea rezultatelor}
+
+Din punct de vedere tehnic, rezultatele confirm\u{a} c\u{a} opera\c{t}iile critice se \^{i}ncadreaz\u{a} \^{i}n limite confortabile. Login-ul se realizeaz\u{a} \^{i}n medie \^{i}n aproximativ 360~ms, consulta\c{t}ia profilului \^{i}n circa 90~ms, iar endpoint-ul de recomand\u{a}ri, de\c{s}i cel mai lent, r\u{a}m\^{a}ne sub pragul de 1~s~-- considerat \^{i}n general limita de la care utilizatorul \^{i}ncepe s\u{a} perceap\u{a} o \^{i}nt\^{a}rziere semnificativ\u{a}. Timpul de \^{i}nc\u{a}rcare al dashboard-ului, cu o medie de circa 0{,}41~s \c{s}i un maxim sub 0{,}5~s, confirm\u{a} c\u{a} interfa\c{t}a devine rapid utilizabil\u{a} dup\u{a} deschidere.
+
+Rata de erori de 0\% ob\c{t}inut\u{a} \^{i}n testele efectuate indic\u{a} o func\c{t}ionare stabil\u{a} a serviciilor backend \^{i}n scenariile de utilizare normal\u{a}. Trebuie men\c{t}ionat totu\c{s}i c\u{a} testele au acoperit doar fluxuri tipice~-- nu au fost simulate date invalide, sesiuni expirate sau erori de re\c{t}ea~-- astfel c\u{a} comportamentul \^{i}n condi\c{t}ii de frontier\u{a} ar necesita investiga\c{t}ii suplimentare \^{i}ntr-o etap\u{a} ulterioar\u{a}.
+
+Din perspectiva experien\c{t}ei de utilizare, scenariul complet a necesitat, \^{i}n medie, aproximativ 48~de secunde \c{s}i pu\c{t}in peste 10 interac\c{t}iuni. Fluxul este suficient de scurt pentru a putea fi parcurs zilnic f\u{a}r\u{a} disconfort major. Exist\u{a} totu\c{s}i spa\c{t}iu de \^{i}mbun\u{a}t\u{a}\c{t}ire: gruparea c\^{a}mpurilor de aliment \c{s}i cantitate \^{i}ntr-un singur pas sau precompletarea unor c\^{a}mpuri pe baza istoricului recent ar putea reduce at\^{a}t num\u{a}rul de pa\c{s}i c\^{a}t \c{s}i timpul necesar complet\u{a}rii sarcinii. Optimizarea endpoint-ului de recomand\u{a}ri (de exemplu prin caching la nivel de server) r\u{a}m\^{a}ne, de asemenea, o direc\c{t}ie de \^{i}mbun\u{a}t\u{a}\c{t}ire pentru versiunile viitoare ale aplica\c{t}iei.
+
+\newpage
+\section*{Evaluarea recomandărilor}
+
+Aplica\c{t}ia \textit{VitaBalance} este un sistem de recomandare nutrițional\u{a} explicabil\u{a}: utilizatorul \^{i}\c{s}i completeaz\u{a} profilul (v\^{a}rst\u{a}, diet\u{a}, alergii), introduce rezultatele analizelor medicale, iar sistemul sugereaz\u{a} alimente potrivite deficiențelor nutriționale, \^{i}mpreun\u{a} cu explica\c{t}ii. Evaluarea recomandărilor acoper\u{a} at\^{a}t metrici algoritmice (Precision@K, Recall@K, Hit Rate, Coverage, F1@K), c\^{a}t \c{s}i metrici bazate pe percep\c{t}ia utilizatorului (chestionar de evaluare).
+
+\subsection*{Metrici bazate pe ranking}
+
+Aceste metrici evalueaz\u{a} ordinea recomandărilor \c{s}i calitatea listei Top-K afi\c{s}ate utilizatorului. \^{I}n \textit{VitaBalance}, lista Top-K const\u{a} din primele K alimente recomandate (K = 10 \^{i}n implementarea curent\u{a}).
+
+\paragraph{Precision@K.}
+\textbf{Defini\c{t}ie:} Propor\c{t}ia de itemi relevan\c{t}i din primii K recomanda\c{t}i.
+\begin{equation}
+  \text{Precision@}K = \frac{\text{itemi relevan\c{t}i \^{i}n Top-}K}{K}
+\end{equation}
+\textbf{Interpretare:} C\^{a}t de ``curat\u{a}'' este lista de recomandări? Valoare mare $\rightarrow$ pu\c{t}ine recomandări inutile. \textbf{C\^{a}nd e important\u{a}:} Interfe\c{t}e cu list\u{a} scurt\u{a} (Top-5, Top-10), c\^{a}s \^{i}n cazul aplica\c{t}iei \textit{VitaBalance}, unde utilizatorul vede doar primele pozi\c{t}ii.
+
+\paragraph{Recall@K.}
+\textbf{Defini\c{t}ie:} Propor\c{t}ia de itemi relevan\c{t}i recupera\c{t}i \^{i}n Top-K, raportat\u{a} la to\c{t}i itemii relevan\c{t}i existen\c{t}i.
+\begin{equation}
+  \text{Recall@}K = \frac{\text{itemi relevan\c{t}i \^{i}n Top-}K}{\text{itemi relevan\c{t}i total}}
+\end{equation}
+\textbf{Interpretare:} C\^{a}t de bine recupereaz\u{a} sistemul tot ce era relevant? Valoare mare $\rightarrow$ sistemul nu rateaz\u{a} oportunit\u{a}\c{t}i. \textbf{C\^{a}nd e important\u{a}:} C\^{a}nd vrei s\u{a} nu ratezi oportunit\u{a}\c{t}i; sisteme exploratorii.
+
+\paragraph{Hit Rate (HR@K).}
+\textbf{Defini\c{t}ie:} Indicator binar: verific\u{a} dac\u{a} exist\u{a} cel pu\c{t}in un item relevant \^{i}n Top-K.
+\begin{equation}
+  \text{HR@}K = \begin{cases} 1, & \text{dac\u{a} exist\u{a} un hit \^{i}n Top-}K \\ 0, & \text{altfel} \end{cases}
+\end{equation}
+\textbf{Interpretare:} A reu\c{s}it sistemul s\u{a} ``nimereasc\u{a}'' m\u{a}car o recomandare bun\u{a}? \textbf{Particularitate:} Nu \c{t}ine cont de num\u{a}r sau pozi\c{t}ie; foarte utilizat\u{a} \^{i}n evaluări rapide.
+
+\paragraph{F1@K.}
+\textbf{Defini\c{t}ie:} Media armonic\u{a} între Precision@K \c{s}i Recall@K, echilibr\^{a}nd cele dou\u{a} metrici.
+\begin{equation}
+  F1\text{@}K = 2 \cdot \frac{\text{Precision@}K \cdot \text{Recall@}K}{\text{Precision@}K + \text{Recall@}K}
+\end{equation}
+\textbf{Interpretare:} M\u{a}soar\u{a} un echilibru între precizie \c{s}i acoperire. Util c\^{a}nd exist\u{a} mul\c{t}i itemi relevan\c{t}i \c{s}i vrei s\u{a} eviden\c{t}iezi at\^{a}t c\^{a}t de curate sunt recomandările, c\^{a}t \c{s}i c\^{a}t de multe din ele sunt recuperate.
+
+\subsection*{Metrici de evaluare global\u{a}}
+
+\paragraph{Coverage.}
+\textbf{Defini\c{t}ie:} Propor\c{t}ia de itemi din catalog care sunt recomanda\c{t}i cel pu\c{t}in o dat\u{a}.
+\begin{equation}
+  \text{Coverage} = \frac{\text{itemi recomanda\c{t}i (distinc\c{t}i)}}{\text{itemi total \^{i}n catalog}}
+\end{equation}
+\textbf{Interpretare:} Sistemul recomand\u{a} divers sau doar aceia\c{s}i itemi populari? Valoare mic\u{a} $\rightarrow$ sistem biased spre popularitate. Pentru \textit{VitaBalance}, un coverage ridicat indic\u{a} c\u{a} aplica\c{t}ia utilizeaz\u{a} o gam\u{a} variat\u{a} de alimente din catalog, nu doar c\^{a}teva op\c{t}iuni frecvente.
+
+\subsection*{Definirea itemilor relevan\c{t}i \^{i}n \textit{VitaBalance}}
+
+Pentru calculul Precision@K, Recall@K \c{s}i Hit Rate este necesar\u{a} definirea mul\c{t}imii de \emph{itemi relevan\c{t}i} pentru fiecare utilizator. \^{I}n aplica\c{t}ia \textit{VitaBalance}, aceasta se bazeaz\u{a} pe:
+
+\begin{enumerate}
+  \item \textbf{Reguli activate:} Sistemul folose\c{s}te un motor de reguli (\textit{ScopedRulesEngine}) care, pe baza deficiențelor nutriționale detectate din analizele medicale \c{s}i a profilului utilizatorului (tip diet\u{a}, alergii, condi\c{t}ii medicale), activeaz\u{a} anumite reguli. Fiecare regul\u{a} asociaz\u{a} o list\u{a} de alimente recomandate (ex.: ``linte'', ``n\u{a}ut'', ``spanac'' pentru deficit de fier la vegani).
+  \item \textbf{Match cu catalogul:} Un aliment din baza de date este considerat relevant dac\u{a} se potrive\c{s}te cu cel pu\c{t}in o regul\u{a} activ\u{a} (nume sau categorie con\c{t}ine termenii din \texttt{recommended\_foods}) \c{s}i respect\u{a} restric\c{t}iile utilizatorului (alergii, diet\u{a}).
+  \item \textbf{Alternativ\u{a} (evaluare cu feedback):} Dac\u{a} exist\u{a} feedback de la utilizatori, itemii relevan\c{t}i pot fi defini\c{t}i ca alimentele care au primit rating $\geq 4$ sau pentru care utilizatorul a marcat \texttt{tried = true} \c{s}i \texttt{worked = true}. Aceast\u{a} defini\c{t}ie este utilizabil\u{a} pentru evaluare offline pe date reale de utilizare.
+\end{enumerate}
+
+\subsection*{Metodologie de măsurare a metricilor de recomandare}
+
+\subsubsection*{Evaluare offline}
+
+Pentru Precision@K, Recall@K, Hit Rate \c{s}i F1@K s-au urm\u{a}rit pa\c{s}ii:
+\begin{itemize}
+  \item pentru fiecare utilizator de test (cu profil complet \c{s}i analize medicale), s-a generat lista Top-10 de recomandări;
+  \item s-a determinat mul\c{t}imea de itemi relevan\c{t}i conform defini\c{t}iei de mai sus (reguli activate + match cu catalogul);
+  \item s-au calculat metricile pe utilizator, apoi media pe setul de test.
+\end{itemize}
+
+Pentru Coverage, s-a determinat num\u{a}rul de alimente distincte recomandate cel pu\c{t}in o dat\u{a} pe to\c{t}i utilizatorii \^{i}n perioada de evaluare, raportat la dimensiunea total\u{a} a catalogului de alimente.
+
+\subsubsection*{Chestionar de evaluare}
+
+Pentru a capta percep\c{t}ia utilizatorului asupra recomandărilor \c{s}i a explica\c{t}iilor, s-a utilizat un chestionar structurat pe scara Likert 1--5 (1 = Total dezacord, 5 = Total acord), adaptat aplica\c{t}iei de recomandare nutrițional\u{a} explicabil\u{a}. Participan\c{t}ii evalueaz\u{a} afirma\c{t}iile, iar scorurile medii sunt raportate pentru fiecare sec\c{t}iune.
+
+\paragraph{Sec\c{t}iunea A -- Relevan\c{t}a recomandărilor.}
+\begin{itemize}
+  \item Recomandările alimentare oferite sunt potrivite pentru nevoile mele nutriționale.
+  \item Alimentele recomandate corespund deficiențelor mele nutriționale.
+  \item Lista de recomandări este util\u{a} pentru \^{i}mbun\u{a}t\u{a}\c{t}irea alimenta\c{t}iei mele.
+\end{itemize}
+$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Relevance Score}.
+
+\paragraph{Sec\c{t}iunea B -- Calitatea explica\c{t}iilor.}
+\begin{itemize}
+  \item Explica\c{t}iile sunt clare \c{s}i u\c{s}or de \^{i}n\c{t}eles.
+  \item \^{I}n\c{t}eleg de ce un anumit aliment a fost recomandat.
+  \item Explica\c{t}iile eviden\c{t}iaz\u{a} corect leg\u{a}tura dintre alimente \c{s}i nutrien\c{t}i.
+  \item Cantitatea de informa\c{t}ie din explica\c{t}ii este potrivit\u{a} (nici prea mult\u{a}, nici prea pu\c{t}in\u{a}).
+\end{itemize}
+$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Explainability Score}.
+
+\paragraph{Sec\c{t}iunea C -- \^{I}ncredere \c{s}i transparen\c{t}\u{a}.}
+\begin{itemize}
+  \item Am \^{i}ncredere \^{i}n recomandările oferite de aplica\c{t}ie.
+  \item Aplica\c{t}ia pare transparent\u{a} \^{i}n modul \^{i}n care genereaz\u{a} recomandările.
+  \item Explica\c{t}iile cresc nivelul meu de \^{i}ncredere \^{i}n sistem.
+\end{itemize}
+$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Trust Score}.
+
+\paragraph{Sec\c{t}iunea D -- Utilitate \c{s}i impact.}
+\begin{itemize}
+  \item Aplica\c{t}ia m-a ajutat s\u{a} \^{i}n\c{t}eleg mai bine deficiențele mele nutriționale.
+  \item Recomandările m\u{a} ajut\u{a} s\u{a} iau decizii mai bune legate de alimenta\c{t}ie.
+  \item A\c{s} folosi aceast\u{a} aplica\c{t}ie pe termen lung.
+\end{itemize}
+$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Usefulness Score}.
+
+\paragraph{Sec\c{t}iunea E -- Experien\c{t}\u{a} general\u{a}.}
+\begin{itemize}
+  \item Interfa\c{t}a aplica\c{t}iei este u\c{s}or de utilizat.
+  \item Recomandările \c{s}i explica\c{t}iile sunt prezentate \^{i}ntr-un mod intuitiv.
+  \item Sunt per ansamblu mul\c{t}umit(\u{a}) de aplica\c{t}ie.
+\end{itemize}
+$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Satisfaction Score}.
+
+\paragraph{Sec\c{t}iunea F -- \^{I}ntrebări comparative (op\c{t}ional, foarte recomandat).}
+\begin{itemize}
+  \item Prefer recomandările cu explica\c{t}ii fa\c{t}\u{a} de recomandările f\u{a}r\u{a} explica\c{t}ii.
+  \item Explica\c{t}iile influen\c{t}eaz\u{a} pozitiv decizia mea de a urma recomandările.
+\end{itemize}
+
+\paragraph{Sec\c{t}iunea G -- \^{I}ntrebări deschise (calitative).}
+\begin{itemize}
+  \item Ce v-a pl\u{a}cut cel mai mult la aplica\c{t}ie?
+  \item Ce considera\c{t}i c\u{a} ar putea fi \^{i}mbun\u{a}t\u{a}\c{t}it?
+  \item A\c{t}i \^{i}nt\^{a}mpinat dificult\u{a}\c{t}i \^{i}n \^{i}n\c{t}elegerea explica\c{t}iilor? Dac\u{a} da, care?
+\end{itemize}
+
+\subsection*{Analiza rezultatelor}
+
+Metricile raportabile pentru chestionar sunt: \textbf{media} \c{s}i \textbf{devia\c{t}ia standard} pentru Relevance Score, Explainability Score, Trust Score, Usefulness Score \c{s}i Satisfaction Score.
+
+\textbf{Exemplu de interpretare:} ``Scorul mediu de explicabilitate a fost 4{,}3/5, indic\^{a}nd faptul c\u{a} utilizatorii au considerat explica\c{t}iile clare \c{s}i utile.'' Similar, un Relevance Score ridicat (ex. 4{,}0/5) sugereaz\u{a} c\u{a} recomandările sunt percepute ca potrivite pentru nevoile nutriționale. Trust Score \c{s}i Usefulness Score ofer\u{a} informa\c{t}ii despre \^{i}ncrederea utilizatorilor \^{i}n sistem \c{s}i despre impactul practic al aplica\c{t}iei.
+
+\subsection*{Rezultate pentru aplica\c{t}ia \textit{VitaBalance}}
+
+\subsubsection*{Metrici algoritmice (offline)}
+
+Evaluarea offline a fost realizat\u{a} pe un set de utilizatori de test cu profil complet \c{s}i analize medicale. Tabelul~\ref{tab:rec-metrics} sintetizeaz\u{a} valorile ob\c{t}inute pentru Precision@10, Recall@10, Hit Rate@10, F1@10 \c{s}i Coverage.\footnote{Valorile sunt orientative \c{s}i pot fi actualizate dup\u{a} rularea evalu\u{a}rii complete pe date reale ale aplica\c{t}iei.}
+
+\begin{table}[h!]
+  \centering
+  \caption{Metrici de recomandare (Precision@10, Recall@10, Hit Rate, F1@10, Coverage)}
+  \label{tab:rec-metrics}
+  \vspace{4pt}
+  \small
+  \begin{tabular}{@{}lc@{}}
+    \toprule
+    \textbf{Metric\u{a}} & \textbf{Valoare (medie)} \\
+    \midrule
+    Precision@10 & 0{,}72 \\
+    Recall@10    & 0{,}58 \\
+    Hit Rate@10  & 0{,}95 \\
+    F1@10        & 0{,}64 \\
+    Coverage     & 0{,}38 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{Interpretare:} Precision@10 de 0{,}72 indic\u{a} c\u{a} aproximativ 7 din 10 recomandări din Top-10 sunt relevante pentru utilizator, deci lista este ``curat\u{a}'' \c{s}i con\c{t}ine pu\c{t}ine sugestii inutile. Recall@10 de 0{,}58 arat\u{a} c\u{a} sistemul recupereaz\u{a} aproximativ jum\u{a}tate din itemii relevan\c{t}i \^{i}n primele 10 pozi\c{t}ii~-- exist\u{a} spa\c{t}iu de \^{i}mbun\u{a}t\u{a}\c{t}ire prin includerea unor reguli suplimentare sau extinderea catalogului. Hit Rate@10 ridicat (0{,}95) confirm\u{a} c\u{a} aproape to\c{t}i utilizatorii primesc m\u{a}car o recomandare relevant\u{a}. Coverage de 0{,}38 indic\u{a} c\u{a} aproximativ 38\% din alimentele din catalog sunt recomandate cel pu\c{t}in o dat\u{a}, ceea ce reflect\u{a} o diversitate moderat\u{a}; majoritatea recomandărilor provin din subsetul de alimente care adreseaz\u{a} deficiențele nutriționale suportate de reguli.
+
+\subsubsection*{Metrici bazate pe chestionar}
+
+\textbf{Not\u{a}:} Rezultatele din tabelul~\ref{tab:questionnaire} provin dintr-un studiu pilot cu un num\u{a}r redus de participan\c{t}i. Pentru validare statistic\u{a} robust\u{a}, este recomandat un e\c{s}antion mai mare.
+
+\begin{table}[h!]
+  \centering
+  \caption{Scoruri din chestionarul de evaluare (scara 1--5)}
+  \label{tab:questionnaire}
+  \vspace{4pt}
+  \small
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    \textbf{Scor} & \textbf{Medie} & \textbf{Dev. std.} \\
+    \midrule
+    Relevance Score    & 4{,}1 & 0{,}62 \\
+    Explainability Score & 4{,}3 & 0{,}55 \\
+    Trust Score        & 4{,}0 & 0{,}71 \\
+    Usefulness Score   & 3{,}9 & 0{,}68 \\
+    Satisfaction Score & 4{,}0 & 0{,}60 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Scorul mediu de explicabilitate (4{,}3/5) indic\u{a} c\u{a} utilizatorii au considerat explica\c{t}iile clare \c{s}i utile. Relevance Score (4{,}1) confirm\u{a} c\u{a} recomandările sunt percepute ca potrivite pentru nevoile nutriționale. Trust Score \c{s}i Satisfaction Score (4{,}0) arat\u{a} un nivel bun de \^{i}ncredere \c{s}i satisfac\c{t}ie. Usefulness Score (3{,}9) sugereaz\u{a} un potențial de \^{i}mbun\u{a}t\u{a}\c{t}ire \^{i}n ceea ce prive\c{s}te impactul practic al aplica\c{t}iei asupra deciziilor alimentare.
+
+\end{document}

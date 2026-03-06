@@ -47,6 +47,11 @@ class LabResultBase(BaseModel):
 class LabResultCreate(LabResultBase):
     pass
 
+
+class LabResultExtractFromTextRequest(BaseModel):
+    text: str
+
+
 class LabResultResponse(LabResultBase):
     id: int
     created_at: datetime

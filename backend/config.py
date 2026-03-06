@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     # Email (Resend) – opțional; fără RESEND_* magic link-ul apare doar în consolă (dev)
     resend_api_key: Optional[str] = os.getenv("RESEND_API_KEY")
     resend_from_email: str = os.getenv("RESEND_FROM_EMAIL", "VitaBalance <onboarding@resend.dev>")
-    frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
+    # URL-ul frontend-ului – linkul magic trimite utilizatorul aici. Pentru dev local: http://localhost:3000
+    frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
     
     # CORS Origins (poate fi string separată prin virgulă sau listă)
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")

@@ -29,9 +29,11 @@ function App() {
     <ThemeProvider>
       <Layout 
         onLogout={handleLogout}
-        showLogout={route === 'recommendations' && !!medicalUser}
+        showLogout={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
         onProfileClick={() => navigate('edit-profile')}
-        showProfile={route === 'recommendations' && !!medicalUser}
+        showProfile={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
+        onLabResultsClick={() => navigate('lab-results')}
+        showLabResults={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
       >
         {/* Loading state - prioritate maximă */}
         {isLoading ? (
@@ -115,6 +117,7 @@ function App() {
                 user={medicalUser}
                 onUpdate={handleProfileUpdate}
                 onNavigateBack={() => navigate('recommendations')}
+                onNavigateToLabResults={() => navigate('lab-results')}
               />
             )}
             {route === 'edit-profile' && !medicalUser && (

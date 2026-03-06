@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FlaskConical, ArrowRight, SkipForward } from 'lucide-react'
+import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2 } from 'lucide-react'
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
 import { labResultsService } from '../../../services/api'
+import { extractTextFromPdfFile } from '../../../shared/utils/pdfTextExtractor'
 import type { User } from '../../../shared/types'
 
 interface MedicalLabResultsPageProps {
@@ -20,6 +21,11 @@ interface LabResult {
   magnesium?: number
   zinc?: number
   protein?: number
+  folate?: number
+  vitamin_a?: number
+  iodine?: number
+  vitamin_k?: number
+  potassium?: number
   notes?: string
 }
 
@@ -43,7 +49,43 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
   })
 
   const [loading, setLoading] = useState(false)
+  const [loadingExisting, setLoadingExisting] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [extractPdfLoading, setExtractPdfLoading] = useState(false)
+  const [extractPdfMessage, setExtractPdfMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (user?.id) {
+      labResultsService.getByUserId(user.id)
+        .then((items: LabResult[]) => {
+          if (Array.isArray(items) && items.length > 0) {
+            const latest = items[0]
+            setFormData(prev => ({
+              ...prev,
+              user_id: user.id || 0,
+              hemoglobin: latest.hemoglobin ?? prev.hemoglobin,
+              ferritin: latest.ferritin ?? prev.ferritin,
+              vitamin_d: latest.vitamin_d ?? prev.vitamin_d,
+              vitamin_b12: latest.vitamin_b12 ?? prev.vitamin_b12,
+              calcium: latest.calcium ?? prev.calcium,
+              magnesium: latest.magnesium ?? prev.magnesium,
+              zinc: latest.zinc ?? prev.zinc,
+              protein: latest.protein ?? prev.protein,
+              folate: latest.folate ?? prev.folate,
+              vitamin_a: latest.vitamin_a ?? prev.vitamin_a,
+              iodine: latest.iodine ?? prev.iodine,
+              vitamin_k: latest.vitamin_k ?? prev.vitamin_k,
+              potassium: latest.potassium ?? prev.potassium,
+              notes: latest.notes ?? prev.notes
+            }))
+          }
+        })
+        .catch(() => { /* ignoră - utilizatorul poate completa manual */ })
+        .finally(() => setLoadingExisting(false))
+    } else {
+      setLoadingExisting(false)
+    }
+  }, [user?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,6 +130,52 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
     onComplete()
   }
 
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.type !== 'application/pdf') {
+      setExtractPdfMessage('Te rugăm să încarci un fișier PDF.')
+      return
+    }
+    setExtractPdfLoading(true)
+    setExtractPdfMessage(null)
+    setError(null)
+    e.target.value = ''
+    try {
+      const text = await extractTextFromPdfFile(file)
+      if (!text.trim()) {
+        setExtractPdfMessage('Nu s-a putut extrage text din PDF. Poate fișierul este scanat sau protejat.')
+        return
+      }
+      const extracted = await labResultsService.extractFromText(text)
+      const count = Object.values(extracted).filter(v => v != null && v !== undefined).length
+      setFormData(prev => ({
+        ...prev,
+        hemoglobin: extracted.hemoglobin ?? prev.hemoglobin,
+        ferritin: extracted.ferritin ?? prev.ferritin,
+        vitamin_d: extracted.vitamin_d ?? prev.vitamin_d,
+        vitamin_b12: extracted.vitamin_b12 ?? prev.vitamin_b12,
+        calcium: extracted.calcium ?? prev.calcium,
+        magnesium: extracted.magnesium ?? prev.magnesium,
+        zinc: extracted.zinc ?? prev.zinc,
+        protein: extracted.protein ?? prev.protein,
+        folate: extracted.folate ?? prev.folate,
+        vitamin_a: extracted.vitamin_a ?? prev.vitamin_a,
+        iodine: extracted.iodine ?? prev.iodine,
+        vitamin_k: extracted.vitamin_k ?? prev.vitamin_k,
+        potassium: extracted.potassium ?? prev.potassium
+      }))
+      setExtractPdfMessage(count > 0
+        ? `S-au extras ${count} valori din raportul medical. Verifică și completează manual dacă e cazul.`
+        : 'Nu s-au identificat valori cunoscute în raport. Introdu manual.')
+    } catch (err) {
+      console.error('Eroare la extragerea din PDF:', err)
+      setExtractPdfMessage('Eroare la procesarea PDF-ului. Încearcă din nou sau introdu manual.')
+    } finally {
+      setExtractPdfLoading(false)
+    }
+  }
+
   return (
     <div className="w-full max-w-4xl">
       <motion.div
@@ -112,6 +200,44 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
               Sistemul va folosi estimări bazate pe profilul tău.
             </p>
           </div>
+
+          <div className="mb-6 p-4 rounded-xl border border-neonCyan/30 bg-neonCyan/5">
+            <p className="text-sm text-slate-300 mb-3">
+              <strong>Încarcă raport medical PDF</strong> – atașează raportul tău medical în format PDF și sistemul va extrage automat valorile pentru câmpurile disponibile.
+            </p>
+            <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-neonCyan/50 text-neonCyan hover:bg-neonCyan/10 cursor-pointer transition font-medium text-sm">
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handlePdfUpload}
+                disabled={extractPdfLoading}
+                className="hidden"
+              />
+              {extractPdfLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Se procesează PDF-ul...
+                </>
+              ) : (
+                <>
+                  <FileUp className="w-5 h-5" />
+                  Alege raport PDF
+                </>
+              )}
+            </label>
+            {extractPdfMessage && (
+              <p className={`mt-3 text-xs ${extractPdfMessage.includes('S-au extras') ? 'text-green-400' : 'text-amber-400'}`}>
+                {extractPdfMessage}
+              </p>
+            )}
+          </div>
+
+          {loadingExisting && (
+            <div className="mb-4 p-3 rounded-lg bg-slate-700/50 border border-slate-500/30 text-slate-300 text-sm flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Se încarcă analizele existente...
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 text-sm">
@@ -238,10 +364,12 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
                 <SkipForward className="w-5 h-5" />
                 Sari peste
               </motion.button>
-              <PrimaryButton type="submit" disabled={loading} full={false} className="flex-1">
-                {loading ? 'Se salvează...' : 'Continuă'}
-                {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
-              </PrimaryButton>
+              <div className="flex-1">
+                <PrimaryButton type="submit" disabled={loading} full={false}>
+                  {loading ? 'Se salvează...' : 'Continuă'}
+                  {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
+                </PrimaryButton>
+              </div>
             </div>
           </form>
         </GlassCard>

@@ -2,7 +2,7 @@
 
 Aplicație web pentru recomandări nutriționale personalizate: utilizatorul își completează profilul (vârstă, activitate, dietă, alergii), introduce rezultatele analizelor medicale, iar sistemul sugerează alimente potrivite cu explicații și export PDF.
 
-Datele sunt stocate în **Supabase**; autentificarea se face prin parolă sau prin **magic link** (link trimis pe email). Toate rutele API sunt protejate cu JWT.
+Datele sunt stocate în **Supabase**; autentificarea se face doar prin **magic link** (link trimis pe email; contul se creează automat la prima utilizare). Toate rutele API sunt protejate cu JWT.
 
 ---
 
@@ -45,7 +45,7 @@ npm install
 npm run dev
 ```
 
-Interfața este pe **http://localhost:5173**.
+Interfața este pe **http://localhost:3000**.
 
 ---
 
@@ -58,7 +58,7 @@ Interfața este pe **http://localhost:5173**.
 | `JWT_SECRET` | Recomandat | Secret pentru semnarea token-urilor; în producție folosește un string lung și aleatoriu |
 | `RESEND_API_KEY` | Nu | Dacă e setat, magic link-ul se trimite pe email; altfel linkul apare în consolă |
 | `RESEND_FROM_EMAIL` | Nu | Adresa expeditor (implicit `onboarding@resend.dev`) |
-| `FRONTEND_BASE_URL` | Nu | URL-ul frontend-ului pentru linkul din email (implicit `http://localhost:5173`) |
+| `FRONTEND_BASE_URL` | Nu | URL-ul frontend-ului pentru linkul din email. În dev: `http://localhost:3000`; la hosting: URL-ul domeniului tău |
 
 ---
 

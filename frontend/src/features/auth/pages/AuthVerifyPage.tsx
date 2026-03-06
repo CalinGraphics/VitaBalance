@@ -14,8 +14,20 @@ const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) 
   const [errorMessage, setErrorMessage] = useState<string>('')
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const token = params.get('token')
+    // Token din query (?token=) sau din hash (#?token=). Dacă nu există în URL,
+    // încercăm să îl luăm din sessionStorage (setat în useAppNavigation).
+    const queryParams = new URLSearchParams(window.location.search)
+    const hashPart = window.location.hash.replace(/^#/, '').replace(/^\?/, '')
+    const hashParams = new URLSearchParams(hashPart)
+    const urlToken = queryParams.get('token') || hashParams.get('token')
+    let token = urlToken
+    if (!token) {
+      try {
+        token = sessionStorage.getItem('vitabalance_magic_token') || ''
+      } catch {
+        token = ''
+      }
+    }
     if (!token) {
       setStatus('error')
       setErrorMessage('Link invalid: lipsește tokenul.')
@@ -25,6 +37,11 @@ const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) 
       .verifyMagicLink(token)
       .then((data: { email: string; fullName: string; bio: string; access_token: string }) => {
         setToken(data.access_token)
+        try {
+          sessionStorage.removeItem('vitabalance_magic_token')
+        } catch {
+          // ignoră
+        }
         onLogin(
           {
             fullName: data.fullName,
