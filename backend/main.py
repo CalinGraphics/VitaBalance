@@ -4,6 +4,9 @@ Data: Supabase only. Auth: JWT middleware (to be added). No SQLite.
 """
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
@@ -61,9 +64,44 @@ async def global_exception_handler(request, exc):
 
 settings = get_settings()
 
-# CORS: listează origin-urile din CORS_ORIGINS + regex pentru orice *.vercel.app (preview + production)
+
+def _is_allowed_origin(origin: str) -> bool:
+    """Acceptă localhost și orice subdomeniu *.vercel.app"""
+    if not origin or not isinstance(origin, str):
+        return False
+    origin = origin.strip().lower()
+    if origin.startswith("http://localhost") or origin.startswith("http://127.0.0.1"):
+        return True
+    return origin.endswith(".vercel.app") and origin.startswith("https://")
+
+
+class VercelCORSMiddleware(BaseHTTPMiddleware):
+    """Forțează headere CORS pentru Vercel și localhost – rulează primul."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        origin = request.headers.get("origin", "")
+        if _is_allowed_origin(origin):
+            if request.method == "OPTIONS":
+                return Response(
+                    status_code=200,
+                    headers={
+                        "Access-Control-Allow-Origin": origin,
+                        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                        "Access-Control-Allow-Credentials": "true",
+                        "Access-Control-Max-Age": "86400",
+                    },
+                )
+            response = await call_next(request)
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
+        return await call_next(request)
+
+
+# Ordine: VercelCORS primul (rulat ultimul adăugat), apoi CORSMiddleware
 _cors_origins = settings.get_cors_origins_list()
-_cors_regex = r"https://[a-zA-Z0-9-]+\.vercel\.app$"  # orice subdomeniu vercel.app
+_cors_regex = r"https://[a-zA-Z0-9-]+\.vercel\.app$"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -72,6 +110,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(VercelCORSMiddleware)
 
 app.include_router(supabase_router.router)
 
