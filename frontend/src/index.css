@@ -88,6 +88,144 @@ select option[selected] {
   font-weight: 600 !important;
 }
 
+/* COMPLETE FIX FOR INPUT FIELDS - Remove ALL browser defaults */
+* {
+  box-sizing: border-box;
+}
+
+/* Force remove ALL borders and outlines from inputs - highest priority */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
+select {
+  /* Reset all browser defaults */
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  
+  /* Remove ALL shadows and outlines - MUST BE FIRST */
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
+  outline-style: none !important;
+  outline-color: transparent !important;
+  
+  /* Remove any white borders - Force dark border */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  
+  border-radius: 0.75rem !important;
+  -webkit-border-radius: 0.75rem !important;
+  -moz-border-radius: 0.75rem !important;
+  
+  /* Background and text */
+  background-color: rgba(2, 6, 23, 0.4) !important;
+  color: rgb(241, 245, 249) !important;
+}
+
+/* Focus states - ABSOLUTELY NO WHITE BORDERS */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus,
+textarea:focus,
+select:focus {
+  /* Remove ALL outlines */
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
+  outline-style: none !important;
+  outline-color: transparent !important;
+  
+  /* Remove white borders - force cyan border */
+  border: 1px solid rgba(0, 245, 255, 0.8) !important;
+  border-color: rgba(0, 245, 255, 0.8) !important;
+  
+  /* Only cyan shadow, no white */
+  box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.3) !important;
+  -webkit-box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.3) !important;
+  -moz-box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.3) !important;
+}
+
+/* Active and hover states - no white borders */
+input[type="text"]:active,
+input[type="text"]:hover,
+input[type="email"]:active,
+input[type="email"]:hover,
+input[type="password"]:active,
+input[type="password"]:hover,
+input[type="number"]:active,
+input[type="number"]:hover,
+textarea:active,
+textarea:hover,
+select:active,
+select:hover {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  outline: none !important;
+}
+
+/* Remove validation styling */
+input:invalid,
+input:required:invalid,
+input:-webkit-autofill:invalid {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Error state */
+input.error,
+input:invalid:not(:focus):not(:placeholder-shown) {
+  border-color: rgba(239, 68, 68, 0.8) !important;
+}
+
+/* Autofill fix - DARK THEME ONLY */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(2, 6, 23, 0.4) inset !important;
+  -webkit-text-fill-color: rgb(241, 245, 249) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Disabled state */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
 /* Custom scrollbar for select dropdowns */
 select::-webkit-scrollbar {
   width: 8px;
@@ -106,4 +244,3 @@ select::-webkit-scrollbar-thumb {
 select::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #00d4ff, #ff0088);
 }
-

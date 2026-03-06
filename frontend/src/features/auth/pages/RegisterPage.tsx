@@ -5,7 +5,7 @@ import type { AuthUser } from '../../../shared/types';
 
 interface RegisterPageProps {
   onNavigate: (page: 'login' | 'register') => void;
-  onRegister: (user: AuthUser) => void;
+  onRegister: (user: AuthUser, accessToken?: string) => void;
 }
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) => {
@@ -44,7 +44,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: {
       fullName?: string;
@@ -63,12 +63,90 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      onRegister({
-        fullName: form.fullName,
-        email: form.email,
-        bio: 'Spune lumii cine ești.',
-        avatarUrl: form.avatarPreview,
-      });
+      try {
+        // Apel API pentru register
+        const apiUrl = import.meta.env.VITE_API_URL || '/api';
+        const response = await fetch(`${apiUrl}/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: form.email.trim(),
+            password: form.password,
+            fullName: form.fullName.trim(),
+            bio: 'Spune lumii cine ești.',
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Eroare la crearea contului';
+          try {
+            const text = await response.text();
+            try {
+              const errorData = JSON.parse(text);
+              const detail = errorData.detail || errorData.message;
+              if (typeof detail === 'string') {
+                errorMessage = detail;
+              } else if (Array.isArray(detail)) {
+                errorMessage = detail.map((e: any) => {
+                  const msg = e.msg || JSON.stringify(e);
+                  const loc = e.loc ? e.loc.join('.') : '';
+                  return loc ? `${loc}: ${msg}` : msg;
+                }).join('; ');
+              } else if (detail && typeof detail === 'object') {
+                errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+              }
+            } catch {
+              // Răspunsul nu e JSON (ex.: pagină de eroare) – afișăm primele 200 caractere
+              if (text && text.length > 0) {
+                errorMessage = text.length > 200 ? text.slice(0, 200) + '…' : text;
+              } else {
+                errorMessage = `Eroare server (${response.status}). Verifică că backend-ul rulează pe portul 8000.`;
+              }
+            }
+            // Identifică tipul de eroare și setează eroarea corespunzătoare
+            const lowerMessage = errorMessage.toLowerCase();
+            if (lowerMessage.includes('email') || lowerMessage.includes('deja înregistrat')) {
+              setErrors({ email: errorMessage });
+            } else if (lowerMessage.includes('parolă') || lowerMessage.includes('password') || lowerMessage.includes('parola')) {
+              setErrors({ password: errorMessage });
+            } else {
+              setErrors({ email: errorMessage });
+            }
+          } catch (parseError) {
+            setErrors({ email: `${errorMessage} (${response.status})` });
+          }
+          return;
+        }
+
+        const user = await response.json();
+        onRegister(
+          {
+            fullName: user.fullName,
+            email: user.email,
+            bio: user.bio,
+            avatarUrl: null,
+          },
+          user.access_token
+        );
+      } catch (error: any) {
+        console.error('Eroare la înregistrare:', error);
+        let errorMessage = 'Eroare la conectare. Vă rugăm să încercați din nou.';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (error?.response?.data?.detail) {
+          const detail = error.response.data.detail;
+          if (typeof detail === 'string') {
+            errorMessage = detail;
+          } else if (Array.isArray(detail)) {
+            errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ');
+          } else if (typeof detail === 'object') {
+            errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+          }
+        }
+        setErrors({ email: errorMessage });
+      }
     }
   };
 
@@ -104,7 +182,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <InputField
             label="Nume complet"
             value={form.fullName}
