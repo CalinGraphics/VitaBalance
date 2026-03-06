@@ -43,12 +43,7 @@ function App() {
           </div>
         ) : (
           <>
-            {route === 'login' && (
-              <LoginPage 
-                onNavigate={navigate} 
-                onLogin={handleLogin} 
-              />
-            )}
+            {route === 'login' && <LoginPage onNavigate={navigate} />}
             {route === 'register' && (
               <RegisterPage 
                 onNavigate={navigate} 

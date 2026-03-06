@@ -1,21 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import { motion } from 'framer-motion';
-import type { AuthUser } from '../../../shared/types';
 import { authService } from '../../../services/api';
 
 interface LoginPageProps {
-  onNavigate: (page: 'register' | 'login') => void;
-  onLogin: (user: AuthUser, accessToken?: string) => void;
+  onNavigate?: (page: 'register' | 'login') => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+const LoginPage: React.FC<LoginPageProps> = () => {
   const [email, setEmail] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email?.trim()) {
       setMagicLinkError('Introdu adresa de email.');
@@ -90,7 +88,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               label="Email"
               type="email"
               value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                setEmail(e.target.value)
+              }
               placeholder="exemplu@email.com"
               error={magicLinkError ?? undefined}
             />

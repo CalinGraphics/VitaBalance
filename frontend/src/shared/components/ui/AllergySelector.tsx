@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, MouseEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, ChevronDown, X } from 'lucide-react'
-import { COMMON_ALLERGIES, parseAllergies, stringifyAllergies, type AllergyOption } from '../../constants/allergies'
+import { COMMON_ALLERGIES, parseAllergies, stringifyAllergies } from '../../constants/allergies'
 
 interface AllergySelectorProps {
   label: string
@@ -29,7 +29,7 @@ const AllergySelector = ({ label, value, onChange, placeholder = 'Selectează al
     }
   }
   
-  const handleRemove = (allergyValue: string, e: React.MouseEvent) => {
+  const handleRemove = (allergyValue: string, e: MouseEvent) => {
     e.stopPropagation()
     const current = parseAllergies(value)
     const updated = current.filter(a => a !== allergyValue)
