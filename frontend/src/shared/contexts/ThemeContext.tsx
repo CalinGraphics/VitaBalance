@@ -1,4 +1,4 @@
-import React, { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode } from 'react';
 
 // Simplificat - doar dark mode, fără toggle
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {

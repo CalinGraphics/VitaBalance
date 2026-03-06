@@ -33,7 +33,7 @@ export async function generateRecommendationPdfBlob(
     recommendations,
     generatedAt: formatDate(),
   })
-  const blob = await pdf(doc).toBlob()
+  const blob = await pdf(doc as any).toBlob()
   return blob
 }
 
