@@ -61,10 +61,12 @@ async def global_exception_handler(request, exc):
 
 settings = get_settings()
 
+# CORS foarte permisiv: acceptă request-uri de la orice origin.
+# Pentru producția publică se poate restrânge la o listă fixă de URL-uri.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.get_cors_origins_list(),
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
