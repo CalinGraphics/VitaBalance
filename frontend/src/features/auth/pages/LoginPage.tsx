@@ -2,35 +2,35 @@ import React, { useState } from 'react';
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import { motion } from 'framer-motion';
 import type { AuthUser } from '../../../shared/types';
+import { authService } from '../../../services/api';
 
 interface LoginPageProps {
   onNavigate: (page: 'register' | 'login') => void;
-  onLogin: (user: AuthUser) => void;
+  onLogin: (user: AuthUser, accessToken?: string) => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (field: 'email' | 'password') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: { email?: string; password?: string } = {};
-    if (!form.email) newErrors.email = 'Introdu adresa de email.';
-    if (!form.password) newErrors.password = 'Introdu parola.';
-    setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length === 0) {
-      // Mock login: trimitem un user fake
-      onLogin({
-        fullName: 'User Demo',
-        email: form.email,
-        bio: 'Explorator al echilibrului digital și fizic.',
-        avatarUrl: null,
-      });
+    if (!email?.trim()) {
+      setMagicLinkError('Introdu adresa de email.');
+      return;
+    }
+    setMagicLinkError(null);
+    setIsLoading(true);
+    try {
+      await authService.requestMagicLink(email.trim());
+      setMagicLinkSent(true);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setMagicLinkError(e?.message || 'Eroare la trimitere. Încearcă din nou.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,49 +59,48 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
       <GlassCard>
         <div className="mb-6">
           <h3 className="text-xl font-semibold tracking-tight text-slate-100">
-            Logare utilizator
+            Autentificare
           </h3>
           <p className="mt-1 text-xs text-slate-400">
-            Introdu datele contului pentru a continua.
+            Introdu email-ul și primești un link de conectare. Dacă nu ai cont, îți va fi creat automat la prima utilizare.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <InputField
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={handleChange('email')}
-            placeholder="exemplu@email.com"
-            error={errors.email}
-          />
-          <InputField
-            label="Parolă"
-            type="password"
-            value={form.password}
-            onChange={handleChange('password')}
-            placeholder="••••••••"
-            error={errors.password}
-          />
-
-          <div className="mt-6">
-            <PrimaryButton type="submit">
-              <span>Autentificare</span>
-            </PrimaryButton>
+        {magicLinkSent ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-neonCyan/40 bg-neonCyan/10 px-4 py-4">
+              <p className="text-sm text-neonCyan font-medium">
+                Linkul a fost trimis la {email}
+              </p>
+              <p className="mt-2 text-xs text-slate-300">
+                Verifică inbox-ul (și spam-ul) și apasă pe link. Expiră în 24h. Dacă nu ai cont, acesta va fi creat automat.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setMagicLinkSent(false); setEmail(''); setMagicLinkError(null); }}
+              className="text-xs text-slate-400 hover:text-neonCyan transition"
+            >
+              Trimite din nou la altă adresă
+            </button>
           </div>
-        </form>
-
-        <div className="mt-5 flex items-center justify-between text-xs">
-          <span className="text-slate-400">
-            Nu ai cont?
-          </span>
-          <button
-            onClick={() => onNavigate('register')}
-            className="font-semibold text-neonCyan hover:text-neonMagenta transition"
-          >
-            Creează un cont nou
-          </button>
-        </div>
+        ) : (
+          <form onSubmit={handleSubmit} noValidate>
+            <InputField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              placeholder="exemplu@email.com"
+              error={magicLinkError ?? undefined}
+            />
+            <div className="mt-6">
+              <PrimaryButton type="submit" disabled={isLoading}>
+                <span>{isLoading ? 'Se trimite...' : 'Trimite link de conectare'}</span>
+              </PrimaryButton>
+            </div>
+          </form>
+        )}
       </GlassCard>
     </div>
   );

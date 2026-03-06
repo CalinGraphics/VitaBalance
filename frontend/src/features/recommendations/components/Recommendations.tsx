@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { UtensilsCrossed, Download } from 'lucide-react'
-import jsPDF from 'jspdf'
 import { GlassCard } from '../../../shared/components'
-import { recommendationsService, feedbackService } from '../../../services/api'
+import { recommendationsService } from '../../../services/api'
 import type { User } from '../../../shared/types'
 import RecommendationCard from './RecommendationCard'
 import NutrientChart from './NutrientChart'
+import UserProfileInfo from './UserProfileInfo'
+import { downloadRecommendationPdf } from '../pdf/exportRecommendationPdf'
 
 interface Recommendation {
   food_id: number
@@ -33,281 +34,106 @@ interface RecommendationsProps {
 }
 
 const Recommendations = ({ user }: RecommendationsProps) => {
+  // Debug logging only in development
+  if (import.meta.env.DEV) {
+    console.log('Recommendations component render - user:', user)
+  }
+  
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedCard, setExpandedCard] = useState<number | null>(null)
+  const [prevUserValues, setPrevUserValues] = useState({
+    diet_type: user.diet_type,
+    activity_level: user.activity_level,
+    allergies: user.allergies,
+    medical_conditions: user.medical_conditions
+  })
 
-  useEffect(() => {
-    fetchRecommendations()
-  }, [])
-
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (forceRegenerate: boolean = false) => {
     try {
+      if (import.meta.env.DEV) {
+        console.log('fetchRecommendations called for user.id:', user.id, 'forceRegenerate:', forceRegenerate)
+      }
       setLoading(true)
-      if (user.id) {
-        const data = await recommendationsService.get(user.id)
+      setError(null)
+      if (!user || !user.id) {
+        console.error('User sau user.id lipsește!', user)
+        setError('ID-ul utilizatorului lipsește. Vă rugăm să vă conectați din nou.')
+        setLoading(false)
+        return
+      }
+      
+      const data = await recommendationsService.get(user.id, forceRegenerate)
+      if (import.meta.env.DEV) {
+        console.log('Recomandări primite:', data)
+      }
+      
+      if (Array.isArray(data) && data.length > 0) {
         setRecommendations(data)
+        setError(null)
+      } else {
+        if (import.meta.env.DEV) {
+          console.log('Nu s-au găsit recomandări sau array-ul este gol')
+        }
+        setError('Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele medicale.')
+        setRecommendations([])
       }
     } catch (err) {
       console.error('Eroare la obținerea recomandărilor:', err)
-      setError('Nu s-au putut genera recomandări. Vă rugăm să încercați din nou.')
+      // Extrage mesajul de eroare - axios interceptor-ul ar trebui să-l extragă deja
+      let errorMessage = 'Nu s-au putut genera recomandări. Vă rugăm să încercați din nou.'
+      
+      if (err?.message) {
+        errorMessage = err.message
+      } else if (err?.response?.data?.detail) {
+        const detail = err.response.data.detail
+        if (typeof detail === 'string') {
+          errorMessage = detail
+        } else if (Array.isArray(detail)) {
+          errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || detail.message || JSON.stringify(detail)
+        }
+      }
+      
+      setError(errorMessage)
+      setRecommendations([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleFeedback = async (recommendationId: number, rating: number): Promise<void> => {
-    if (!user.id) {
-      throw new Error('User ID is required')
-    }
-    
-    try {
-      await feedbackService.create({
-        user_id: user.id,
-        recommendation_id: recommendationId,
-        rating: rating,
-        tried: false
+  useEffect(() => {
+    const hasChanged = 
+      prevUserValues.diet_type !== user.diet_type ||
+      prevUserValues.activity_level !== user.activity_level ||
+      prevUserValues.allergies !== user.allergies ||
+      prevUserValues.medical_conditions !== user.medical_conditions
+
+    if (hasChanged) {
+      // Regenerează recomandările dacă s-au schimbat criteriile
+      fetchRecommendations(true)
+      setPrevUserValues({
+        diet_type: user.diet_type,
+        activity_level: user.activity_level,
+        allergies: user.allergies,
+        medical_conditions: user.medical_conditions
       })
-    } catch (err) {
-      console.error('Eroare la salvarea feedback-ului:', err)
-      throw err // Re-throw pentru a permite gestionarea erorilor în componentă
+    } else {
+      // Altfel, doar încarcă recomandările existente
+      fetchRecommendations(false)
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id, user.diet_type, user.activity_level, user.allergies, user.medical_conditions])
+
 
   const exportToPDF = () => {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
+    downloadRecommendationPdf({
+      user: { name: user.name, email: user.email, id: user.id },
+      recommendations,
+    }).catch((err) => {
+      console.error('Export PDF failed:', err)
     })
-    
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const pageHeight = doc.internal.pageSize.getHeight()
-    const marginLeft = 15
-    const marginRight = 15
-    const marginTop = 20
-    const marginBottom = 20
-    const contentWidth = pageWidth - marginLeft - marginRight
-    
-    // Folosim Helvetica (cel mai apropiat de Arial în jsPDF)
-    doc.setFont('helvetica')
-    
-    // Helper function pentru adăugare text cu wrapping corect
-    const addText = (text: string, x: number, y: number, options: {
-      fontSize?: number
-      fontStyle?: 'normal' | 'bold' | 'italic' | 'bolditalic'
-      maxWidth?: number
-      lineHeight?: number
-      color?: [number, number, number]
-    } = {}) => {
-      const {
-        fontSize = 10,
-        fontStyle = 'normal',
-        maxWidth = contentWidth,
-        lineHeight = fontSize * 1.2,
-        color = [0, 0, 0]
-      } = options
-      
-      doc.setFontSize(fontSize)
-      doc.setFont('helvetica', fontStyle)
-      doc.setTextColor(color[0], color[1], color[2])
-      
-      const lines = doc.splitTextToSize(text, maxWidth)
-      doc.text(lines, x, y, {
-        maxWidth: maxWidth,
-        align: 'left'
-      })
-      
-      return y + (lines.length * lineHeight)
-    }
-    
-    // Helper pentru verificare pagină nouă
-    const checkNewPage = (requiredSpace: number) => {
-      if (y + requiredSpace > pageHeight - marginBottom) {
-        doc.addPage()
-        y = marginTop
-        return true
-      }
-      return false
-    }
-    
-    let y = marginTop
-    
-    // Header
-    doc.setFillColor(0, 245, 255)
-    doc.rect(0, 0, pageWidth, 35, 'F')
-    
-    y = addText('VitaBalance', marginLeft, 18, {
-      fontSize: 20,
-      fontStyle: 'bold',
-      color: [0, 0, 0]
-    })
-    
-    y = addText('Recomandări Nutriționale Personalizate', marginLeft, y + 2, {
-      fontSize: 12,
-      fontStyle: 'normal',
-      color: [0, 0, 0]
-    })
-    
-    y = marginTop + 40
-    
-    // Informații utilizator
-    y = addText(`Pentru: ${user.name}`, marginLeft, y, {
-      fontSize: 11,
-      fontStyle: 'bold'
-    })
-    
-    y = addText(`Data generării: ${new Date().toLocaleDateString('ro-RO', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    })}`, marginLeft, y + 4, {
-      fontSize: 10,
-      fontStyle: 'normal'
-    })
-    
-    y += 8
-    
-    // Disclaimer
-    checkNewPage(15)
-    y = addText('⚠️ Aceste recomandări sunt sugestii generale și nu înlocuiesc consultul medical. Consultați întotdeauna un medic sau nutriționist înainte de a face modificări majore în dieta dumneavoastră.', marginLeft, y, {
-      fontSize: 9,
-      fontStyle: 'normal',
-      color: [255, 140, 0],
-      maxWidth: contentWidth
-    })
-    
-    y += 10
-    
-    // Recomandări
-    recommendations.forEach((rec, index) => {
-      // Verifică dacă mai e spațiu pentru un nou aliment
-      checkNewPage(30)
-      
-      // Titlu aliment
-      y = addText(`${index + 1}. ${rec.food.name}`, marginLeft, y, {
-        fontSize: 14,
-        fontStyle: 'bold',
-        color: [0, 150, 200]
-      })
-      
-      y += 5
-      
-      // Informații de bază
-      y = addText(`Categorie: ${rec.food.category}`, marginLeft, y, {
-        fontSize: 10,
-        fontStyle: 'normal'
-      })
-      
-      y = addText(`Porție sugerată: ${rec.explanation.portion}g`, marginLeft, y + 3, {
-        fontSize: 10,
-        fontStyle: 'bold'
-      })
-      
-      y = addText(`Acoperă ${rec.coverage.toFixed(1)}% din deficitul nutrițional`, marginLeft, y + 3, {
-        fontSize: 10,
-        fontStyle: 'bold'
-      })
-      
-      y += 6
-      
-      // Explicație principală
-      checkNewPage(20)
-      y = addText(rec.explanation.text, marginLeft, y, {
-        fontSize: 10,
-        fontStyle: 'normal',
-        maxWidth: contentWidth
-      })
-      
-      y += 6
-      
-      // Motive
-      checkNewPage(15)
-      y = addText('De ce îl recomand:', marginLeft, y, {
-        fontSize: 10,
-        fontStyle: 'bold'
-      })
-      
-      y += 4
-      rec.explanation.reasons.forEach(reason => {
-        checkNewPage(8)
-        y = addText(`• ${reason}`, marginLeft + 3, y, {
-          fontSize: 10,
-          fontStyle: 'normal',
-          maxWidth: contentWidth - 3
-        })
-        y += 1
-      })
-      
-      // Sfaturi
-      if (rec.explanation.tips && rec.explanation.tips.length > 0) {
-        y += 4
-        checkNewPage(15)
-        y = addText('Sfaturi:', marginLeft, y, {
-          fontSize: 10,
-          fontStyle: 'bold'
-        })
-        
-        y += 4
-        rec.explanation.tips.forEach(tip => {
-          checkNewPage(8)
-          y = addText(`• ${tip}`, marginLeft + 3, y, {
-            fontSize: 10,
-            fontStyle: 'normal',
-            maxWidth: contentWidth - 3
-          })
-          y += 1
-        })
-      }
-      
-      // Alternative
-      if (rec.explanation.alternatives && rec.explanation.alternatives.length > 0) {
-        y += 4
-        checkNewPage(10)
-        y = addText('Alternative similare:', marginLeft, y, {
-          fontSize: 10,
-          fontStyle: 'bold'
-        })
-        
-        y += 4
-        const alternativesText = rec.explanation.alternatives.join(', ')
-        y = addText(alternativesText, marginLeft, y, {
-          fontSize: 10,
-          fontStyle: 'normal',
-          maxWidth: contentWidth
-        })
-      }
-      
-      // Linie separator
-      y += 8
-      if (y > pageHeight - marginBottom - 5) {
-        doc.addPage()
-        y = marginTop
-      }
-      doc.setDrawColor(200, 200, 200)
-      doc.line(marginLeft, y, pageWidth - marginRight, y)
-      y += 8
-    })
-    
-    // Footer pe fiecare pagină
-    const totalPages = doc.internal.pages.length - 1
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i)
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(128, 128, 128)
-      doc.text(
-        `Pagina ${i} din ${totalPages}`,
-        pageWidth / 2,
-        pageHeight - 8,
-        { align: 'center' }
-      )
-    }
-    
-    // Nume fișier
-    const safeName = user.name.replace(/[^a-zA-Z0-9]/g, '_')
-    doc.save(`VitaBalance_Recomandari_${safeName}_${Date.now()}.pdf`)
   }
 
   if (loading) {
@@ -321,14 +147,14 @@ const Recommendations = ({ user }: RecommendationsProps) => {
     )
   }
 
-  if (error) {
+  if (error && !loading) {
     return (
       <GlassCard className="max-w-2xl mx-auto">
         <div className="text-center text-red-400">
-          <p>{error}</p>
+          <p className="mb-4">{error}</p>
           <div className="mt-4 flex items-center justify-center gap-3">
             <motion.button 
-              onClick={fetchRecommendations} 
+              onClick={() => fetchRecommendations(true)} 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="rounded-xl border border-neonCyan/50 bg-gradient-to-r from-neonCyan via-neonPurple to-neonMagenta px-4 py-2 text-sm font-semibold text-slate-950 shadow-neon transition hover:shadow-neon-magenta"
@@ -352,8 +178,25 @@ const Recommendations = ({ user }: RecommendationsProps) => {
     )
   }
 
+  // Error boundary - dacă nu există user
+  if (!user) {
+    return (
+      <div className="w-full text-center py-12">
+        <p className="text-red-400">Eroare: Date utilizator lipsă</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
+      {/* Date profil utilizator */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <UserProfileInfo user={user} />
+      </motion.div>
+
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -392,14 +235,34 @@ const Recommendations = ({ user }: RecommendationsProps) => {
             key={rec.food_id}
             recommendation={rec}
             index={index}
-            isExpanded={expandedCard === rec.food_id}
-            onExpand={() => setExpandedCard(expandedCard === rec.food_id ? null : rec.food_id)}
-            onFeedback={handleFeedback}
           />
         ))}
       </div>
 
-      {recommendations.length === 0 && (
+      {loading && (
+        <GlassCard className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neonCyan mb-4"></div>
+          <p className="text-slate-300 text-lg">
+            Se încarcă recomandările...
+          </p>
+        </GlassCard>
+      )}
+
+      {!loading && error && (
+        <GlassCard className="text-center py-12">
+          <p className="text-red-400 text-lg mb-4">
+            {error}
+          </p>
+          <button
+            onClick={() => fetchRecommendations(true)}
+            className="px-4 py-2 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition"
+          >
+            Încearcă din nou
+          </button>
+        </GlassCard>
+      )}
+
+      {!loading && !error && recommendations.length === 0 && (
         <GlassCard className="text-center py-12">
           <p className="text-slate-300 text-lg">
             Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele.

@@ -3,4 +3,6 @@ export { default as GlassCard } from './GlassCard'
 export { default as InputField } from './InputField'
 export { default as PrimaryButton } from './PrimaryButton'
 export { default as SelectField } from './SelectField'
+export { default as AllergySelector } from './AllergySelector'
+export { default as MedicalConditionSelector } from './MedicalConditionSelector'
 

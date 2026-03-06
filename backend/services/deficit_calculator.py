@@ -1,10 +1,8 @@
 from typing import Dict, Optional
-from models import User, LabResult
+from domain.models import UserProfile, LabResultItem
+
 
 class DeficitCalculator:
-    """Calculează deficiențele nutriționale bazate pe profilul utilizatorului și analizele medicale"""
-    
-    # RDI (Recommended Daily Intake) pe categorii
     RDI_TABLES = {
         'iron': {
             'M': {'18-50': 8, '50+': 8},
@@ -40,11 +38,43 @@ class DeficitCalculator:
             'M': {'all': 11},
             'F': {'all': 8},
             'other': {'all': 9.5}
+        },
+        'folate': {
+            'M': {'all': 400},
+            'F': {'all': 400, 'pregnancy': 600},
+            'other': {'all': 400}
+        },
+        'vitamin_a': {
+            'M': {'all': 900},
+            'F': {'all': 700},
+            'other': {'all': 800}
+        },
+        'vitamin_c': {
+            'M': {'all': 90},
+            'F': {'all': 75},
+            'other': {'all': 82.5}
+        },
+        'iodine': {
+            'M': {'all': 150},
+            'F': {'all': 150},
+            'other': {'all': 150}
+        },
+        'vitamin_k': {
+            'M': {'all': 120},
+            'F': {'all': 90},
+            'other': {'all': 105}
+        },
+        'potassium': {
+            'M': {'all': 3400},
+            'F': {'all': 2600},
+            'other': {'all': 3000}
         }
     }
     
     def get_age_group(self, age: int) -> str:
         """Determină grupa de vârstă"""
+        if age is None:
+            return '18-50'  # Default pentru vârsta lipsă
         if age < 18:
             return '18-30'
         elif age < 30:
@@ -56,8 +86,7 @@ class DeficitCalculator:
         else:
             return '70+'
     
-    def get_rdi(self, nutrient: str, user: User) -> float:
-        """Obține RDI pentru un nutrient specific"""
+    def get_rdi(self, nutrient: str, user: UserProfile) -> float:
         if nutrient not in self.RDI_TABLES:
             return 0
         
@@ -80,9 +109,7 @@ class DeficitCalculator:
                 # Fallback la prima valoare disponibilă
                 return list(table[sex].values())[0]
     
-    def estimate_current_intake(self, nutrient: str, user: User) -> float:
-        """Estimează aportul curent bazat pe tipul de dietă"""
-        # Estimări bazate pe tipul de dietă (valori medii)
+    def estimate_current_intake(self, nutrient: str, user: UserProfile) -> float:
         estimates = {
             'iron': {
                 'omnivore': 12,
@@ -125,6 +152,42 @@ class DeficitCalculator:
                 'vegetarian': 8,
                 'vegan': 6,
                 'pescatarian': 9
+            },
+            'folate': {
+                'omnivore': 300,
+                'vegetarian': 280,
+                'vegan': 250,
+                'pescatarian': 290
+            },
+            'vitamin_a': {
+                'omnivore': 600,
+                'vegetarian': 500,
+                'vegan': 400,
+                'pescatarian': 550
+            },
+            'vitamin_c': {
+                'omnivore': 80,
+                'vegetarian': 75,
+                'vegan': 70,
+                'pescatarian': 77
+            },
+            'iodine': {
+                'omnivore': 120,
+                'vegetarian': 100,
+                'vegan': 80,
+                'pescatarian': 110
+            },
+            'vitamin_k': {
+                'omnivore': 80,
+                'vegetarian': 70,
+                'vegan': 60,
+                'pescatarian': 75
+            },
+            'potassium': {
+                'omnivore': 2500,
+                'vegetarian': 2800,
+                'vegan': 3000,
+                'pescatarian': 2600
             }
         }
         
@@ -133,37 +196,34 @@ class DeficitCalculator:
             return estimates[nutrient][diet]
         return 0
     
-    def calculate_deficits(self, user: User, lab_results: Optional[LabResult] = None) -> Dict[str, float]:
-        """
-        Calculează deficiențele pentru toți nutrienții
-        Prioritizează rezultatele analizelor medicale când sunt disponibile
-        """
+    def calculate_deficits(self, user: UserProfile, lab_results: Optional[LabResultItem] = None) -> Dict[str, float]:
         deficits = {}
         
-        nutrients = ['iron', 'calcium', 'vitamin_d', 'vitamin_b12', 'magnesium', 'protein', 'zinc']
+        # Toți nutrienții conform tabelului de deficiențe nutriționale
+        nutrients = [
+            'iron', 'calcium', 'vitamin_d', 'vitamin_b12', 'magnesium', 
+            'protein', 'zinc', 'folate', 'vitamin_a', 'vitamin_c', 
+            'iodine', 'vitamin_k', 'potassium'
+        ]
         
         for nutrient in nutrients:
             rdi = self.get_rdi(nutrient, user)
             
-            # Verifică dacă există analize medicale
             if lab_results:
                 lab_value = self._get_lab_value(nutrient, lab_results)
                 
                 if lab_value is not None:
-                    # Folosește valoarea din analize și compară cu referințele medicale
                     deficit = self._calculate_deficit_from_labs(nutrient, lab_value, rdi)
                     deficits[nutrient] = max(0, deficit)
                     continue
             
-            # Dacă nu există analize, estimează aportul curent
             current_intake = self.estimate_current_intake(nutrient, user)
             deficit = max(0, rdi - current_intake)
             deficits[nutrient] = deficit
         
         return deficits
     
-    def _get_lab_value(self, nutrient: str, lab_results: LabResult) -> Optional[float]:
-        """Extrage valoarea din analize pentru un nutrient specific"""
+    def _get_lab_value(self, nutrient: str, lab_results: LabResultItem) -> Optional[float]:
         mapping = {
             'iron': lab_results.ferritin,  # Ferritin este indicator pentru fier
             'calcium': lab_results.calcium,
@@ -171,40 +231,40 @@ class DeficitCalculator:
             'vitamin_b12': lab_results.vitamin_b12,
             'magnesium': lab_results.magnesium,
             'protein': lab_results.protein,
-            'zinc': lab_results.zinc
+            'zinc': lab_results.zinc,
+            'folate': lab_results.folate if hasattr(lab_results, 'folate') else None,
+            'vitamin_a': lab_results.vitamin_a if hasattr(lab_results, 'vitamin_a') else None,
+            'iodine': lab_results.iodine if hasattr(lab_results, 'iodine') else None,
+            'vitamin_k': lab_results.vitamin_k if hasattr(lab_results, 'vitamin_k') else None,
+            'potassium': lab_results.potassium if hasattr(lab_results, 'potassium') else None,
+            'vitamin_c': None  # Nu este în modelul LabResult, va folosi estimare
         }
         return mapping.get(nutrient)
     
     def _calculate_deficit_from_labs(self, nutrient: str, lab_value: float, rdi: float) -> float:
-        """
-        Calculează deficitul bazat pe valorile din analize
-        Folosește referințe medicale standard
-        """
-        # Referințe medicale pentru valori normale
-        normal_ranges = {
-            'iron': {'min': 15, 'optimal': 50},  # Ferritin ng/mL
-            'calcium': {'min': 8.5, 'optimal': 10.5},  # mg/dL
-            'vitamin_d': {'min': 20, 'optimal': 30},  # ng/mL
-            'vitamin_b12': {'min': 200, 'optimal': 400},  # pg/mL
-            'magnesium': {'min': 1.7, 'optimal': 2.2},  # mg/dL
-            'protein': {'min': 6.0, 'optimal': 8.0},  # g/dL
-            'zinc': {'min': 70, 'optimal': 100}  # mcg/dL
+        clinical_thresholds = {
+            'iron': {'threshold': 30.0, 'unit': 'ferritin_ng_ml'},
+            'calcium': {'threshold': 8.5, 'unit': 'mg_dl'},
+            'vitamin_d': {'threshold': 20.0, 'unit': 'ng_ml'},
+            'vitamin_b12': {'threshold': 200.0, 'unit': 'pg_ml'},
+            'magnesium': {'threshold': 1.7, 'unit': 'mg_dl'},
+            'protein': {'threshold': 6.0, 'unit': 'g_dl'},
+            'zinc': {'threshold': 70.0, 'unit': 'mcg_dl'},
+            'folate': {'threshold': 3.0, 'unit': 'ng_ml'},
+            'vitamin_a': {'threshold': 20.0, 'unit': 'mcg_dl'},
+            'iodine': {'threshold': 100.0, 'unit': 'mcg_l'},
+            'potassium': {'threshold': 3.5, 'unit': 'mmol_l'},
         }
         
-        if nutrient not in normal_ranges:
+        if nutrient not in clinical_thresholds:
             return 0
         
-        normal = normal_ranges[nutrient]
+        threshold = clinical_thresholds[nutrient]['threshold']
         
-        if lab_value < normal['min']:
-            # Deficit sever - calculează cât lipsește până la optim
-            deficit_ratio = (normal['optimal'] - lab_value) / (normal['optimal'] - normal['min'])
-            return rdi * deficit_ratio * 1.5  # Multiplicator pentru deficit sever
-        elif lab_value < normal['optimal']:
-            # Deficit moderat
-            deficit_ratio = (normal['optimal'] - lab_value) / (normal['optimal'] - normal['min'])
-            return rdi * deficit_ratio
+        if lab_value < threshold:
+            deficit_ratio = (threshold - lab_value) / threshold
+            normalized_deficit = min(1.5, max(0.3, deficit_ratio))
+            return rdi * normalized_deficit
         else:
-            # Valori normale sau optime
             return 0
 

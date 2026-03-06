@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { UserPlus, ArrowRight } from 'lucide-react'
 import React from 'react'
-import { GlassCard, InputField, SelectField, PrimaryButton } from '../../../shared/components'
+import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
 import type { User, AuthUser } from '../../../shared/types'
 
@@ -26,18 +26,32 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
   })
 
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
     try {
       const response = await profileService.create(formData)
       onComplete(response)
-    } catch (error) {
-      console.error('Eroare la salvarea profilului:', error)
-      // Mock pentru demo - continuă cu datele locale
-      onComplete(formData as User)
+    } catch (err: any) {
+      console.error('Eroare la salvarea profilului:', err)
+      let errorMessage = 'Eroare la salvarea profilului. Te rugăm să încerci din nou.'
+      const detail = err?.response?.data?.detail
+      if (detail !== undefined && detail !== null) {
+        if (typeof detail === 'string') {
+          errorMessage = detail
+        } else if (Array.isArray(detail)) {
+          errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
+        } else if (typeof detail === 'object') {
+          errorMessage = detail.msg || detail.message || JSON.stringify(detail)
+        }
+      } else if (err?.message) {
+        errorMessage = err.message
+      }
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -60,6 +74,12 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
               <p className="text-slate-400 text-sm">Completează informațiile pentru recomandări personalizate</p>
             </div>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -140,18 +160,18 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
               />
             </div>
 
-            <InputField
+            <AllergySelector
               label="Alergii"
               value={formData.allergies || ''}
-              onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-              placeholder="EX: lactoza, nuci, gluten"
+              onChange={(value) => setFormData({ ...formData, allergies: value })}
+              placeholder="Selectează alergiile tale"
             />
 
-            <InputField
+            <MedicalConditionSelector
               label="Condiții medicale"
               value={formData.medical_conditions || ''}
-              onChange={(e) => setFormData({ ...formData, medical_conditions: e.target.value })}
-              placeholder="EX: diabet, hipertensiune"
+              onChange={(value) => setFormData({ ...formData, medical_conditions: value })}
+              placeholder="Selectează condițiile medicale"
             />
 
             <div className="mt-6">
