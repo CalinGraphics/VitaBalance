@@ -9,6 +9,7 @@ interface InputFieldProps {
   error?: string;
   textarea?: boolean;
   rows?: number;
+  step?: string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -20,6 +21,7 @@ const InputField: React.FC<InputFieldProps> = ({
   error,
   textarea = false,
   rows = 3,
+  step,
 }) => {
   // Base classes - NO BORDER classes in className, only in style
   const baseClasses = 'w-full rounded-xl px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition-all bg-slate-950/40';
@@ -84,6 +86,7 @@ const InputField: React.FC<InputFieldProps> = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          step={step}
           className={`${baseClasses} ${borderClass}`}
           style={inputStyle}
           onFocus={(e) => {

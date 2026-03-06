@@ -82,11 +82,11 @@ const Recommendations = ({ user }: RecommendationsProps) => {
       console.error('Eroare la obținerea recomandărilor:', err)
       // Extrage mesajul de eroare - axios interceptor-ul ar trebui să-l extragă deja
       let errorMessage = 'Nu s-au putut genera recomandări. Vă rugăm să încercați din nou.'
-      
-      if (err?.message) {
+
+      if (err instanceof Error && err.message) {
         errorMessage = err.message
-      } else if (err?.response?.data?.detail) {
-        const detail = err.response.data.detail
+      } else if ((err as any)?.response?.data?.detail) {
+        const detail = (err as any).response.data.detail
         if (typeof detail === 'string') {
           errorMessage = detail
         } else if (Array.isArray(detail)) {

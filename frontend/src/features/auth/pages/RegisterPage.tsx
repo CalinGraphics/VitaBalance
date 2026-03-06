@@ -24,11 +24,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
     confirmPassword?: string;
   }>({});
 
-  const handleChange = (field: 'fullName' | 'email' | 'password' | 'confirmPassword') => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  };
+  const handleChange =
+    (field: 'fullName' | 'email' | 'password' | 'confirmPassword') =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

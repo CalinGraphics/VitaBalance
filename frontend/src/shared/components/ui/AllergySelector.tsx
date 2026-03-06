@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, ChevronDown, X } from 'lucide-react'
-import { COMMON_ALLERGIES, parseAllergies, stringifyAllergies, type AllergyOption } from '../../constants/allergies'
+import { COMMON_ALLERGIES, parseAllergies, stringifyAllergies } from '../../constants/allergies'
 
 interface AllergySelectorProps {
   label: string
