@@ -61,9 +61,13 @@ async def global_exception_handler(request, exc):
 
 settings = get_settings()
 
+# CORS: listează origin-urile din CORS_ORIGINS + regex pentru orice *.vercel.app (preview + production)
+_cors_origins = settings.get_cors_origins_list()
+_cors_regex = r"https://[a-zA-Z0-9-]+\.vercel\.app$"  # orice subdomeniu vercel.app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.get_cors_origins_list(),
+    allow_origins=_cors_origins,
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
