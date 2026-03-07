@@ -175,13 +175,16 @@ async def api_request_magic_link(body: MagicLinkRequest):
     """Trimite link magic pe email. Opțional fullName pentru înregistrare."""
     if not body.email or not str(body.email).strip():
         raise HTTPException(status_code=400, detail="Email obligatoriu")
-    ok = request_magic_link(str(body.email).strip(), full_name=body.fullName)
+    try:
+        ok = request_magic_link(str(body.email).strip(), full_name=body.fullName)
+    except RuntimeError as e:
+        # Propagăm mesajul exact (de ex. lipsă RESEND_API_KEY sau eroare Resend)
+        raise HTTPException(status_code=500, detail=str(e))
     if not ok:
-        # Dacă trimiterea emailului a eșuat (ex.: lipsă RESEND_API_KEY în producție),
-        # semnalăm eroarea către frontend pentru a afișa un mesaj clar utilizatorului.
+        # Fallback generic, dacă pentru vreun motiv funcția întoarce False.
         raise HTTPException(
             status_code=500,
-            detail="Nu am putut trimite emailul de autentificare. Verifică configurația și încearcă din nou.",
+            detail="Nu am putut trimite emailul de autentificare. Încearcă din nou sau contactează administratorul.",
         )
     return MagicLinkResponse(message="Dacă acest email este valid, vei primi un link de autentificare în câteva minute.")
 

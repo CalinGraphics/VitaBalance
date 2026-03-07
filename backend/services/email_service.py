@@ -12,13 +12,21 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
     """
     Trimite email cu link-ul magic către utilizatorul care a solicitat autentificarea.
     to_email = adresa la care se trimite (cine a apăsat „Trimite link magic”).
-    Dacă RESEND_API_KEY nu e setat:
-      - în modul debug: NU trimite email real, dar afișează linkul în consolă și întoarce True (comportament dev)
-      - în producție: întoarce False, astfel încât API-ul să poată semnala eroarea către frontend.
+    Comportament:
+      - dacă RESEND_API_KEY NU este setat:
+          * în modul debug: NU trimite email real, dar afișează linkul în consolă și întoarce True (fallback dev)
+          * în producție: ridică RuntimeError cu mesaj clar pentru a fi propagat în API.
+      - dacă RESEND_API_KEY este setat:
+          * ridică RuntimeError cu mesajul original în caz de eroare Resend,
+            astfel încât detaliul să fie vizibil în răspunsul HTTP 500.
     """
     settings = get_settings()
 
     if not settings.resend_api_key:
+        msg = (
+            "Configurația de email lipsește pe server: RESEND_API_KEY nu este setată. "
+            "Adaugă RESEND_API_KEY în environment-ul serviciului backend (Render) și redeployează aplicația."
+        )
         print("[VitaBalance] RESEND_API_KEY lipsă – emailul NU este trimis.")
         print(f"[VitaBalance] To: {to_email}")
         print("[VitaBalance] Link magic (copiază și deschide în browser):")
@@ -26,8 +34,8 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
         # În dezvoltare permitem fallback-ul în consolă.
         if settings.debug:
             return True
-        # În producție tratăm lipsa cheii ca eroare.
-        return False
+        # În producție tratăm lipsa cheii ca eroare clară.
+        raise RuntimeError(msg)
 
     try:
         import resend
@@ -48,7 +56,11 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
             """,
             }
         )
-        return bool(getattr(r, "id", None))
+        if not getattr(r, "id", None):
+            raise RuntimeError("Resend nu a returnat un ID pentru emailul trimis.")
+        return True
     except Exception as e:
-        print("Eroare la trimitere email magic link:", e)
-        return False
+        error_msg = f"Eroare la trimitere email magic link: {e}"
+        print(error_msg)
+        # Ridicăm eroarea pentru a fi prinsă în endpoint și afișată în frontend.
+        raise RuntimeError(error_msg)
