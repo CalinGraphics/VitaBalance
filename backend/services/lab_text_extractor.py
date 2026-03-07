@@ -56,12 +56,12 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         (r"vit\.?\s*b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
         (r"b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
         # Calciu
-        (r"calciu[l]?\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "calcium"),
-        (r"\bca\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl)?", "calcium"),
-        (r"calciu\s+(\d+[.,]\d+|\d+)", "calcium"),
+        (r"calciu(?:\s+\w+){0,3}\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "calcium"),
+        (r"\bca\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "calcium"),
+        (r"calciu(?:\s+\w+){0,3}\s+(\d+[.,]\d+|\d+)", "calcium"),
         # Magneziu (evităm confuzia cu Mg = unitate)
-        (r"magneziu\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "magnesium"),
-        (r"magneziu\s+(\d+[.,]\d+|\d+)", "magnesium"),
+        (r"magneziu(?:\s+\w+){0,2}\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "magnesium"),
+        (r"magneziu(?:\s+\w+){0,2}\s+(\d+[.,]\d+|\d+)", "magnesium"),
         # Zinc
         (r"\bzn\s*[:\s]*(\d+[.,]\d+|\d+)", "zinc"),
         (r"zinc\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mcg/dl|μg/dl|ug/dl)?", "zinc"),
@@ -123,8 +123,8 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         (r"feritina?\s*[:\s]*(\d+[.,]\d+|\d+)", "ferritin"),
         (r"(?:25-?oh|vit\.?\s*d)\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_d"),
         (r"vit\.?\s*b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
-        (r"calciu\s*[:\s]*(\d+[.,]\d+|\d+)", "calcium"),
-        (r"magneziu\s*[:\s]*(\d+[.,]\d+|\d+)", "magnesium"),
+        (r"calciu(?:\s+\w+){0,3}\s*[:\s]*(\d+[.,]\d+|\d+)", "calcium"),
+        (r"magneziu(?:\s+\w+){0,2}\s*[:\s]*(\d+[.,]\d+|\d+)", "magnesium"),
         (r"zinc\s*[:\s]*(\d+[.,]\d+|\d+)", "zinc"),
         (r"proteine\s*[:\s]*(\d+[.,]\d+|\d+)", "protein"),
         (r"folat\s*[:\s]*(\d+[.,]\d+|\d+)", "folate"),
