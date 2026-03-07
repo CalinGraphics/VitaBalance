@@ -23,6 +23,7 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
       <h3 className="text-base sm:text-lg font-semibold text-slate-100 mb-4">
         Comparație acoperire deficit - Top 5 recomandări
       </h3>
+      {/* Desktop: height 300, axes 12px; mobile: smaller for readability */}
       <div className="w-full h-[250px] sm:h-[280px] md:h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -31,17 +32,17 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
               dataKey="name" 
               angle={-45}
               textAnchor="end"
-              height={80}
-              fontSize={10}
+              height={100}
+              fontSize={12}
               stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 10 }}
+              tick={{ fill: '#9ca3af', fontSize: 12 }}
             />
             <YAxis 
               label={{ value: 'Acoperire (%)', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
               domain={[0, 100]}
               stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 10 }}
-              width={32}
+              tick={{ fill: '#9ca3af', fontSize: 12 }}
+              width={40}
             />
           <Tooltip 
             formatter={(value: number) => [`${value}%`, 'Acoperire deficit']}
