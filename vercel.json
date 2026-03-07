@@ -7,6 +7,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://vitabalance.onrender.com/api/:path*"
+    },
+    {
+      "source": "/((?!api|assets|logo\\.png|favicon).*)",
+      "destination": "/index.html"
     }
   ]
 }
