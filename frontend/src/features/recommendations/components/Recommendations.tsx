@@ -149,15 +149,15 @@ const Recommendations = ({ user }: RecommendationsProps) => {
 
   if (error && !loading) {
     return (
-      <GlassCard className="max-w-2xl mx-auto">
+      <GlassCard className="w-full max-w-full md:max-w-2xl mx-auto">
         <div className="text-center text-red-400">
-          <p className="mb-4">{error}</p>
-          <div className="mt-4 flex items-center justify-center gap-3">
+          <p className="mb-4 text-base sm:text-sm break-words">{error}</p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <motion.button 
               onClick={() => fetchRecommendations(true)} 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="rounded-xl border border-neonCyan/50 bg-gradient-to-r from-neonCyan via-neonPurple to-neonMagenta px-4 py-2 text-sm font-semibold text-slate-950 shadow-neon transition hover:shadow-neon-magenta"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-neonCyan via-neonPurple to-neonMagenta px-4 py-3 text-sm font-semibold text-slate-950 shadow-neon transition hover:shadow-neon-magenta touch-manipulation"
             >
               Încearcă din nou
             </motion.button>
@@ -166,7 +166,7 @@ const Recommendations = ({ user }: RecommendationsProps) => {
                 onClick={exportToPDF}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 flex items-center gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)]"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)] touch-manipulation"
               >
                 <Download className="w-5 h-5 text-neonCyan" />
                 <span>Exportă PDF</span>
@@ -197,20 +197,20 @@ const Recommendations = ({ user }: RecommendationsProps) => {
         <UserProfileInfo user={user} />
       </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="col-span-2 lg:col-span-3 xl:col-span-3"
+          className="col-span-1 md:col-span-2 lg:col-span-3"
         >
           <GlassCard className="w-full max-w-none">
-            <div className="flex items-center justify-between mb-6 gap-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-3 rounded-lg shadow-neon">
-                  <UtensilsCrossed className="w-6 h-6 text-black" />
+            <div className="flex flex-col gap-4 sm:gap-6 mb-6 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-2.5 sm:p-3 rounded-lg shadow-neon flex-shrink-0">
+                  <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-100">Recomandările tale</h2>
+                <div className="min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-100">Recomandările tale</h2>
                   <p className="text-slate-400 text-sm">Alimente personalizate pentru nevoile tale nutriționale</p>
                 </div>
               </div>
@@ -218,9 +218,9 @@ const Recommendations = ({ user }: RecommendationsProps) => {
                 onClick={exportToPDF}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 flex items-center gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)] whitespace-nowrap"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-5 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)] whitespace-nowrap touch-manipulation self-start md:self-center"
               >
-                <Download className="w-5 h-5 text-neonCyan" />
+                <Download className="w-5 h-5 text-neonCyan flex-shrink-0" />
                 <span>Exportă PDF</span>
               </motion.button>
             </div>
@@ -255,7 +255,7 @@ const Recommendations = ({ user }: RecommendationsProps) => {
           </p>
           <button
             onClick={() => fetchRecommendations(true)}
-            className="px-4 py-2 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-3 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition touch-manipulation"
           >
             Încearcă din nou
           </button>

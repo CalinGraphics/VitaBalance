@@ -23,8 +23,8 @@ const InputField: React.FC<InputFieldProps> = ({
   rows = 3,
   step,
 }) => {
-  // Base classes - NO BORDER classes in className, only in style
-  const baseClasses = 'w-full rounded-xl px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition-all bg-slate-950/40';
+  // Base classes - NO BORDER classes in className, only in style; min-h for touch targets on mobile
+  const baseClasses = 'w-full min-h-[44px] rounded-xl px-3 py-3 sm:py-2.5 text-base sm:text-sm text-slate-100 placeholder:text-slate-500 transition-all bg-slate-950/40';
   
   const borderClass = error 
     ? 'focus:ring-red-500/30 focus:ring-2' 
@@ -71,7 +71,7 @@ const InputField: React.FC<InputFieldProps> = ({
           onChange={onChange}
           placeholder={placeholder}
           rows={rows}
-          className={`${baseClasses} ${borderClass}`}
+          className={`${baseClasses} min-h-[88px] ${borderClass}`}
           style={inputStyle}
           onFocus={(e) => {
             Object.assign(e.target.style, focusStyle);

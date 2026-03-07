@@ -151,33 +151,33 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
   };
 
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6 md:flex-row-reverse">
-      {/* Text lateral */}
+    <div className="flex w-full flex-col items-center justify-center gap-6 sm:gap-8 md:flex-row-reverse max-w-full">
+      {/* Text lateral - stacked on mobile */}
       <motion.div
         initial={{ opacity: 0, x: 40 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        className="max-w-sm"
+        className="w-full max-w-sm text-center md:text-right"
       >
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-neonMagenta">
           Creează-ți spațiul
         </p>
-        <h2 className="mb-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="mb-3 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-100">
           Cont nou <span className="text-neonMagenta">VitaBalance</span>
         </h2>
-        <p className="text-sm text-slate-300">
+        <p className="text-base sm:text-sm text-slate-300 leading-relaxed">
           Personalizează-ți profilul cu un avatar, bio și date de contact,
           toate într-un ambient neon futurist.
         </p>
       </motion.div>
 
-      {/* Card register */}
-      <GlassCard>
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold tracking-tight text-slate-100">
+      {/* Card register - full width on mobile */}
+      <GlassCard className="w-full max-w-full md:max-w-md">
+        <div className="mb-5 sm:mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-100">
             Creare cont
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-400 leading-relaxed">
             Completează informațiile de mai jos.
           </p>
         </div>
