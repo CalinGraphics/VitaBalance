@@ -197,12 +197,11 @@ const Recommendations = ({ user }: RecommendationsProps) => {
         <UserProfileInfo user={user} />
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Pe desktop (lg+) graficul ocupă toată lățimea viewport-ului */}
+      {/* Graficul ocupă aceeași lățime ca și cardul de profil utilizator */}
+      {recommendations.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="col-span-1 md:col-span-2 lg:col-span-3 w-full lg:w-screen lg:max-w-none lg:relative lg:left-1/2 lg:-ml-[50vw]"
         >
           <GlassCard className="w-full max-w-none">
             <div className="flex flex-col gap-4 sm:gap-6 mb-6 md:flex-row md:items-center md:justify-between">
@@ -226,11 +225,13 @@ const Recommendations = ({ user }: RecommendationsProps) => {
               </motion.button>
             </div>
 
-            {recommendations.length > 0 && (
-              <NutrientChart recommendations={recommendations} />
-            )}
+            <NutrientChart recommendations={recommendations} />
           </GlassCard>
         </motion.div>
+      )}
+
+      {/* Cardurile individuale de recomandări */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {recommendations.map((rec, index) => (
           <RecommendationCard
             key={rec.food_id}
