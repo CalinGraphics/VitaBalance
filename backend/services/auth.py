@@ -223,13 +223,16 @@ def request_magic_link(email: str, full_name: Optional[str] = None) -> bool:
         return False
     from repositories.magic_link_repository import create_token
     from services.email_service import send_magic_link_email
+
     settings = get_settings()
     token = create_token(email, full_name=full_name)
-    # URL relativ /?token= funcționează pe orice path (SPA servește index.html). Pentru hosting: seteză FRONTEND_BASE_URL în .env
+    # URL relativ /?token= funcționează pe orice path (SPA servește index.html).
+    # Pentru hosting: seteză FRONTEND_BASE_URL în .env / variabile de mediu (ex.: URL-ul de pe Vercel).
     base = settings.frontend_base_url.rstrip('/')
     link_url = f"{base}/?token={token}"
-    send_magic_link_email(email, link_url)
-    return True
+
+    success = send_magic_link_email(email, link_url)
+    return success
 
 
 def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:

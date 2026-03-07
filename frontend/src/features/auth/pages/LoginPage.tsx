@@ -43,9 +43,6 @@ const LoginPage: React.FC<LoginPageProps> = () => {
         transition={{ duration: 0.6 }}
         className="w-full max-w-sm text-center md:text-left"
       >
-        <p className="mb-2 text-xs sm:text-xs font-semibold uppercase tracking-[0.22em] text-neonCyan">
-          Bine ai revenit
-        </p>
         <h2 className="mb-3 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-100">
           Bine ai venit la <span className="text-neonCyan">VitaBalance</span>
         </h2>
