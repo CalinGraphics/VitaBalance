@@ -12,22 +12,33 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
     """
     Trimite email cu link-ul magic către utilizatorul care a solicitat autentificarea.
     to_email = adresa la care se trimite (cine a apăsat „Trimite link magic”).
-    Dacă RESEND_API_KEY nu e setat: nu trimite email, linkul apare doar în consolă (dev).
+    Dacă RESEND_API_KEY nu e setat:
+      - în modul debug: NU trimite email real, dar afișează linkul în consolă și întoarce True (comportament dev)
+      - în producție: întoarce False, astfel încât API-ul să poată semnala eroarea către frontend.
     """
     settings = get_settings()
+
     if not settings.resend_api_key:
         print("[VitaBalance] RESEND_API_KEY lipsă – emailul NU este trimis.")
+        print(f"[VitaBalance] To: {to_email}")
         print("[VitaBalance] Link magic (copiază și deschide în browser):")
         print(magic_link_url)
-        return True
+        # În dezvoltare permitem fallback-ul în consolă.
+        if settings.debug:
+            return True
+        # În producție tratăm lipsa cheii ca eroare.
+        return False
+
     try:
         import resend
+
         resend.api_key = settings.resend_api_key
-        r = resend.Emails.send({
-            "from": settings.resend_from_email,
-            "to": [to_email],
-            "subject": "VitaBalance – Autentificare",
-            "html": f"""
+        r = resend.Emails.send(
+            {
+                "from": settings.resend_from_email,
+                "to": [to_email],
+                "subject": "VitaBalance – Autentificare",
+                "html": f"""
             <p>Bună,</p>
             <p>Apasă link-ul de mai jos pentru a te conecta în VitaBalance:</p>
             <p><a href="{magic_link_url}" style="color:#00f5ff; font-weight: bold;">Conectare</a></p>
@@ -35,7 +46,8 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
             <p>Dacă nu ai cerut acest email, poți să îl ignori.</p>
             <p>— VitaBalance</p>
             """,
-        })
+            }
+        )
         return bool(getattr(r, "id", None))
     except Exception as e:
         print("Eroare la trimitere email magic link:", e)
