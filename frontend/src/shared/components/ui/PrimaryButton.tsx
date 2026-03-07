@@ -25,7 +25,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     type={type}
     onClick={onClick}
     disabled={disabled}
-    className={`group relative inline-flex items-center justify-center overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 disabled:opacity-50 disabled:cursor-not-allowed ${
+    className={`group relative inline-flex items-center justify-center overflow-hidden min-h-[44px] min-w-[44px] rounded-xl px-6 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation ${
       full ? 'w-full' : ''
     }`}
   >

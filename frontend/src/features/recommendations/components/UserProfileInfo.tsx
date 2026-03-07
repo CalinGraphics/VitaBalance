@@ -40,13 +40,13 @@ const UserProfileInfo = ({ user }: UserProfileInfoProps) => {
   return (
     <GlassCard className="w-full max-w-none !max-w-full">
       <div className="flex items-center gap-3 mb-4">
-        <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-2 rounded-lg">
+        <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-2 rounded-lg flex-shrink-0">
           <User className="w-5 h-5 text-black" />
         </div>
-        <h3 className="text-xl font-bold text-slate-100">Profil Utilizator</h3>
+        <h3 className="text-lg sm:text-xl font-bold text-slate-100">Profil Utilizator</h3>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Date biometrice */}
         <div className="flex items-start gap-2">
           <Scale className="w-5 h-5 text-neonCyan flex-shrink-0 mt-0.5" />

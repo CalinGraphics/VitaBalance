@@ -78,7 +78,7 @@ const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) 
           <p className="text-red-400 mb-4">{errorMessage}</p>
           <button
             onClick={() => onNavigate('login')}
-            className="px-4 py-2 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-3 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition touch-manipulation"
           >
             Mergi la autentificare
           </button>

@@ -35,33 +35,33 @@ const LoginPage: React.FC<LoginPageProps> = () => {
   };
 
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6 md:flex-row">
-      {/* Text lateral */}
+    <div className="flex w-full flex-col items-center justify-center gap-6 sm:gap-8 md:flex-row max-w-full">
+      {/* Text lateral - stacked on mobile */}
       <motion.div
         initial={{ opacity: 0, x: -40 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
-        className="max-w-sm"
+        className="w-full max-w-sm text-center md:text-left"
       >
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-neonCyan">
+        <p className="mb-2 text-xs sm:text-xs font-semibold uppercase tracking-[0.22em] text-neonCyan">
           Bine ai revenit
         </p>
-        <h2 className="mb-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="mb-3 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-100">
           Bine ai venit la <span className="text-neonCyan">VitaBalance</span>
         </h2>
-        <p className="text-sm text-slate-300">
-          Hrănește-ți echilibrul și lasă-ți energia 
+        <p className="text-base sm:text-sm text-slate-300 leading-relaxed">
+          Hrănește-ți echilibrul și lasă-ți energia
           să revină la nivelul ei natural.
         </p>
       </motion.div>
 
-      {/* Card login */}
-      <GlassCard>
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold tracking-tight text-slate-100">
+      {/* Card login - full width on mobile */}
+      <GlassCard className="w-full max-w-full md:max-w-md">
+        <div className="mb-5 sm:mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-100">
             Autentificare
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs sm:text-xs text-slate-400 leading-relaxed">
             Introdu email-ul și primești un link de conectare. Dacă nu ai cont, îți va fi creat automat la prima utilizare.
           </p>
         </div>
@@ -79,7 +79,7 @@ const LoginPage: React.FC<LoginPageProps> = () => {
             <button
               type="button"
               onClick={() => { setMagicLinkSent(false); setEmail(''); setMagicLinkError(null); }}
-              className="text-xs text-slate-400 hover:text-neonCyan transition"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 py-2 text-sm text-slate-400 hover:text-neonCyan transition touch-manipulation"
             >
               Trimite din nou la altă adresă
             </button>

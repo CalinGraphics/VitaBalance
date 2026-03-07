@@ -109,13 +109,13 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
   }
 
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full max-w-full md:max-w-4xl">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <GlassCard className="max-w-3xl mx-auto">
+        <GlassCard className="w-full max-w-full md:max-w-3xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-3 rounded-lg shadow-neon">
               <UserCog className="w-6 h-6 text-black" />
@@ -249,7 +249,7 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
                 <button
                   type="button"
                   onClick={onNavigateToLabResults}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-neonPurple/50 text-neonPurple hover:bg-neonPurple/20 transition font-medium text-sm"
+                  className="min-h-[44px] flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-neonPurple/50 text-neonPurple hover:bg-neonPurple/20 transition font-medium text-sm touch-manipulation"
                 >
                   <FlaskConical className="w-5 h-5" />
                   Actualizează analize medicale
@@ -278,7 +278,7 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
               <button
                 type="button"
                 onClick={onNavigateBack}
-                className="px-6 py-3 rounded-xl border border-white/20 text-slate-300 hover:border-neonCyan hover:text-neonCyan transition font-medium"
+                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-6 py-3 rounded-xl border border-white/20 text-slate-300 hover:border-neonCyan hover:text-neonCyan transition font-medium touch-manipulation"
               >
                 Anulează
               </button>

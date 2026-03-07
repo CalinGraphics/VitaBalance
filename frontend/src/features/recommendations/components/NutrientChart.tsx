@@ -19,28 +19,30 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
   if (chartData.length === 0) return null
 
   return (
-    <div className="mt-6">
-      <h3 className="text-lg font-semibold text-slate-100 mb-4">
+    <div className="mt-6 min-w-0 overflow-hidden">
+      <h3 className="text-base sm:text-lg font-semibold text-slate-100 mb-4">
         Comparație acoperire deficit - Top 5 recomandări
       </h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis 
-            dataKey="name" 
-            angle={-45}
-            textAnchor="end"
-            height={100}
-            fontSize={12}
-            stroke="#9ca3af"
-            tick={{ fill: '#9ca3af' }}
-          />
-          <YAxis 
-            label={{ value: 'Acoperire (%)', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
-            domain={[0, 100]}
-            stroke="#9ca3af"
-            tick={{ fill: '#9ca3af' }}
-          />
+      <div className="w-full h-[250px] sm:h-[280px] md:h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis 
+              dataKey="name" 
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              fontSize={10}
+              stroke="#9ca3af"
+              tick={{ fill: '#9ca3af', fontSize: 10 }}
+            />
+            <YAxis 
+              label={{ value: 'Acoperire (%)', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
+              domain={[0, 100]}
+              stroke="#9ca3af"
+              tick={{ fill: '#9ca3af', fontSize: 10 }}
+              width={32}
+            />
           <Tooltip 
             formatter={(value: number) => [`${value}%`, 'Acoperire deficit']}
             contentStyle={{ 
@@ -68,6 +70,7 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
           </defs>
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   )
 }
