@@ -571,22 +571,26 @@ async def get_recommendations(
     else:
         existing_recs = rec_repo.get_by_user_id(request.user_id, limit=10)
         food_by_id = {f.id: f for f in foods}
+        explanation_gen = ExplanationGenerator()
         for rec in existing_recs:
             food = food_by_id.get(rec.food_id)
             if not food:
                 continue
+            expl = explanation_gen.generate_explanation(
+                food=food,
+                user=user,
+                deficits=deficits,
+                score=rec.score,
+                coverage=rec.coverage_percentage or 0,
+                explanations=[rec.explanation] if rec.explanation else None,
+                matched_rules=[],
+            )
             recommendations.append({
                 "food_id": food.id,
                 "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
                 "score": rec.score,
                 "coverage": rec.coverage_percentage or 0,
-                "explanation": {
-                    "text": rec.explanation,
-                    "portion": rec.portion_suggested,
-                    "reasons": [rec.explanation],
-                    "tips": None,
-                    "alternatives": None,
-                },
+                "explanation": expl,
                 "recommendation_id": rec.id,
             })
 

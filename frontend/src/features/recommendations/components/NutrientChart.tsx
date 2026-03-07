@@ -1,5 +1,18 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
+/** Etichetă Y: centrată vertical, coborâtă, cu distanță față de valori. */
+function YAxisLabel(props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) {
+  const vb = props?.viewBox
+  if (!vb || vb.height == null) return null
+  const cx = (vb.x ?? 0) - 22
+  const cy = (vb.y ?? 0) + (vb.height ?? 0) / 2
+  return (
+    <text x={cx} y={cy} fill="#e2e8f0" fontSize={13} textAnchor="middle" dominantBaseline="middle" transform={`rotate(-90, ${cx}, ${cy})`}>
+      Acoperire (%)
+    </text>
+  )
+}
+
 interface NutrientChartProps {
   recommendations: Array<{
     food: { name: string }
@@ -24,10 +37,10 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
         Comparație acoperire deficit - Top 5 recomandări
       </h3>
       {/* Desktop: height 300, axes 12px; mobile: smaller for readability */}
-      <div className="w-full h-[250px] sm:h-[280px] md:h-[300px]">
+      <div className="w-full h-[250px] sm:h-[280px] md:h-[300px] overflow-visible">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <BarChart data={chartData} margin={{ top: 12, right: 16, left: 72, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
             <XAxis 
               dataKey="name" 
               angle={-45}
@@ -38,11 +51,12 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
               tick={{ fill: '#9ca3af', fontSize: 12 }}
             />
             <YAxis 
-              label={{ value: 'Acoperire (%)', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
+              label={<YAxisLabel />}
               domain={[0, 100]}
               stroke="#9ca3af"
               tick={{ fill: '#9ca3af', fontSize: 12 }}
               width={40}
+              tickMargin={12}
             />
           <Tooltip 
             formatter={(value: number) => [`${value}%`, 'Acoperire deficit']}
@@ -61,6 +75,7 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
             dataKey="Acoperire deficit (%)" 
             fill="url(#neonGradient)"
             radius={[8, 8, 0, 0]}
+            barSize={80}
           />
           <defs>
             <linearGradient id="neonGradient" x1="0" y1="0" x2="0" y2="1">

@@ -57,19 +57,22 @@ class ExplanationGenerator:
         else:
             main_text = f"Am recomandat {food.name.lower()} pentru valoarea sa nutrițională."
         
-        reasons = explanations.copy() if explanations else []
-        
+        # Scurte bullet-uri, fără a repeta paragraful principal (evită dublarea în UI)
+        reasons = []
         if coverage > 0:
             reasons.append(f"Acoperă {coverage:.1f}% din deficitul tău nutrițional total")
+        reasons.append("Recomandat în funcție de profilul tău și analizele medicale.")
         
         tips = self._generate_tips_from_rules(matched_rules, food)
+        if not tips:
+            tips = ["Poți integra acest aliment în mesele zilnice pentru un echilibru nutrițional mai bun."]
         alternatives = self._generate_alternatives(food)
         
         return {
             'text': main_text,
             'portion': portion,
             'reasons': reasons,
-            'tips': tips if tips else None,
+            'tips': tips,
             'alternatives': alternatives if alternatives else None
         }
     
@@ -172,18 +175,20 @@ class ExplanationGenerator:
         return [(nutrient, value) for nutrient, value, _ in relevance[:3]]
     
     def _generate_tips_from_rules(self, matched_rules: List[str], food: FoodItem) -> List[str]:
-        """Generează sfaturi bazate pe regulile care s-au potrivit"""
+        """Generează sfaturi bazate pe regulile care s-au potrivit și pe aliment"""
         tips = []
         
-        # Sfaturi generale bazate pe aliment
         if food.iron and food.iron > 1.0:
-            tips.append("Sfat: Combină-l cu vitamina C (ex: lămâie) pentru absorbție mai bună a fierului!")
+            tips.append("Combină cu vitamina C (lămâie, ardei) pentru absorbție mai bună a fierului.")
         
         if food.calcium and food.calcium > 50:
-            tips.append("Sfat: Evită consumul simultan cu alimente bogate în fier, pentru o absorbție optimă!")
+            tips.append("Evită consumul simultan cu alimente foarte bogate în fier, pentru absorbție optimă.")
         
         if food.vitamin_d and food.vitamin_d > 0:
-            tips.append("Sfat: Expunerea la soare (10-15 minute zilnic) ajută la sinteza vitaminei D!")
+            tips.append("Expunerea la soare (10-15 min zilnic) ajută la sinteza vitaminei D.")
+        
+        if food.magnesium and food.magnesium > 50:
+            tips.append("Magneziul se absoarbe mai bine cu vitamina D; poți combina cu ou sau pește.")
         
         return tips
     

@@ -3,6 +3,15 @@ import { CheckCircle2, Info } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
 
+/** Elimină prefixul [context: ...] sau [Context: ...] din textele de recomandare. */
+function faraPrefixContext(s: string): string {
+  if (!s || typeof s !== 'string') return ''
+  return s
+    .replace(/\s*\[[Cc]ontext:\s*[^\]]*\]\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 interface RecommendationCardProps {
   recommendation: {
     food_id: number
@@ -67,34 +76,36 @@ const RecommendationCard = ({
           </div>
         </div>
 
-        {/* Explanation - Highlighted */}
+        {/* Explanation - Highlighted (fără [context: ...]) */}
         <div className="mb-5 p-4 rounded-xl bg-slate-800/50 border border-neonCyan/20">
-          <p className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">{explanation.text}</p>
+          <p className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">{faraPrefixContext(explanation.text)}</p>
         </div>
 
-        {/* Reasons */}
-        <div className="mb-4 space-y-2">
-          <p className="text-base sm:text-sm font-semibold text-neonPurple mb-3 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            De ce îl recomand:
-          </p>
-          <ul className="space-y-2">
-            {explanation.reasons.map((reason, idx) => (
-              <motion.li
-                key={idx}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 + idx * 0.05 }}
-                className="flex items-start gap-2 text-base sm:text-sm text-slate-300 leading-relaxed break-words"
-              >
-                <CheckCircle2 className="w-4 h-4 text-neonCyan mt-0.5 flex-shrink-0" />
-                <span className="leading-relaxed">{reason}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </div>
+        {/* De ce îl recomand – bullet-uri scurte (nu repetă paragraful de mai sus) */}
+        {explanation.reasons && explanation.reasons.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <p className="text-base sm:text-sm font-semibold text-neonPurple mb-3 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              De ce îl recomand:
+            </p>
+            <ul className="space-y-2">
+              {explanation.reasons.map((reason, idx) => (
+                <motion.li
+                  key={idx}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 + idx * 0.05 }}
+                  className="flex items-start gap-2 text-base sm:text-sm text-slate-300 leading-relaxed break-words"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-neonCyan mt-0.5 flex-shrink-0" />
+                  <span className="leading-relaxed">{faraPrefixContext(reason)}</span>
+                </motion.li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-        {/* Tips - Always visible */}
+        {/* Tips - Always visible (fără [context: ...]) */}
         {explanation.tips && explanation.tips.length > 0 && (
           <div className="mt-4 pt-4 border-t border-white/10">
             <p className="text-base sm:text-sm font-semibold text-neonMagenta mb-2 flex items-center gap-2">
@@ -104,7 +115,7 @@ const RecommendationCard = ({
             <ul className="space-y-2">
               {explanation.tips.map((tip, idx) => (
                 <li key={idx} className="text-base sm:text-sm text-slate-300 bg-slate-800/50 border border-neonMagenta/20 p-3 rounded-lg break-words">
-                  💡 {tip}
+                  💡 {faraPrefixContext(tip)}
                 </li>
               ))}
             </ul>
