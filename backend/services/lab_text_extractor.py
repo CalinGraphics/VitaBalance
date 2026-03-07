@@ -1,9 +1,20 @@
 """
 Extrage valorile analizelor medicale din textul unui raport medical (română/engleză).
-Suportă formate comune: Hemoglobină 13.2 g/dL, Hb: 13.2, Feritină 45 ng/mL, etc.
+Suportă formate comune: Hemoglobină 13.2 g/dL, Hb: 13.2, Feritină 45 ng/mL, tabele, etc.
 """
 import re
-from typing import Optional, Dict, Any
+import unicodedata
+from typing import Optional, Dict
+
+
+def _normalize_text(text: str) -> str:
+    """Lowercase, virgulă -> punct, Unicode NFC, și înlocuire diacritice pentru matching."""
+    if not text:
+        return ""
+    t = text.replace(",", ".")
+    t = unicodedata.normalize("NFC", t)
+    t = t.lower()
+    return t
 
 
 def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
@@ -14,103 +25,136 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
     if not text or not isinstance(text, str):
         return _empty_result()
 
-    # Normalizează: lowercase, înlocuiește virgulă cu punct
-    normalized = text.lower().replace(",", ".")
+    normalized = _normalize_text(text)
+    # Versiune fără diacritice (pentru PDF-uri care înlocuiesc ă->a etc.)
+    normalized_ascii = _remove_diacritics(normalized)
     result = _empty_result()
 
-    # Pattern-uri flexibile pentru fiecare biomarker
-    # Format: (regex_pattern, key_in_result)
-    # Capturăm grupul 1 ca valoare numerică
+    # Pattern-uri: (regex, key). Capturăm grupul 1 = valoare numerică.
+    # Suportăm: "Parametru: 12.3", "Parametru 12.3", "Parametru  12.3  g/dL", "12.3 Parametru"
     patterns = [
-        # Hemoglobină - g/dL
-        (r"hemoglobina?\s*[:\s]*(\d+\.?\d*)\s*(?:g/dl|g\/dl|g\.d\.l)", "hemoglobin"),
-        (r"\bhb\s*[:\s]*(\d+\.?\d*)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
-        (r"hemoglobin[ăa]?\s*[:\s]*(\d+\.?\d*)", "hemoglobin"),
-
-        # Feritină - ng/mL
-        (r"feritina?\s*[:\s]*(\d+\.?\d*)\s*(?:ng/ml|μg/l)?", "ferritin"),
-        (r"ferritin\s*[:\s]*(\d+\.?\d*)", "ferritin"),
-
-        # Vitamina D - ng/mL
-        (r"(?:25-?oh-?d|vitamina?\s*d|vit\.?\s*d)\s*[:\s]*(\d+\.?\d*)\s*(?:ng/ml|nmol/l)?", "vitamin_d"),
-        (r"vitamina\s*d\s*[:\s]*(\d+\.?\d*)", "vitamin_d"),
-
-        # Vitamina B12 - pg/mL
-        (r"(?:vitamina?\s*b12|b12|b\s*12)\s*[:\s]*(\d+\.?\d*)\s*(?:pg/ml|pmol/l)?", "vitamin_b12"),
-        (r"cobalamina\s*[:\s]*(\d+\.?\d*)", "vitamin_b12"),
-
-        # Calciu - mg/dL
-        (r"calciu[l]?\s*[:\s]*(\d+\.?\d*)\s*(?:mg/dl|mmol/l)?", "calcium"),
-        (r"ca\s*[:\s]*(\d+\.?\d*)\s*(?:mg/dl)?", "calcium"),
-
-        # Magneziu - mg/dL
-        (r"magneziu\s*[:\s]*(\d+\.?\d*)\s*(?:mg/dl|mmol/l)?", "magnesium"),
-        (r"mg\s*[:\s]*(\d+\.?\d*)\s*(?:mg/dl)?", "magnesium"),
-
-        # Zinc - mcg/dL sau μg/dL
-        (r"zinc\s*[:\s]*(\d+\.?\d*)\s*(?:mcg/dl|μg/dl)?", "zinc"),
-        (r"zn\s*[:\s]*(\d+\.?\d*)", "zinc"),
-
-        # Proteine - g/dL
-        (r"proteine?\s*(?:totale?)?\s*[:\s]*(\d+\.?\d*)\s*(?:g/dl)?", "protein"),
-        (r"protein[ăa]?\s*[:\s]*(\d+\.?\d*)", "protein"),
-
-        # Folat / Acid folic - ng/mL
-        (r"(?:folat|acid\s*folic|vitamina?\s*b9)\s*[:\s]*(\d+\.?\d*)\s*(?:ng/ml)?", "folate"),
-        (r"folat\s*[:\s]*(\d+\.?\d*)", "folate"),
-
-        # Vitamina A - μg/dL
-        (r"vitamina?\s*a\s*[:\s]*(\d+\.?\d*)\s*(?:μg/dl|mcg/dl)?", "vitamin_a"),
-        (r"retinol\s*[:\s]*(\d+\.?\d*)", "vitamin_a"),
-
-        # Iod - μg/L
-        (r"iod\s*[:\s]*(\d+\.?\d*)\s*(?:μg/l|mcg/l)?", "iodine"),
-
-        # Vitamina K - PT/INR (de obicei indirect)
-        (r"vitamina?\s*k\s*[:\s]*(\d+\.?\d*)", "vitamin_k"),
-
-        # Potasiu - mmol/L
-        (r"potasiu\s*[:\s]*(\d+\.?\d*)\s*(?:mmol/l)?", "potassium"),
-        (r"k\s*[:\s]*(\d+\.?\d*)\s*(?:mmol/l)?", "potassium"),
+        # Hemoglobină
+        (r"hemoglobina?\s*[:\s]+\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl|g\.d\.l)?", "hemoglobin"),
+        (r"\bhb\s*[:\s]+\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
+        (r"hemoglobin[ăa]?\s*[:\s]*(\d+[.,]\d+|\d+)", "hemoglobin"),
+        (r"(\d+[.,]\d+|\d+)\s*(?:g/dl)?\s*hemoglobina?", "hemoglobin"),
+        (r"hemoglobina?\s+(\d+[.,]\d+|\d+)", "hemoglobin"),
+        # Feritină
+        (r"feritina?\s*[:\s]+\s*(\d+[.,]\d+|\d+)\s*(?:ng/ml|μg/l|ug/l)?", "ferritin"),
+        (r"ferritin\s*[:\s]*(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"feritin[ăa]?\s*[:\s]*(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"feritina?\s+(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"(\d+[.,]\d+|\d+)\s*(?:ng/ml)?\s*feritina?", "ferritin"),
+        # Vitamina D
+        (r"(?:25-?oh-?d|vitamina?\s*d|vit\.?\s*d)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:ng/ml|nmol/l)?", "vitamin_d"),
+        (r"vitamina\s*d\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_d"),
+        (r"vit\.?\s*d\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_d"),
+        (r"(\d+[.,]\d+|\d+)\s*(?:ng/ml)?\s*(?:25-?oh-?d|vit\.?\s*d)", "vitamin_d"),
+        # Vitamina B12
+        (r"(?:vitamina?\s*b\s*12|b\s*12|cobalamina)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:pg/ml|pmol/l)?", "vitamin_b12"),
+        (r"cobalamina\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
+        (r"vit\.?\s*b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
+        (r"b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
+        # Calciu
+        (r"calciu[l]?\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "calcium"),
+        (r"\bca\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl)?", "calcium"),
+        (r"calciu\s+(\d+[.,]\d+|\d+)", "calcium"),
+        # Magneziu (evităm confuzia cu Mg = unitate)
+        (r"magneziu\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "magnesium"),
+        (r"magneziu\s+(\d+[.,]\d+|\d+)", "magnesium"),
+        # Zinc
+        (r"\bzn\s*[:\s]*(\d+[.,]\d+|\d+)", "zinc"),
+        (r"zinc\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mcg/dl|μg/dl|ug/dl)?", "zinc"),
+        (r"zinc\s+(\d+[.,]\d+|\d+)", "zinc"),
+        # Proteine
+        (r"proteine?\s*(?:totale?)?\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:g/dl)?", "protein"),
+        (r"protein[ăa]?\s*[:\s]*(\d+[.,]\d+|\d+)", "protein"),
+        (r"proteine\s+(\d+[.,]\d+|\d+)", "protein"),
+        # Folat
+        (r"(?:folat|acid\s*folic|vitamina?\s*b9)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:ng/ml)?", "folate"),
+        (r"folat\s*[:\s]*(\d+[.,]\d+|\d+)", "folate"),
+        (r"folat\s+(\d+[.,]\d+|\d+)", "folate"),
+        # Vitamina A
+        (r"vitamina?\s*a\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μg/dl|mcg/dl)?", "vitamin_a"),
+        (r"retinol\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_a"),
+        # Iod
+        (r"iod\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μg/l|mcg/l)?", "iodine"),
+        (r"iod\s+(\d+[.,]\d+|\d+)", "iodine"),
+        # Vitamina K
+        (r"vitamina?\s*k\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_k"),
+        # Potasiu (K poate fi confundat cu potasiu - folosim "potasiu" mai întâi)
+        (r"potasiu\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mmol/l)?", "potassium"),
+        (r"potasiu\s+(\d+[.,]\d+|\d+)", "potassium"),
+        (r"\bk\s*[:\s]*(\d+[.,]\d+|\d+)\s*mmol/l", "potassium"),
     ]
 
-    for pattern, key in patterns:
-        match = re.search(pattern, normalized, re.IGNORECASE)
-        if match and result[key] is None:
-            try:
-                val = float(match.group(1))
-                if 0 < val < 10000:  # range rezonabil
-                    result[key] = val
-            except (ValueError, IndexError):
-                pass
+    def parse_val(s: str) -> Optional[float]:
+        s = s.replace(",", ".")
+        try:
+            v = float(s)
+            return v if 0 < v < 10000 else None
+        except ValueError:
+            return None
 
-    # Pattern secundar: "parametru: valoare" generic (dacă nu am găsit)
+    # Căutare în text normalizat
+    for pattern, key in patterns:
+        if result[key] is not None:
+            continue
+        match = re.search(pattern, normalized, re.IGNORECASE)
+        if match:
+            val = parse_val(match.group(1))
+            if val is not None:
+                result[key] = val
+
+    # Încercare pe variantă fără diacritice (ex: "hemoglobina" în loc de "hemoglobină")
+    if normalized_ascii != normalized:
+        for pattern, key in patterns:
+            if result[key] is not None:
+                continue
+            match = re.search(pattern, normalized_ascii, re.IGNORECASE)
+            if match:
+                val = parse_val(match.group(1))
+                if val is not None:
+                    result[key] = val
+
+    # Pattern-uri generice simple (param: valoare sau param valoare)
     generic = [
-        (r"hemoglobina?\s*[:\s]*(\d+\.?\d*)", "hemoglobin"),
-        (r"feritina?\s*[:\s]*(\d+\.?\d*)", "ferritin"),
-        (r"(?:25-?oh|vit\.?\s*d)\s*[:\s]*(\d+\.?\d*)", "vitamin_d"),
-        (r"vit\.?\s*b12\s*[:\s]*(\d+\.?\d*)", "vitamin_b12"),
-        (r"calciu\s*[:\s]*(\d+\.?\d*)", "calcium"),
-        (r"magneziu\s*[:\s]*(\d+\.?\d*)", "magnesium"),
-        (r"zinc\s*[:\s]*(\d+\.?\d*)", "zinc"),
-        (r"proteine\s*[:\s]*(\d+\.?\d*)", "protein"),
-        (r"folat\s*[:\s]*(\d+\.?\d*)", "folate"),
-        (r"vit\.?\s*a\s*[:\s]*(\d+\.?\d*)", "vitamin_a"),
-        (r"iod\s*[:\s]*(\d+\.?\d*)", "iodine"),
-        (r"potasiu\s*[:\s]*(\d+\.?\d*)", "potassium"),
+        (r"hemoglobina?\s*[:\s]*(\d+[.,]\d+|\d+)", "hemoglobin"),
+        (r"feritina?\s*[:\s]*(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"(?:25-?oh|vit\.?\s*d)\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_d"),
+        (r"vit\.?\s*b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
+        (r"calciu\s*[:\s]*(\d+[.,]\d+|\d+)", "calcium"),
+        (r"magneziu\s*[:\s]*(\d+[.,]\d+|\d+)", "magnesium"),
+        (r"zinc\s*[:\s]*(\d+[.,]\d+|\d+)", "zinc"),
+        (r"proteine\s*[:\s]*(\d+[.,]\d+|\d+)", "protein"),
+        (r"folat\s*[:\s]*(\d+[.,]\d+|\d+)", "folate"),
+        (r"vit\.?\s*a\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_a"),
+        (r"iod\s*[:\s]*(\d+[.,]\d+|\d+)", "iodine"),
+        (r"potasiu\s*[:\s]*(\d+[.,]\d+|\d+)", "potassium"),
     ]
     for pattern, key in generic:
-        if result[key] is None:
-            match = re.search(pattern, normalized, re.IGNORECASE)
+        if result[key] is not None:
+            continue
+        for text_to_scan in (normalized, normalized_ascii):
+            match = re.search(pattern, text_to_scan, re.IGNORECASE)
             if match:
-                try:
-                    val = float(match.group(1))
-                    if 0 < val < 10000:
-                        result[key] = val
-                except (ValueError, IndexError):
-                    pass
+                val = parse_val(match.group(1))
+                if val is not None:
+                    result[key] = val
+                    break
 
     return result
+
+
+def _remove_diacritics(s: str) -> str:
+    """Înlocuiește diacriticele românești cu echivalentul fără diacritice."""
+    replacements = {
+        "ă": "a", "â": "a", "î": "i", "ș": "s", "ț": "t",
+        "Ă": "a", "Â": "a", "Î": "i", "Ș": "s", "Ț": "t",
+    }
+    for old, new in replacements.items():
+        s = s.replace(old, new)
+    return s
 
 
 def _empty_result() -> Dict[str, Optional[float]]:
