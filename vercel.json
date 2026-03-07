@@ -8,12 +8,6 @@
       "source": "/api/:path*",
       "destination": "https://vitabalance.onrender.com/api/:path*"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "index.html"
-    }
   ]
 }
 
