@@ -7,6 +7,46 @@ import unicodedata
 from typing import Optional, Dict
 
 
+def _collapse_spaced_letters(text: str) -> str:
+    """
+    Unește secvențele de litere separate de spații (ex: "H e m o g l o b i n ă" -> "Hemoglobină").
+    PDF-urile pot separa fiecare caracter, iar asta rupe matching-ul regex bazat pe cuvinte.
+    Regula: doar secvențe de >=4 token-uri alfabetice cu lungime 1 sunt lipite.
+    """
+    if not text:
+        return ""
+    parts = re.split(r"(\s+)", text)
+    out = []
+    acc = []
+
+    def flush_acc():
+        nonlocal acc
+        if not acc:
+            return
+        if len(acc) >= 4:
+            out.append("".join(acc))
+        else:
+            out.append(" ".join(acc))
+        acc = []
+
+    for p in parts:
+        if not p:
+            continue
+        if p.isspace():
+            # spațiile le gestionăm la flush; evităm să acumulăm whitespace în output
+            continue
+        token = p
+        if len(token) == 1 and token.isalpha():
+            acc.append(token)
+            continue
+        flush_acc()
+        out.append(token)
+    flush_acc()
+
+    # Normalizează spațiile rezultate
+    return re.sub(r"\s+", " ", " ".join(out)).strip()
+
+
 def _normalize_text(text: str) -> str:
     """Lowercase, virgulă -> punct, Unicode NFC, și înlocuire diacritice pentru matching."""
     if not text:
@@ -14,6 +54,7 @@ def _normalize_text(text: str) -> str:
     t = text.replace(",", ".")
     t = unicodedata.normalize("NFC", t)
     t = t.lower()
+    t = _collapse_spaced_letters(t)
     return t
 
 
@@ -34,16 +75,17 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
     # Suportăm: "Parametru: 12.3", "Parametru 12.3", "Parametru  12.3  g/dL", "12.3 Parametru"
     patterns = [
         # Hemoglobină
-        (r"hemoglobina?\s*[:\s]+\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl|g\.d\.l)?", "hemoglobin"),
-        (r"\bhb\s*[:\s]+\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
-        (r"hemoglobin[ăa]?\s*[:\s]*(\d+[.,]\d+|\d+)", "hemoglobin"),
+        # unele PDF-uri pot lipi numărul de etichetă (ex: "Hemoglobină15,2")
+        (r"hemoglobina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl|g\.d\.l)?", "hemoglobin"),
+        (r"\bhb\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
+        (r"hemoglobin[ăa]?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "hemoglobin"),
         (r"(\d+[.,]\d+|\d+)\s*(?:g/dl)?\s*hemoglobina?", "hemoglobin"),
-        (r"hemoglobina?\s+(\d+[.,]\d+|\d+)", "hemoglobin"),
+        (r"hemoglobina?\s*(\d+[.,]\d+|\d+)", "hemoglobin"),
         # Feritină
-        (r"feritina?\s*[:\s]+\s*(\d+[.,]\d+|\d+)\s*(?:ng/ml|μg/l|ug/l)?", "ferritin"),
-        (r"ferritin\s*[:\s]*(\d+[.,]\d+|\d+)", "ferritin"),
-        (r"feritin[ăa]?\s*[:\s]*(\d+[.,]\d+|\d+)", "ferritin"),
-        (r"feritina?\s+(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"feritina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:ng/ml|μg/l|ug/l)?", "ferritin"),
+        (r"ferritin\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"feritin[ăa]?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"feritina?\s*(\d+[.,]\d+|\d+)", "ferritin"),
         (r"(\d+[.,]\d+|\d+)\s*(?:ng/ml)?\s*feritina?", "ferritin"),
         # Vitamina D
         (r"(?:25-?oh-?d|vitamina?\s*d|vit\.?\s*d)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:ng/ml|nmol/l)?", "vitamin_d"),
@@ -119,8 +161,8 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
 
     # Pattern-uri generice simple (param: valoare sau param valoare)
     generic = [
-        (r"hemoglobina?\s*[:\s]*(\d+[.,]\d+|\d+)", "hemoglobin"),
-        (r"feritina?\s*[:\s]*(\d+[.,]\d+|\d+)", "ferritin"),
+        (r"hemoglobina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "hemoglobin"),
+        (r"feritina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "ferritin"),
         (r"(?:25-?oh|vit\.?\s*d)\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_d"),
         (r"vit\.?\s*b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
         (r"calciu(?:\s+\w+){0,3}\s*[:\s]*(\d+[.,]\d+|\d+)", "calcium"),

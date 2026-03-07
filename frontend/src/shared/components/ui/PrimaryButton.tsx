@@ -17,11 +17,10 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   disabled = false,
 }) => (
   <motion.button
-    whileHover={disabled ? {} : { 
-      scale: 1.02, 
-      boxShadow: '0 0 40px rgba(34,211,238,0.6), 0 0 55px rgba(37,99,235,0.6)' 
+    whileHover={disabled ? {} : {
+      boxShadow: '0 0 40px rgba(34,211,238,0.6), 0 0 55px rgba(37,99,235,0.6)'
     }}
-    whileTap={disabled ? {} : { scale: 0.98 }}
+    whileTap={disabled ? {} : {}}
     type={type}
     onClick={onClick}
     disabled={disabled}

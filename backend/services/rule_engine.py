@@ -140,7 +140,7 @@ class NutritionalRuleEngine:
             
             total_score = sum(nutrient_scores.values())
             nutrients_covered = list(nutrient_scores.keys())
-            coverage = self._calculate_coverage(food, deficits, nutrients_covered)
+            coverage = self._calculate_coverage(food, user, deficits, nutrients_covered)
             
             return FoodRecommendation(
                 food_id=food.id,
@@ -176,7 +176,7 @@ class NutritionalRuleEngine:
         matched_rules = [r.rule_name for r in rule_results]
         nutrients_covered = list(set(r.nutrient for r in rule_results))
         
-        coverage = self._calculate_coverage(food, deficits, nutrients_covered)
+        coverage = self._calculate_coverage(food, user, deficits, nutrients_covered)
         
         return FoodRecommendation(
             food_id=food.id,
@@ -857,13 +857,27 @@ class NutritionalRuleEngine:
     def _calculate_coverage(
         self,
         food: FoodItem,
+        user: UserProfile,
         deficits: Dict[str, float],
         nutrients_covered: List[str]
     ) -> float:
-        """Calculează procentul mediu de acoperire a deficitelor"""
+        """
+        Calculează procentul mediu de acoperire.
+        Ajustare importantă: când deficitul estimat e foarte mic (sau când biomarker-ul e ușor sub prag),
+        raportul (portion/deficit) saturează imediat la 100% și pare „mereu 100”.
+        Pentru stabilitate, folosim un denominator minim legat de RDI (25% din RDI) pentru nutrienții deficitari.
+        """
         portion_grams = 150
         total_weighted_coverage = 0
         total_weight = 0
+
+        # RDI per nutrient pentru a evita denom foarte mic -> 100% peste tot
+        try:
+            from services.deficit_calculator import DeficitCalculator
+            calc = DeficitCalculator()
+            rdi_map = {k: calc.get_rdi(k, user) for k in deficits.keys()}
+        except Exception:
+            rdi_map = {}
         
         nutrient_mapping = {
             'iron': food.iron or 0,
@@ -885,7 +899,14 @@ class NutritionalRuleEngine:
                 food_value = nutrient_mapping.get(nutrient, 0)
                 if food_value > 0:
                     portion_value = (food_value * portion_grams) / 100
-                    coverage_pct = min(100, (portion_value / deficits[nutrient]) * 100) if deficits[nutrient] > 0 else 0
+                    rdi = rdi_map.get(nutrient) or 0
+                    denom = deficits[nutrient]
+                    if rdi and rdi > 0:
+                        denom = max(denom, 0.25 * rdi)
+                    # Randament descrescător: evită saturarea la 100% pentru deficite mici.
+                    # Ex: portion=4.5, denom=2 => 4.5/(4.5+2)=69% (în loc de 225% -> 100).
+                    coverage_pct = (portion_value / (portion_value + denom) * 100) if (portion_value > 0 and denom > 0) else 0
+                    # Ponderăm după deficit (nu după denom) ca să păstrăm importanța reală a golului estimat.
                     weight = deficits[nutrient]
                     total_weighted_coverage += coverage_pct * weight
                     total_weight += weight
