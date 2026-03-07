@@ -41,12 +41,13 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
     # putem trimite doar către o singură adresă – de obicei adresa de cont.
     # Dacă este setat RESEND_TEST_RECIPIENT, trimitem acolo, indiferent de to_email.
     to_addr = to_email
-    if getattr(settings, "resend_test_recipient", None):
+    test_recipient = getattr(settings, "resend_test_recipient", None)
+    if test_recipient:
         print(
             "[VitaBalance] RESEND_TEST_RECIPIENT activ – "
-            f"trimit către {settings.resend_test_recipient} (token pentru {to_email})."
+            f"trimit către {test_recipient} (token pentru {to_email})."
         )
-        to_addr = settings.resend_test_recipient
+        to_addr = test_recipient
 
     try:
         import resend
@@ -68,10 +69,18 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
             }
         )
         if not getattr(r, "id", None):
-            raise RuntimeError("Resend nu a returnat un ID pentru emailul trimis.")
+            raise RuntimeError(
+                f"Resend nu a returnat un ID pentru emailul trimis. "
+                f"(from={settings.resend_from_email}, to={to_addr}, original_to={to_email})"
+            )
         return True
     except Exception as e:
-        error_msg = f"Eroare la trimitere email magic link: {e}"
+        error_msg = (
+            "Eroare la trimitere email magic link: "
+            f"{e} "
+            f"(from={settings.resend_from_email}, to={to_addr}, original_to={to_email}, "
+            f"RESEND_TEST_RECIPIENT={test_recipient})"
+        )
         print(error_msg)
         # Ridicăm eroarea pentru a fi prinsă în endpoint și afișată în frontend.
         raise RuntimeError(error_msg)
