@@ -37,6 +37,17 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
         # În producție tratăm lipsa cheii ca eroare clară.
         raise RuntimeError(msg)
 
+    # Dacă suntem în modul de test Resend (cont nou, fără domeniu verificat),
+    # putem trimite doar către o singură adresă – de obicei adresa de cont.
+    # Dacă este setat RESEND_TEST_RECIPIENT, trimitem acolo, indiferent de to_email.
+    to_addr = to_email
+    if getattr(settings, "resend_test_recipient", None):
+        print(
+            "[VitaBalance] RESEND_TEST_RECIPIENT activ – "
+            f"trimit către {settings.resend_test_recipient} (token pentru {to_email})."
+        )
+        to_addr = settings.resend_test_recipient
+
     try:
         import resend
 
@@ -44,7 +55,7 @@ def send_magic_link_email(to_email: str, magic_link_url: str) -> bool:
         r = resend.Emails.send(
             {
                 "from": settings.resend_from_email,
-                "to": [to_email],
+                "to": [to_addr],
                 "subject": "VitaBalance – Autentificare",
                 "html": f"""
             <p>Bună,</p>
