@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2 } from 'lucide-react'
+import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft } from 'lucide-react'
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
 import { labResultsService } from '../../../services/api'
 import { extractTextFromPdfFile } from '../../../shared/utils/pdfTextExtractor'
@@ -9,6 +9,7 @@ import type { User } from '../../../shared/types'
 interface MedicalLabResultsPageProps {
   user: User
   onComplete: () => void
+  onBackToDashboard?: () => void
 }
 
 interface LabResult {
@@ -29,7 +30,7 @@ interface LabResult {
   notes?: string
 }
 
-const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps) => {
+const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalLabResultsPageProps) => {
   const [formData, setFormData] = useState<LabResult>({
     user_id: user.id || 0,
     hemoglobin: undefined,
@@ -184,6 +185,16 @@ const MedicalLabResultsPage = ({ user, onComplete }: MedicalLabResultsPageProps)
         transition={{ duration: 0.5 }}
       >
         <GlassCard className="max-w-3xl mx-auto">
+          {onBackToDashboard && (
+            <button
+              type="button"
+              onClick={onBackToDashboard}
+              className="mb-4 min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-neonCyan transition touch-manipulation"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Înapoi la recomandări
+            </button>
+          )}
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-gradient-to-tr from-neonPurple to-neonMagenta p-3 rounded-lg shadow-neon">
               <FlaskConical className="w-6 h-6 text-black" />
