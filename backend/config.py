@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     # Email (Resend) – opțional; fără RESEND_* magic link-ul apare doar în consolă (dev)
     resend_api_key: Optional[str] = os.getenv("RESEND_API_KEY")
     resend_from_email: str = os.getenv("RESEND_FROM_EMAIL", "VitaBalance <onboarding@resend.dev>")
+    # Opțional: în modul de test Resend permite trimiterea doar către o singură adresă
+    # (de obicei adresa ta de cont). Dacă setezi RESEND_TEST_RECIPIENT, toate emailurile
+    # de autentificare vor fi trimise către această adresă, indiferent ce introduce
+    # utilizatorul în formular (tokenul rămâne generat pentru emailul introdus).
+    resend_test_recipient: Optional[str] = os.getenv("RESEND_TEST_RECIPIENT")
     # URL-ul frontend-ului – linkul magic trimite utilizatorul aici. Pentru dev local: http://localhost:3000
     frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
     
