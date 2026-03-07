@@ -34,6 +34,8 @@ function App() {
         showProfile={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
         onLabResultsClick={() => navigate('lab-results')}
         showLabResults={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
+        onDashboardClick={() => navigate('recommendations')}
+        showDashboard={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
       >
         {/* Loading state - prioritate maximă */}
         {isLoading ? (
@@ -82,6 +84,7 @@ function App() {
               <MedicalLabResultsPage
                 user={medicalUser}
                 onComplete={handleLabResultsComplete}
+                onBackToDashboard={() => navigate('recommendations')}
               />
             )}
             {route === 'lab-results' && !medicalUser && (

@@ -9,13 +9,23 @@ interface LayoutProps {
   showProfile?: boolean;
   onLabResultsClick?: () => void;
   showLabResults?: boolean;
+  onDashboardClick?: () => void;
+  showDashboard?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout, onProfileClick, showProfile, onLabResultsClick, showLabResults }) => {
+const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout, onProfileClick, showProfile, onLabResultsClick, showLabResults, onDashboardClick, showDashboard }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navButtons = (
     <>
+      {showDashboard && onDashboardClick && (
+        <button
+          onClick={() => { onDashboardClick(); setMobileMenuOpen(false); }}
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-sm md:text-xs font-semibold text-slate-400 hover:text-neonCyan transition px-4 py-3 md:py-2 rounded-xl md:rounded-lg border border-white/10 hover:border-neonCyan/50 touch-manipulation"
+        >
+          Recomandări
+        </button>
+      )}
       {showLabResults && onLabResultsClick && (
         <button
           onClick={() => { onLabResultsClick(); setMobileMenuOpen(false); }}

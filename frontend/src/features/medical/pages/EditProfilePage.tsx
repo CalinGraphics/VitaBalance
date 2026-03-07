@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { UserCog, Save, FlaskConical } from 'lucide-react'
+import { UserCog, Save, FlaskConical, ArrowLeft } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
@@ -116,6 +116,14 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
         transition={{ duration: 0.5 }}
       >
         <GlassCard className="w-full max-w-full md:max-w-3xl mx-auto">
+          <button
+            type="button"
+            onClick={onNavigateBack}
+            className="mb-4 min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-neonCyan transition touch-manipulation"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Înapoi la recomandări
+          </button>
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-3 rounded-lg shadow-neon">
               <UserCog className="w-6 h-6 text-black" />
