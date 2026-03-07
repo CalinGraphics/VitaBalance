@@ -203,7 +203,7 @@ const Recommendations = ({ user }: RecommendationsProps) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <GlassCard className="w-full max-w-none">
+          <GlassCard className="w-full !max-w-none">
             <div className="flex flex-col gap-4 sm:gap-6 mb-6 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-2.5 sm:p-3 rounded-lg shadow-neon flex-shrink-0">

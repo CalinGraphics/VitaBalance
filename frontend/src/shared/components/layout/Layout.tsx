@@ -69,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout, onProfi
             <img
               src="/logo.png"
               alt="VitaBalance Logo"
-              className="h-20 w-auto max-h-24 object-contain object-left drop-shadow-lg sm:h-32 md:h-48 lg:h-52"
+              className="h-20 w-auto object-contain object-left drop-shadow-lg sm:h-28 md:h-44 lg:h-56 xl:h-60"
             />
           </div>
           {/* Desktop nav */}

@@ -134,11 +134,7 @@ class NutritionalRuleEngine:
                 explanations_text = " ".join(nutrient_explanations[nutrient_str])
                 contexts_text = ", ".join(set(nutrient_contexts[nutrient_str]))
                 
-                if contexts_text:
-                    final_explanation = f"[Context: {contexts_text}] {explanations_text}"
-                else:
-                    final_explanation = explanations_text
-                
+                final_explanation = explanations_text
                 final_explanations.append(final_explanation)
                 final_matched_rules.extend(nutrient_rules[nutrient_str])
             
