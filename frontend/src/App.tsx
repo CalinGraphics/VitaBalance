@@ -35,7 +35,7 @@ function App() {
         onLabResultsClick={() => navigate('lab-results')}
         showLabResults={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
         onDashboardClick={() => navigate('recommendations')}
-        showDashboard={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
+        showDashboard={(route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
       >
         {/* Loading state - prioritate maximă */}
         {isLoading ? (
