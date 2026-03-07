@@ -11,6 +11,7 @@ function App() {
     authUser,
     medicalUser,
     isLoading,
+    recommendationsRefreshKey,
     navigate,
     handleLogin,
     handleRegister,
@@ -101,7 +102,7 @@ function App() {
             {route === 'recommendations' && medicalUser && (
               <div className="w-full max-w-7xl">
                 <Disclaimer />
-                <Recommendations user={medicalUser} />
+                <Recommendations user={medicalUser} refreshKey={recommendationsRefreshKey} />
               </div>
             )}
             {route === 'recommendations' && !medicalUser && (

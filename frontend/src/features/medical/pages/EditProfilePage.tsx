@@ -109,13 +109,13 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
   }
 
   return (
-    <div className="w-full max-w-full md:max-w-4xl">
+    <div className="w-full max-w-full md:max-w-4xl lg:max-w-[90vw]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <GlassCard className="w-full max-w-full md:max-w-3xl mx-auto">
+        <GlassCard className="w-full max-w-full md:max-w-3xl lg:max-w-none mx-auto lg:min-h-[80vh]">
           <button
             type="button"
             onClick={onNavigateBack}
@@ -265,8 +265,8 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
               </div>
             )}
 
-            <div className="mt-6 flex gap-4">
-              <PrimaryButton type="submit" disabled={loading}>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <PrimaryButton type="submit" disabled={loading} full={true}>
                 {loading ? (
                   <>
                     <motion.div
@@ -286,7 +286,7 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
               <button
                 type="button"
                 onClick={onNavigateBack}
-                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-6 py-3 rounded-xl border border-white/20 text-slate-300 hover:border-neonCyan hover:text-neonCyan transition font-medium touch-manipulation"
+                className="w-full min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-6 py-3.5 rounded-xl border border-white/20 text-slate-300 hover:border-neonCyan hover:text-neonCyan transition font-medium touch-manipulation"
               >
                 Anulează
               </button>

@@ -31,9 +31,10 @@ interface Recommendation {
 
 interface RecommendationsProps {
   user: User
+  refreshKey?: number
 }
 
-const Recommendations = ({ user }: RecommendationsProps) => {
+const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   // Debug logging only in development
   if (import.meta.env.DEV) {
     console.log('Recommendations component render - user:', user)
@@ -46,7 +47,11 @@ const Recommendations = ({ user }: RecommendationsProps) => {
     diet_type: user.diet_type,
     activity_level: user.activity_level,
     allergies: user.allergies,
-    medical_conditions: user.medical_conditions
+    medical_conditions: user.medical_conditions,
+    age: user.age,
+    sex: user.sex,
+    weight: user.weight,
+    height: user.height,
   })
 
   const fetchRecommendations = async (forceRegenerate: boolean = false) => {
@@ -108,7 +113,11 @@ const Recommendations = ({ user }: RecommendationsProps) => {
       prevUserValues.diet_type !== user.diet_type ||
       prevUserValues.activity_level !== user.activity_level ||
       prevUserValues.allergies !== user.allergies ||
-      prevUserValues.medical_conditions !== user.medical_conditions
+      prevUserValues.medical_conditions !== user.medical_conditions ||
+      prevUserValues.age !== user.age ||
+      prevUserValues.sex !== user.sex ||
+      prevUserValues.weight !== user.weight ||
+      prevUserValues.height !== user.height
 
     if (hasChanged) {
       // Regenerează recomandările dacă s-au schimbat criteriile
@@ -117,14 +126,27 @@ const Recommendations = ({ user }: RecommendationsProps) => {
         diet_type: user.diet_type,
         activity_level: user.activity_level,
         allergies: user.allergies,
-        medical_conditions: user.medical_conditions
+        medical_conditions: user.medical_conditions,
+        age: user.age,
+        sex: user.sex,
+        weight: user.weight,
+        height: user.height,
       })
     } else {
       // Altfel, doar încarcă recomandările existente
       fetchRecommendations(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id, user.diet_type, user.activity_level, user.allergies, user.medical_conditions])
+  }, [user.id, user.diet_type, user.activity_level, user.allergies, user.medical_conditions, user.age, user.sex, user.weight, user.height])
+
+  // Dacă s-au salvat analizele medicale sau s-a făcut update de profil și s-a incrementat refreshKey,
+  // forțează regenerarea recomandărilor (include și cache invalidation pe backend).
+  useEffect(() => {
+    if (refreshKey && refreshKey > 0) {
+      fetchRecommendations(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey])
 
 
   const exportToPDF = () => {

@@ -149,7 +149,26 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         return
       }
       const extracted = await labResultsService.extractFromText(text)
-      const count = Object.values(extracted).filter(v => v != null && v !== undefined).length
+      const knownKeyLabels: Record<string, string> = {
+        hemoglobin: 'Hemoglobină',
+        ferritin: 'Feritină',
+        vitamin_d: 'Vitamina D',
+        vitamin_b12: 'Vitamina B12',
+        calcium: 'Calciu',
+        magnesium: 'Magneziu',
+        zinc: 'Zinc',
+        protein: 'Proteine',
+        folate: 'Folat / Acid folic',
+        vitamin_a: 'Vitamina A',
+        iodine: 'Iod',
+        vitamin_k: 'Vitamina K',
+        potassium: 'Potasiu',
+      }
+      const extractedKnownKeys = Object.keys(knownKeyLabels).filter((k) => {
+        const v = (extracted as any)?.[k]
+        return v != null && v !== undefined && v !== ''
+      })
+      const count = extractedKnownKeys.length
       setFormData(prev => ({
         ...prev,
         hemoglobin: extracted.hemoglobin ?? prev.hemoglobin,
@@ -167,7 +186,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         potassium: extracted.potassium ?? prev.potassium
       }))
       setExtractPdfMessage(count > 0
-        ? `S-au extras ${count} valori din raportul medical. Verifică și completează manual dacă e cazul.`
+        ? `S-au extras ${count} valori: ${extractedKnownKeys.map((k) => knownKeyLabels[k] || k).join(', ')}. Verifică și completează manual dacă e cazul.`
         : 'Nu s-au identificat valori cunoscute în raport. Introdu manual.')
     } catch (err) {
       console.error('Eroare la extragerea din PDF:', err)
@@ -178,13 +197,13 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
   }
 
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full max-w-4xl lg:max-w-[90vw]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <GlassCard className="max-w-3xl mx-auto">
+        <GlassCard className="w-full max-w-3xl lg:max-w-none mx-auto lg:min-h-[80vh]">
           {onBackToDashboard && (
             <button
               type="button"
@@ -364,19 +383,17 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
               rows={4}
             />
 
-            <div className="flex gap-4">
-              <motion.button
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+              <button
                 type="button"
                 onClick={handleSkip}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 rounded-xl border border-white/10 bg-slate-800/40 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-slate-700/40 transition flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 min-h-[44px] rounded-xl border border-white/10 bg-slate-800/40 px-6 py-3.5 text-sm font-semibold text-slate-200 hover:bg-slate-700/40 transition inline-flex items-center justify-center gap-2 touch-manipulation"
               >
                 <SkipForward className="w-5 h-5" />
                 Sari peste
-              </motion.button>
-              <div className="flex-1">
-                <PrimaryButton type="submit" disabled={loading} full={false}>
+              </button>
+              <div className="w-full sm:flex-1">
+                <PrimaryButton type="submit" disabled={loading} full={true}>
                   {loading ? 'Se salvează...' : 'Continuă'}
                   {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
                 </PrimaryButton>

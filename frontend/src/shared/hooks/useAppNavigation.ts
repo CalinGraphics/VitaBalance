@@ -8,6 +8,7 @@ export const useAppNavigation = () => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [medicalUser, setMedicalUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [recommendationsRefreshKey, setRecommendationsRefreshKey] = useState(0)
 
   const navigate = useCallback((newRoute: Route) => {
     setRoute(newRoute)
@@ -86,11 +87,13 @@ export const useAppNavigation = () => {
   }, [])
 
   const handleLabResultsComplete = useCallback(() => {
+    setRecommendationsRefreshKey((k) => k + 1)
     setRoute('recommendations')
   }, [])
 
   const handleProfileUpdate = useCallback((updatedUser: User) => {
     setMedicalUser(updatedUser)
+    setRecommendationsRefreshKey((k) => k + 1)
     setRoute('recommendations')
   }, [])
 
@@ -150,6 +153,7 @@ export const useAppNavigation = () => {
     authUser,
     medicalUser,
     isLoading,
+    recommendationsRefreshKey,
     navigate,
     handleLogin,
     handleRegister,
