@@ -3,6 +3,18 @@ import type { Route, AuthUser, User } from '../types'
 import { profileService, authService } from '../../services/api'
 import { getToken, setToken, clearToken } from '../../services/authStorage'
 
+// Un profil medical este considerat "complet" doar dacă are valorile de bază setate.
+// Utilizatorii creați automat la verify_magic_link au câmpurile numerice 0 / implicite,
+// așa că pentru ei vom forța trecerea prin ecranul de creare profil.
+const hasCompleteMedicalProfile = (profile: User | null | undefined): boolean => {
+  if (!profile || !profile.id) return false
+  if (!profile.age || profile.age <= 0) return false
+  if (!profile.weight || profile.weight <= 0) return false
+  if (!profile.height || profile.height <= 0) return false
+  if (!profile.sex || !profile.activity_level || !profile.diet_type) return false
+  return true
+}
+
 export const useAppNavigation = () => {
   const [route, setRoute] = useState<Route>('login')
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
@@ -35,18 +47,19 @@ export const useAppNavigation = () => {
           console.log('Profil găsit:', existingProfile)
         }
         
-        if (existingProfile && existingProfile.id) {
-          // Are deja profil, merge direct la recomandări
+        if (hasCompleteMedicalProfile(existingProfile)) {
+          // Are deja profil complet, merge direct la recomandări
           if (import.meta.env.DEV) {
-            console.log('Setăm medicalUser și route la recommendations')
+            console.log('Profil complet găsit, mergem la recommendations')
           }
           setMedicalUser(existingProfile)
           setRoute('recommendations')
         } else {
-          // Nu are profil, merge la crearea profilului
+          // Nu are profil complet (sau e utilizator nou creat automat) – merge la crearea profilului
           if (import.meta.env.DEV) {
-            console.log('Utilizatorul nu are profil medical, va crea unul nou')
+            console.log('Profil inexistent sau incomplet, mergem la medical-profile')
           }
+          setMedicalUser(null)
           setRoute('medical-profile')
         }
       } catch (error: any) {
@@ -133,10 +146,11 @@ export const useAppNavigation = () => {
         return profileService.getByEmail(me.email)
       })
       .then((existingProfile: User) => {
-        if (existingProfile?.id) {
+        if (hasCompleteMedicalProfile(existingProfile)) {
           setMedicalUser(existingProfile)
           setRoute('recommendations')
         } else {
+          setMedicalUser(null)
           setRoute('medical-profile')
         }
       })
