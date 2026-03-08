@@ -46,6 +46,10 @@ class FoodItem:
     iodine: float = 0
     vitamin_k: float = 0
     potassium: float = 0
+    carbs: float = 0          # nou
+    fat: float = 0            # nou
+    free_sugar: float = 0     # nou
+    cholesterol: float = 0    # nou
     allergens: Optional[str] = None
     image_url: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -128,11 +132,10 @@ def row_to_user(row: dict) -> UserProfile:
 
 
 def row_to_food(row: dict) -> FoodItem:
-    """Build FoodItem from Supabase/DB row. Toleră NULL pentru câmpuri numerice."""
     return FoodItem(
         id=row["id"],
         name=row.get("name") or "",
-        category=row.get("category") or "",
+        category=row.get("category") or "necunoscut",
         iron=_num(row.get("iron")),
         calcium=_num(row.get("calcium")),
         vitamin_d=_num(row.get("vitamin_d")),
@@ -148,6 +151,10 @@ def row_to_food(row: dict) -> FoodItem:
         iodine=_num(row.get("iodine")),
         vitamin_k=_num(row.get("vitamin_k")),
         potassium=_num(row.get("potassium")),
+        carbs=_num(row.get("carbs")),           # nou
+        fat=_num(row.get("fat")),               # nou
+        free_sugar=_num(row.get("free_sugar")), # nou
+        cholesterol=_num(row.get("cholesterol")), # nou
         allergens=row.get("allergens"),
         image_url=row.get("image_url"),
         created_at=row.get("created_at"),
