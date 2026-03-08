@@ -1,21 +1,45 @@
 # VitaBalance
 
-Aplicație web pentru recomandări nutriționale personalizate: utilizatorul își completează profilul (vârstă, activitate, dietă, alergii), introduce rezultatele analizelor medicale, iar sistemul sugerează alimente potrivite cu explicații și export PDF.
-
-Datele sunt stocate în **Supabase**; autentificarea se face doar prin **magic link** (link trimis pe email; contul se creează automat la prima utilizare). Toate rutele API sunt protejate cu JWT.
+**Sistem de recomandare nutrițională personalizată bazat pe profil utilizator și analize medicale**
 
 ---
 
-## Ce ai nevoie
+## Rezumat
+
+VitaBalance este o aplicație web care oferă recomandări alimentare personalizate, adaptate nevoilor nutriționale ale utilizatorului. Sistemul utilizează datele de profil (vârstă, sex, greutate, înălțime, nivel de activitate, tip de dietă, alergii, condiții medicale) și, opțional, rezultatele analizelor medicale (feritină, vitamina D, B12, calciu, magneziu, potasiu etc.) pentru a identifica deficiențe nutriționale și a sugera alimente potrivite, cu explicații și export în format PDF.
+
+---
+
+## Funcționalități
+
+- **Profil utilizator** – gestionare date personale: vârstă, sex, greutate, înălțime, nivel de activitate fizică, tip de dietă (omnivor, vegetarian, vegan, pescatarian), alergii și condiții medicale
+- **Analize medicale** – introducere manuală a rezultatelor analizelor de laborator sau încărcare raport PDF pentru extragere automată
+- **Recomandări personalizate** – generare de alimente recomandate pe baza deficitelor identificate, cu explicații contextuale și sugestii de porții
+- **Export PDF** – export al recomandărilor în format PDF pentru utilizare ușoară
+- **Feedback** – utilizatorul poate evalua recomandările și marca dacă le-a încercat sau dacă au fost utile
+
+---
+
+## Arhitectură și flux de funcționare
+
+1. **Profilare** – Utilizatorul își creează cont prin magic link (email) și completează profilul cu datele personale relevante.
+2. **Analize** – Opțional, utilizatorul introduce rezultatele analizelor medicale (hemoglobină, feritină, vitamina D, B12, calciu, magneziu, zinc, potasiu etc.) sau încarcă un raport PDF; sistemul extrage automat valorile disponibile.
+3. **Calculul deficitelor** – Modulul `DeficitCalculator` estimează deficiențele nutriționale comparând aportul recomandat zilnic (RDI) cu aportul estimat sau cu valorile din analize, ținând cont de vârstă, sex, greutate și tip de dietă.
+4. **Motor de reguli** – `ScopedRulesEngine` și `NutritionalRuleEngine` aplică reguli contextuale (dietă vegan, intoleranță la lactoză, hipertensiune etc.) și selectează alimente din catalogul `foods` care acoperă deficiențele identificate, filtrând conform restricțiilor utilizatorului.
+5. **Recomandări** – Alimentele sunt ordonate după scor și procent de acoperire a deficitului; primele 10 sunt salvate și afișate utilizatorului, cu explicații și sfaturi.
+
+---
+
+## Cerințe
 
 - Python 3.10–3.12 (recomandat 3.11)
 - Node.js (pentru frontend)
 - Cont Supabase (URL + cheie API)
-- Opțional: cont Resend pentru trimitere email (magic link); fără Resend, linkul apare doar în consola backend-ului
+- Opțional: cont Resend pentru trimitere email (magic link)
 
 ---
 
-## Pornire rapidă
+## Instalare și rulare
 
 **1. Backend**
 
@@ -26,18 +50,9 @@ python -m pip install -r requirements.txt
 python run.py
 ```
 
-Creează fișierul `backend/.env` cu:
-
-```
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_KEY=eyJ...
-```
-
-API-ul rulează pe **http://localhost:8000**. Documentație: http://localhost:8000/docs
+Creează fișierul `backend/.env` cu variabilele necesare (vezi secțiunea următoare). API-ul rulează pe **http://localhost:8000**; documentație interactivă: http://localhost:8000/docs
 
 **2. Frontend**
-
-Într-un al doilea terminal:
 
 ```bash
 cd frontend
@@ -45,7 +60,7 @@ npm install
 npm run dev
 ```
 
-Interfața este pe **http://localhost:3000**.
+Interfața este disponibilă la **http://localhost:3000**.
 
 ---
 
@@ -54,47 +69,57 @@ Interfața este pe **http://localhost:3000**.
 | Variabilă | Obligatoriu | Descriere |
 |-----------|-------------|-----------|
 | `SUPABASE_URL` | Da | URL-ul proiectului Supabase |
-| `SUPABASE_KEY` | Da | Cheia API (service role sau anon, în funcție de RLS) |
-| `JWT_SECRET` | Recomandat | Secret pentru semnarea token-urilor; în producție folosește un string lung și aleatoriu |
-| `RESEND_API_KEY` | Nu | Dacă e setat, magic link-ul se trimite pe email; altfel linkul apare în consolă |
-| `RESEND_FROM_EMAIL` | Nu | Adresa expeditor (implicit `onboarding@resend.dev`) |
-| `FRONTEND_BASE_URL` | Nu | URL-ul frontend-ului pentru linkul din email. În dev: `http://localhost:3000`; la hosting: URL-ul domeniului tău |
+| `SUPABASE_KEY` | Da | Cheia API (service role sau anon) |
+| `JWT_SECRET` | Recomandat | Secret pentru semnarea token-urilor JWT |
+| `RESEND_API_KEY` | Nu | Pentru trimitere magic link pe email; în lipsa lui, linkul apare în consolă |
+| `RESEND_FROM_EMAIL` | Nu | Adresa expeditor pentru email |
+| `FRONTEND_BASE_URL` | Nu | URL-ul frontend-ului (ex.: `http://localhost:3000`) |
 
 ---
 
-## Alimente în baza de date
+## Baza de date
 
-Tabelele (users, foods, lab_results, recommendations, feedback, magic_links) se creează și gestionează din **Supabase** (Dashboard sau migrări).
+Aplicația folosește **Supabase** (PostgreSQL) ca unică sursă de date. Tabelele principale sunt:
 
-Pentru a popula tabelul `foods` cu alimente predefinite:
+- `users` – profil utilizator
+- `foods` – catalog alimente cu valori nutriționale
+- `lab_results` – rezultate analize medicale
+- `recommendations` – recomandări salvate
+- `feedback` – evaluări utilizator
 
-```bash
-cd backend
-python scripts/generate_foods.py
-```
-
-Poți rula cu `--clear` dacă vrei să ștergi alimentele existente înainte.
+Catalogul de alimente (`foods`) se gestionează direct din Supabase, prin import CSV. Schema include coloane pentru macro- și micronutrienți (fier, calciu, magneziu, vitamine, fibre etc.), categorie și alerjeni.
 
 ---
 
 ## Structura proiectului
 
-- **backend** – FastAPI: rute în `main.py`, logică în `services/`, acces date prin `repositories/` (doar Supabase), modele de domeniu în `domain/`, auth și JWT în `middleware/` și `services/auth.py`.
-- **frontend** – React (Vite, TypeScript): pagini în `src/features/`, API și auth în `src/services/`, export PDF în `src/features/recommendations/pdf/`.
+```
+VitaBalance/
+├── backend/           # API FastAPI
+│   ├── domain/        # Modele de domeniu
+│   ├── repositories/  # Acces date (Supabase)
+│   ├── services/      # Logică (deficit, reguli, recomandări)
+│   ├── middleware/    # Autentificare JWT
+│   └── main.py        # Rute API
+└── frontend/          # Aplicație React (Vite, TypeScript)
+    └── src/
+        ├── features/  # Pagini (profil, analize, recomandări, PDF)
+        └── services/  # Apeluri API și autentificare
+```
 
 ---
 
-## Tehnologii
+## Stack tehnologic
 
-Backend: FastAPI, Supabase (PostgreSQL), JWT, Resend (opțional).  
-Frontend: React 18, TypeScript, Vite, Tailwind, Framer Motion, Recharts, @react-pdf/renderer pentru PDF.
+- **Backend:** FastAPI, Supabase (PostgreSQL), JWT, Resend
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, @react-pdf/renderer
 
 ---
 
 ## Disclaimer
 
-Recomandările sunt sugestii generale și nu înlocuiesc consultul medical. Pentru decizii legate de dietă și sănătate, consultă un medic sau nutriționist.
+Recomandările furnizate sunt sugestii generale și nu constituie sfaturi medicale. Pentru decizii legate de dietă și sănătate, se recomandă consultarea unui medic sau nutriționist.
 
 ---
 
-Proiect realizat pentru licență 2026.
+Proiect realizat în scop academic — Licență 2026.

@@ -476,20 +476,27 @@ class ScopedRulesEngine:
                 continue
             
             nutrient_value = self._get_nutrient_value(food, nutrient)
+            # Dacă nu avem deloc valoare pentru nutrient la acest aliment,
+            # nu îl folosim pentru acoperirea deficitului (evităm recomandări cu 0% acoperire).
+            if nutrient_value <= 0:
+                continue
+
             food_matches = self._food_matches_recommendations(food, rule.recommended_foods)
+            # Dacă există o listă explicită de alimente recomandate și nu se potrivește deloc, trecem peste.
+            if rule.recommended_foods and not food_matches:
+                continue
             
-            if food_matches or nutrient_value > 0:
-                base_score = min(10.0, (nutrient_value / max(1, deficit)) * 10)
-                weighted_score = base_score * rule.weight
-                explanation = self._generate_explanation(rule, food, nutrient_value, deficit, lab_results)
-                
-                matching_rules.append(ScopedRuleResult(
-                    rule=rule,
-                    matched=True,
-                    score=weighted_score,
-                    explanation=explanation,
-                    context=self._get_scope_label(rule.scope)
-                ))
+            base_score = min(10.0, (nutrient_value / max(1, deficit)) * 10)
+            weighted_score = base_score * rule.weight
+            explanation = self._generate_explanation(rule, food, nutrient_value, deficit, lab_results)
+            
+            matching_rules.append(ScopedRuleResult(
+                rule=rule,
+                matched=True,
+                score=weighted_score,
+                explanation=explanation,
+                context=self._get_scope_label(rule.scope)
+            ))
         
         return matching_rules
     
@@ -503,11 +510,11 @@ class ScopedRulesEngine:
             NutrientType.VITAMIN_D: (food.vitamin_d or 0) / 40,
             NutrientType.VITAMIN_B12: food.vitamin_b12 or 0,
             NutrientType.VITAMIN_C: food.vitamin_c or 0,
-            NutrientType.FOLATE: 0,
-            NutrientType.VITAMIN_A: 0,
-            NutrientType.IODINE: 0,
-            NutrientType.VITAMIN_K: 0,
-            NutrientType.POTASSIUM: 0,
+            NutrientType.FOLATE: food.folate or 0,
+            NutrientType.VITAMIN_A: food.vitamin_a or 0,
+            NutrientType.IODINE: food.iodine or 0,
+            NutrientType.VITAMIN_K: food.vitamin_k or 0,
+            NutrientType.POTASSIUM: food.potassium or 0,
         }
         return mapping.get(nutrient, 0)
     
@@ -776,36 +783,38 @@ class ScopedRulesEngine:
             
             allergy_mappings = {
                 'lactoza': {
-                    'categories': ['lactate'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
-                                'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan', 
-                                'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos', 'lactate']
+                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
+                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
+                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
+                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
+                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
                 },
                 'lactoză': {
-                    'categories': ['lactate'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
-                                'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan', 
-                                'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos', 'lactate']
+                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
+                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
+                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
+                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
+                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
                 },
                 'lactate': {
-                    'categories': ['lactate'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
-                                'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan', 
-                                'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
+                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
+                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
+                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
+                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
+                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
                 },
                 # Gluten
                 'gluten': {
-                    'categories': ['cereale'],
-                    'keywords': ['gluten', 'grâu', 'grau', 'grâu', 'făină', 'faina', 'pâine', 'paine', 
-                                'paste', 'spaghete', 'macaroane', 'tortilla', 'cereale', 'wheat', 
-                                'barley', 'rye', 'seitan']
+                    'categories': ['cereale', 'paini', 'paste', 'faina'],
+                    'keywords': ['gluten', 'grâu', 'grau', 'grău', 'făină', 'faina', 'făină', 
+                                'pâine', 'paine', 'pâini', 'paste', 'spaghete', 'macaroane', 
+                                'tortilla', 'cereale', 'wheat', 'barley', 'rye', 'seitan', 
+                                'ovăz', 'orz', 'secară', 'malț']
                 },
                 'nuci': {
                     'categories': [],
                     'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
-                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
-                                'semințe', 'seminte', 'semințe de', 'seminte de', 'chia', 'flax',
-                                'in', 'sunflower', 'pumpkin', 'sesame', 'sezam']
+                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
                 },
                 'nucă': {
                     'categories': [],
@@ -854,6 +863,15 @@ class ScopedRulesEngine:
                 'arahide': {
                     'categories': [],
                     'keywords': ['arahide', 'alune de pământ', 'alune de pamant', 'peanut', 'peanuts']
+                },
+                'sesam': {
+                    'categories': [],
+                    'keywords': ['sesam', 'susan', 'sezam', 'semințe de susan', 'seminte de susan', 
+                                'sesame', 'tahini', 'halva', 'halvă', 'susan']
+                },
+                'mustar': {
+                    'categories': [],
+                    'keywords': ['mustar', 'muștar', 'mustard', 'condimente cu mustar']
                 }
             }
             
@@ -867,7 +885,7 @@ class ScopedRulesEngine:
                         break
                 
                 if allergy_info:
-                    if allergy_info['categories'] and food_category_lower in allergy_info['categories']:
+                    if allergy_info['categories'] and any(cat in food_category_lower for cat in allergy_info['categories']):
                         return False
                     
                     for keyword in allergy_info['keywords']:

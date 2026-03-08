@@ -669,29 +669,33 @@ class NutritionalRuleEngine:
             
             allergy_mappings = {
                 'lactoza': {
-                    'categories': ['lactate'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
-                                'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan', 
-                                'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos', 'lactate']
+                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
+                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
+                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
+                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
+                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
                 },
                 'lactoză': {
-                    'categories': ['lactate'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
-                                'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan', 
-                                'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos', 'lactate']
+                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
+                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
+                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
+                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
+                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
                 },
                 'lactate': {
-                    'categories': ['lactate'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea', 
-                                'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan', 
-                                'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
+                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
+                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
+                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
+                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
+                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
                 },
                 # Gluten
                 'gluten': {
-                    'categories': ['cereale'],
-                    'keywords': ['gluten', 'grâu', 'grau', 'grâu', 'făină', 'faina', 'pâine', 'paine', 
-                                'paste', 'spaghete', 'macaroane', 'tortilla', 'cereale', 'wheat', 
-                                'barley', 'rye', 'seitan']
+                    'categories': ['cereale', 'paini', 'paste', 'faina'],
+                    'keywords': ['gluten', 'grâu', 'grau', 'grău', 'făină', 'faina', 
+                                'pâine', 'paine', 'pâini', 'paste', 'spaghete', 'macaroane', 
+                                'tortilla', 'cereale', 'wheat', 'barley', 'rye', 'seitan', 
+                                'ovăz', 'orz', 'secară', 'malț']
                 },
                 'nuci': {
                     'categories': [],
@@ -701,7 +705,7 @@ class NutritionalRuleEngine:
                 'nucă': {
                     'categories': [],
                     'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
-                                'caju', 'macadamia', 'pecan', 'nuts',                     'almond', 'walnut', 'hazelnut']
+                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
                 },
                 'ouă': {
                     'categories': [],
@@ -733,6 +737,15 @@ class NutritionalRuleEngine:
                 'arahide': {
                     'categories': [],
                     'keywords': ['arahide', 'alune de pământ', 'alune de pamant', 'peanut', 'peanuts']
+                },
+                'sesam': {
+                    'categories': [],
+                    'keywords': ['sesam', 'susan', 'sezam', 'semințe de susan', 'seminte de susan', 
+                                'sesame', 'tahini', 'halva', 'halvă', 'susan']
+                },
+                'mustar': {
+                    'categories': [],
+                    'keywords': ['mustar', 'muștar', 'mustard', 'condimente cu mustar']
                 }
             }
             
@@ -746,7 +759,7 @@ class NutritionalRuleEngine:
                         break
                 
                 if allergy_info:
-                    if allergy_info['categories'] and food_category_lower in allergy_info['categories']:
+                    if allergy_info['categories'] and any(cat in food_category_lower for cat in allergy_info['categories']):
                         return False
                     
                     for keyword in allergy_info['keywords']:
