@@ -25,6 +25,60 @@ class FeedbackRepository:
             return []
         return [row_to_feedback(r) for r in resp.data]
 
+    def get_by_user_and_recommendation(self, user_id: int, recommendation_id: int) -> Optional[FeedbackItem]:
+        resp = (
+            self._client.table(self.TABLE)
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("recommendation_id", recommendation_id)
+            .limit(1)
+            .execute()
+        )
+        if not resp.data or len(resp.data) == 0:
+            return None
+        return row_to_feedback(resp.data[0])
+
+    def upsert(
+        self,
+        user_id: int,
+        recommendation_id: int,
+        rating: int,
+        *,
+        comment: Optional[str] = None,
+        tried: bool = False,
+        worked: Optional[bool] = None,
+    ) -> FeedbackItem:
+        """Creează sau actualizează feedback-ul. Un singur vote per (user_id, recommendation_id)."""
+        existing = self.get_by_user_and_recommendation(user_id, recommendation_id)
+        if existing:
+            resp = (
+                self._client.table(self.TABLE)
+                .update({
+                    "rating": rating,
+                    "comment": comment,
+                    "tried": tried,
+                    "worked": worked,
+                })
+                .eq("id", existing.id)
+                .execute()
+            )
+            if not resp.data or len(resp.data) == 0:
+                raise ValueError("Update feedback returned no data")
+            return row_to_feedback(resp.data[0])
+        row = {
+            "user_id": user_id,
+            "recommendation_id": recommendation_id,
+            "rating": rating,
+            "comment": comment,
+            "tried": tried,
+            "worked": worked,
+        }
+        row = {k: v for k, v in row.items() if v is not None}
+        resp = self._client.table(self.TABLE).insert(row).execute()
+        if not resp.data or len(resp.data) == 0:
+            raise ValueError("Insert feedback returned no data")
+        return row_to_feedback(resp.data[0])
+
     def get_counts_by_recommendation(self, user_id: Optional[int] = None) -> Dict[int, Dict[str, int]]:
         """
         Returnează pentru fiecare recommendation_id:

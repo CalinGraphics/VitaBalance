@@ -497,6 +497,7 @@ async def get_recommendations(
     lab_results = lab_repo.get_latest_by_user_id(request.user_id)
     user_feedbacks = feedback_repo.get_by_user_id(request.user_id)
     feedback_counts_by_rec = feedback_repo.get_counts_by_recommendation()
+    user_feedback_by_rec = {fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None}
 
     feedback_by_food: dict = {}
     for fb in user_feedbacks:
@@ -537,16 +538,91 @@ async def get_recommendations(
     if force_regenerate and existing:
         rec_repo.delete_by_user_id(request.user_id)
 
+    # Înlocuire unei recomandări (după dislike + "Da, schimb-o")
+    exclude_ids = set(request.exclude_food_ids or [])
+    is_replace_only = False
+    if request.replace_recommendation_id:
+        rec_to_replace = next(
+            (r for r in rec_repo.get_by_user_id(request.user_id, limit=100) if r.id == request.replace_recommendation_id),
+            None
+        )
+        if rec_to_replace:
+            exclude_ids.add(rec_to_replace.food_id)
+            rec_repo.delete_by_id(request.replace_recommendation_id)
+            is_replace_only = True
+
+    foods_filtered = [f for f in foods if f.id not in exclude_ids] if exclude_ids else foods
+
     calculator = DeficitCalculator()
     deficits = calculator.calculate_deficits(user, lab_results)
 
     recommendations: List[dict] = []
-    if should_generate:
+    if is_replace_only:
         recommender = RecommenderService()
         rec_list = recommender.generate_recommendations(
             user=user,
             deficits=deficits,
-            foods=foods,
+            foods=foods_filtered,
+            lab_results=lab_results,
+            user_feedbacks=user_feedbacks,
+            feedback_by_food=feedback_by_food,
+        )
+        if rec_list:
+            food = next((f for f in foods_filtered if f.id == rec_list[0]["food_id"]), None)
+            if food:
+                explanation_gen = ExplanationGenerator()
+                expl = explanation_gen.generate_explanation(
+                    food=food,
+                    user=user,
+                    deficits=deficits,
+                    score=rec_list[0]["score"],
+                    coverage=rec_list[0]["coverage"],
+                    explanations=rec_list[0].get("explanations"),
+                    matched_rules=rec_list[0].get("matched_rules"),
+                )
+                rec_repo.insert_many([{
+                    "user_id": user.id,
+                    "food_id": food.id,
+                    "score": rec_list[0]["score"],
+                    "explanation": expl["text"],
+                    "portion_suggested": expl["portion"],
+                    "coverage_percentage": rec_list[0]["coverage"],
+                }])
+        # Reîncarcă counts după insert (noua rec nu e încă în counts)
+        feedback_counts_by_rec = feedback_repo.get_counts_by_recommendation()
+        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=10)
+        food_by_id = {f.id: f for f in foods}
+        explanation_gen = ExplanationGenerator()
+        for rec in existing_recs:
+            food = food_by_id.get(rec.food_id)
+            if not food:
+                continue
+            expl = explanation_gen.generate_explanation(
+                food=food,
+                user=user,
+                deficits=deficits,
+                score=rec.score,
+                coverage=rec.coverage_percentage or 0,
+                explanations=[rec.explanation] if rec.explanation else None,
+                matched_rules=[],
+            )
+            counts = feedback_counts_by_rec.get(rec.id, {"likes": 0, "dislikes": 0})
+            recommendations.append({
+                "food_id": food.id,
+                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                "score": rec.score,
+                "coverage": rec.coverage_percentage or 0,
+                "explanation": expl,
+                "recommendation_id": rec.id,
+                "feedback": counts,
+                "my_rating": user_feedback_by_rec.get(rec.id),
+            })
+    elif should_generate:
+        recommender = RecommenderService()
+        rec_list = recommender.generate_recommendations(
+            user=user,
+            deficits=deficits,
+            foods=foods_filtered,
             lab_results=lab_results,
             user_feedbacks=user_feedbacks,
             feedback_by_food=feedback_by_food,
@@ -602,6 +678,7 @@ async def get_recommendations(
                     "explanation": expl,
                     "recommendation_id": rec.id,
                     "feedback": counts,
+                    "my_rating": user_feedback_by_rec.get(rec.id),
                 })
     else:
         existing_recs = rec_repo.get_by_user_id(request.user_id, limit=10)
@@ -629,6 +706,7 @@ async def get_recommendations(
                 "explanation": expl,
                 "recommendation_id": rec.id,
                 "feedback": counts,
+                "my_rating": user_feedback_by_rec.get(rec.id),
             })
 
     if not recommendations and should_generate:
@@ -694,6 +772,7 @@ async def get_recommendations(
                 "explanation": expl,
                 "recommendation_id": rec.id,
                 "feedback": counts,
+                "my_rating": user_feedback_by_rec.get(rec.id),
             })
 
     return recommendations
@@ -713,16 +792,18 @@ async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends
     _ensure_user_resource(current_user, feedback.user_id)
     if feedback.rating < -1 or feedback.rating > 5:
         raise HTTPException(status_code=400, detail="Rating trebuie să fie între -1 și 5")
+    if not feedback.recommendation_id:
+        raise HTTPException(status_code=400, detail="recommendation_id este obligatoriu")
     repo = FeedbackRepository()
-    created = repo.create(
+    result = repo.upsert(
         feedback.user_id,
+        feedback.recommendation_id,
         feedback.rating,
-        recommendation_id=feedback.recommendation_id,
         comment=feedback.comment,
         tried=feedback.tried,
         worked=feedback.worked,
     )
-    return {"message": "Feedback salvat cu succes", "id": created.id}
+    return {"message": "Feedback salvat cu succes", "id": result.id}
 
 
 # ---------- Foods (Supabase) – protejat (catalog public dar API consistent) ----------

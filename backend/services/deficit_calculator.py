@@ -206,6 +206,15 @@ class DeficitCalculator:
             'iodine', 'vitamin_k', 'potassium'
         ]
         
+        # Extrage textul din observații pentru a detecta nutrienți preferați
+        notes_text = ""
+        if user and getattr(user, 'medical_conditions', None):
+            notes_text = (user.medical_conditions or "").lower()
+        if lab_results and getattr(lab_results, 'notes', None):
+            notes_text = f"{notes_text} {lab_results.notes or ''}".lower()
+        
+        preferred_nutrients = self._parse_preferred_nutrients(notes_text)
+        
         for nutrient in nutrients:
             rdi = self.get_rdi(nutrient, user)
             
@@ -221,7 +230,37 @@ class DeficitCalculator:
             deficit = max(0, rdi - current_intake)
             deficits[nutrient] = deficit
         
+        # Dacă utilizatorul menționează nevoie de nutrienți în observații,
+        # adaugă un deficit minim pentru a prioritiza alimente bogate în ei
+        for nutrient in preferred_nutrients:
+            if nutrient in nutrients:
+                rdi = self.get_rdi(nutrient, user)
+                current = deficits.get(nutrient, 0)
+                if current < 0.3 * rdi:
+                    deficits[nutrient] = max(current, 0.3 * rdi)
+        
         return deficits
+    
+    def _parse_preferred_nutrients(self, notes_text: str) -> set:
+        """Detectează din observații nutrienți preferați (ex: 'bogat în zinc', 'nevoie de zinc')."""
+        preferred = set()
+        if not notes_text:
+            return preferred
+        
+        patterns = [
+            ('zinc', ['zinc', 'zn', 'bogat in zinc', 'bogate in zinc', 'nevoie de zinc', 'am nevoie de zinc']),
+            ('iron', ['fier', 'fer', 'bogat in fier', 'nevoie de fier', 'am nevoie de fier']),
+            ('calcium', ['calciu', 'calcium', 'bogat in calciu', 'nevoie de calciu']),
+            ('magnesium', ['magneziu', 'magnesium', 'bogat in magneziu', 'nevoie de magneziu']),
+            ('vitamin_d', ['vitamina d', 'vit d', 'vitamin d', 'bogat in vitamina d']),
+            ('vitamin_b12', ['b12', 'cobalamina', 'bogat in b12']),
+        ]
+        
+        for nutrient, keywords in patterns:
+            if any(kw in notes_text for kw in keywords):
+                preferred.add(nutrient)
+        
+        return preferred
     
     def _get_lab_value(self, nutrient: str, lab_results: LabResultItem) -> Optional[float]:
         mapping = {

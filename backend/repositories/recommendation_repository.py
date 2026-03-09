@@ -33,6 +33,9 @@ class RecommendationRepository:
     def delete_by_user_id(self, user_id: int) -> None:
         self._client.table(self.TABLE).delete().eq("user_id", user_id).execute()
 
+    def delete_by_id(self, recommendation_id: int) -> None:
+        self._client.table(self.TABLE).delete().eq("id", recommendation_id).execute()
+
     def insert_many(self, rows: List[dict]) -> List[RecommendationItem]:
         if not rows:
             return []

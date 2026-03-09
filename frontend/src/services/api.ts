@@ -145,20 +145,32 @@ export const labResultsService = {
 }
 
 export const recommendationsService = {
-  get: async (userId: number, forceRegenerate: boolean = false) => {
-    // Trimite force_regenerate ca query parameter
+  get: async (
+    userId: number,
+    forceRegenerate: boolean = false,
+    opts?: { replaceRecommendationId?: number }
+  ) => {
+    const body: Record<string, unknown> = { user_id: userId }
+    if (opts?.replaceRecommendationId) {
+      body.replace_recommendation_id = opts.replaceRecommendationId
+    }
     const response = await api.post(
-      `/recommendations?force_regenerate=${forceRegenerate}`, 
-      { user_id: userId }
+      `/recommendations?force_regenerate=${forceRegenerate}`,
+      body
     )
     return response.data
   },
+  replace: async (userId: number, recommendationId: number) => {
+    const response = await api.post('/recommendations', {
+      user_id: userId,
+      replace_recommendation_id: recommendationId,
+    })
+    return response.data
+  },
   regenerate: async (userId: number) => {
-    // Șterge recomandările vechi și generează altele noi
     try {
       await api.delete(`/recommendations/${userId}`)
     } catch (err) {
-      // Ignoră eroarea dacă nu există recomandări de șters
       console.log('Nu există recomandări de șters:', err)
     }
     const response = await api.post('/recommendations', { user_id: userId })

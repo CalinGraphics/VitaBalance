@@ -31,6 +31,7 @@ interface Recommendation {
     likes: number
     dislikes: number
   }
+  my_rating?: number | null
 }
 
 interface RecommendationsProps {
@@ -260,10 +261,31 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {recommendations.map((rec, index) => (
           <RecommendationCard
-            key={rec.food_id}
+            key={`${rec.recommendation_id}-${rec.food_id}`}
             recommendation={rec}
             index={index}
             userId={user.id!}
+            onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
+              setRecommendations((prev) =>
+                prev.map((r) =>
+                  r.recommendation_id === recId
+                    ? {
+                        ...r,
+                        feedback: { ...(r.feedback || { likes: 0, dislikes: 0 }), likes: newLikes, dislikes: newDislikes },
+                        my_rating: _rating,
+                      }
+                    : r
+                )
+              )
+            }}
+            onReplaceRequested={async (recId) => {
+              const data = await recommendationsService.replace(user.id!, recId)
+              if (Array.isArray(data) && data.length > 0) {
+                setRecommendations(data)
+              } else {
+                await fetchRecommendations(false)
+              }
+            }}
           />
         ))}
       </div>

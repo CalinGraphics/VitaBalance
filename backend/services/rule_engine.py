@@ -524,20 +524,83 @@ class NutritionalRuleEngine:
         else:
             return DeficiencyLevel.NONE
     
+    # Mapare condiții medicale → alimente de evitat (conservator pentru siguranță)
+    MEDICAL_CONDITION_RESTRICTIONS: Dict[str, List[str]] = {
+        'celiachie': ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine', 'paste'],
+        'gluten': ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine', 'paste', 'ovăz', 'orz'],
+        'intoleranță lactoză': ['lactate', 'lapte', 'brânză', 'branza', 'iaurt', 'smântână'],
+        'lactoză': ['lactate', 'lapte', 'brânză', 'branza', 'iaurt'],
+        'reflux': ['cafea', 'ciocolată', 'grassimi', 'frituri', 'mâncăruri picante'],
+        'ged': ['cafea', 'ciocolată', 'grassimi', 'frituri'],
+        'gastrită': ['cafea', 'alcool', 'mâncăruri picante', 'acide'],
+        'gastrita': ['cafea', 'alcool'],
+        'ulcer': ['cafea', 'alcool'],
+        'gout': ['carne', 'organe', 'fructe de mare'],
+        'gota': ['carne', 'organe', 'fructe de mare'],
+        'renal': ['sare', 'potasiu', 'oxalat', 'spanac', 'rabarbar'],
+        'rinichi': ['sare', 'potasiu', 'oxalat', 'spanac', 'rabarbar'],
+        'diabet': ['zahăr', 'zahar', 'dulciuri', 'bomboane', 'sirop'],
+        'glicemie': ['zahăr', 'zahar', 'dulciuri'],
+        'hipertensiune': ['sare', 'salam', 'cârnați', 'conservă'],
+        'tensiune': ['sare', 'salam'],
+        'ibs': ['lactate', 'fructoză', 'grâu'],
+        'colitis': ['lactate', 'grâu', 'alimente grase'],
+        'crohn': ['lactate', 'grâu', 'seminte'],
+        'diverticulită': ['seminte', 'nuci', 'popcorn'],
+        'pancreatic': ['alcool', 'grassimi'],
+        'ficat': ['alcool', 'grassimi', 'frituri'],
+        'colecist': ['ouă', 'grassimi'],
+        'colecistită': ['ouă', 'grassimi'],
+    }
+
+    # Sinonime: când utilizatorul menționează X, verificăm și variantele în numele alimentelor
+    FOOD_RESTRICTION_SYNONYMS: Dict[str, List[str]] = {
+        'pătlăgele': ['pătlăgele', 'patlagele', 'vinete', 'eggplant'],
+        'vinete': ['vinete', 'pătlăgele', 'patlagele'],
+        'roșii': ['roșii', 'rosii', 'tomate', 'tomatoes'],
+        'tomate': ['tomate', 'roșii', 'rosii'],
+        'ardei': ['ardei', 'piper', 'pepper'],
+        'ciocolată': ['ciocolată', 'ciocolata', 'chocolate', 'ciocolata'],
+        'cafea': ['cafea', 'coffee', 'espresso'],
+        'alcool': ['alcool', 'bere', 'vin', 'vinuri'],
+        'zahăr': ['zahăr', 'zahar', 'sugar', 'dulce'],
+        'dulciuri': ['dulciuri', 'dulce', 'bomboane', 'prăjituri'],
+        'sare': ['sare', 'sodium', 'sarat'],
+        'gluten': ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine'],
+        'spanac': ['spanac', 'spinach'],
+        'varză': ['varză', 'varza', 'varza', 'cabbage', 'broccoli'],
+        'fasole': ['fasole', 'beans', 'fasole'],
+        'linte': ['linte', 'lentils'],
+        'mazăre': ['mazăre', 'mazare', 'mazăre', 'peas'],
+        'castraveți': ['castraveți', 'castraveti', 'cucumber'],
+        'ceapă': ['ceapă', 'ceapa', 'onion'],
+        'usturoi': ['usturoi', 'garlic'],
+        'cartofi': ['cartofi', 'potato', 'cartof'],
+    }
+
     def _parse_food_restrictions(self, medical_conditions: str) -> Dict[str, List[str]]:
         """
         Parsează condițiile medicale și identifică interziceri pentru categorii de alimente.
+        Extrage și restricțiile din condiții medicale cunoscute.
         
         Returnează un dicționar cu:
         - 'forbidden_categories': lista de categorii interzise
         - 'forbidden_keywords': lista de cuvinte cheie interzise
+        - 'preferred_categories': categorii preferate (ex: vreau carne de porc)
         """
         if not medical_conditions:
-            return {'forbidden_categories': [], 'forbidden_keywords': []}
+            return {'forbidden_categories': [], 'forbidden_keywords': [], 'preferred_categories': []}
         
         conditions_lower = medical_conditions.lower()
         forbidden_categories = []
         forbidden_keywords = []
+        
+        # 1) Condiții medicale cunoscute → restricții alimentare
+        for cond_key, food_keywords in self.MEDICAL_CONDITION_RESTRICTIONS.items():
+            if cond_key in conditions_lower:
+                for kw in food_keywords:
+                    if kw not in forbidden_keywords:
+                        forbidden_keywords.append(kw)
         
         category_patterns = {
             'legume': [
@@ -559,6 +622,22 @@ class NutritionalRuleEngine:
                 'nu mananc carne', 'nu mănânc carne', 'fara carne', 'fără carne',
                 'no meat', 'no red meat', 'evit carne', 'interzis carne',
                 'nu pot carne', 'nu pot mânca carne'
+            ],
+            'pui': [
+                'nu mananc pui', 'nu mănânc pui', 'fara pui', 'fără pui',
+                'no chicken', 'evit pui', 'interzis pui', 'nu pot pui', 'nu pot mânca pui'
+            ],
+            'porc': [
+                'nu mananc porc', 'nu mănânc porc', 'fara porc', 'fără porc',
+                'no pork', 'evit porc', 'interzis porc', 'nu pot porc', 'nu pot mânca porc'
+            ],
+            'vita': [
+                'nu mananc vita', 'nu mănânc vită', 'nu mananc vaca', 'nu mănânc vacă',
+                'fara vita', 'fără vită', 'no beef', 'evit vita', 'interzis vita'
+            ],
+            'miel': [
+                'nu mananc miel', 'nu mănânc miel', 'fara miel', 'fără miel',
+                'no lamb', 'evit miel', 'interzis miel', 'nu pot miel'
             ],
             'peste': [
                 'nu mananc peste', 'nu mănânc pește', 'nu mananc pesti', 'nu mănânc pești',
@@ -590,26 +669,111 @@ class NutritionalRuleEngine:
             'soia': [
                 'nu mananc soia', 'nu mănânc soia', 'fara soia', 'fără soia',
                 'no soy', 'evit soia', 'interzis soia'
-            ]
+            ],
+            'roșii': [
+                'nu mananc rosii', 'nu mănânc roșii', 'fara rosii', 'fără roșii',
+                'no tomatoes', 'evit rosii', 'evit roșii', 'nu pot rosii',
+                'alergie la rosii', 'alergie la roșii', 'intoleranță la roșii'
+            ],
+            'ardei': [
+                'nu mananc ardei', 'nu mănânc ardei', 'fara ardei', 'fără ardei',
+                'no peppers', 'evit ardei', 'nu pot ardei', 'alergie la ardei'
+            ],
+            'ciocolată': [
+                'nu mananc ciocolata', 'nu mănânc ciocolată', 'fara ciocolata', 'fără ciocolată',
+                'no chocolate', 'evit ciocolata', 'nu am voie ciocolata'
+            ],
+            'cafea': [
+                'nu beau cafea', 'nu pot cafea', 'fara cafea', 'fără cafea',
+                'no coffee', 'evit cafea', 'nu am voie cafea'
+            ],
+            'alcool': [
+                'nu beau alcool', 'fara alcool', 'fără alcool', 'no alcohol',
+                'evit alcool', 'abstinent', 'nu am voie alcool'
+            ],
+            'zahăr': [
+                'nu mananc zahar', 'nu mănânc zahăr', 'fara zahar', 'fără zahăr',
+                'low sugar', 'no sugar', 'fără dulciuri', 'evit zahar', 'evit zahăr'
+            ],
+            'gluten': [
+                'fara gluten', 'fără gluten', 'no gluten', 'evit gluten',
+                'intoleranță gluten', 'celiachie', 'sensibilitate la gluten'
+            ],
         }
         
         for category, patterns in category_patterns.items():
             if any(pattern in conditions_lower for pattern in patterns):
                 forbidden_categories.append(category)
         
+        # Patternuri generale – extrag orice aliment menționat ca interzis
         general_patterns = [
+            r'nu\s+(?:mănânc|mananc|pot\s+mânca|pot\s+mananca|am\s+voie)\s+(?:să\s+)?(?:manc|mânc)\s+([a-zăâîșț\s]+?)(?:\.|,|;|$|\s+și\s+|\s+si\s+|\s+sau\s+|\s+or\s+)',
             r'nu\s+(?:mănânc|mananc|pot\s+mânca|pot\s+mananca)\s+([a-zăâîșț]+)',
-            r'fără\s+([a-zăâîșț]+)',
-            r'fara\s+([a-zăâîșț]+)',
+            r'nu\s+am\s+voie\s+(?:la\s+|să\s+mânc\s+|sa\s+mananc\s+)?([a-zăâîșț\s]+?)(?:\.|,|;|$|\s+și\s+|\s+si\s+|\s+sau\s+)',
+            r'nu\s+am\s+voie\s+([a-zăâîșț]+)',
+            r'fără\s+([a-zăâîșț\s]+?)(?:\s|\.|,|;|$)',
+            r'fara\s+([a-zăâîșț\s]+?)(?:\s|\.|,|;|$)',
             r'evit\s+([a-zăâîșț]+)',
-            r'interzis\s+([a-zăâîșț]+)'
+            r'interzis\s+([a-zăâîșț]+)',
+            r'(?:nu\s+)?suport\s+([a-zăâîșț]+)',
+            r'(?:nu\s+)?suportă\s+([a-zăâîșț]+)',
+            r'(?:mă|ma)\s+deranjează\s+([a-zăâîșț]+)',
+            r'am\s+probleme\s+(?:cu\s+|la\s+)([a-zăâîșț]+)',
+            r'intoleranță\s+(?:la\s+)?([a-zăâîșț]+)',
+            r'intoleranta\s+(?:la\s+)?([a-zăâîșț]+)',
+            r'alergie\s+(?:la\s+)?([a-zăâîșț]+)',
+            r'alergic\s+(?:la\s+)?([a-zăâîșț]+)',
+            r'nu\s+pot\s+tolera\s+([a-zăâîșț]+)',
+            r'(?:sau|or|și|si)\s+([a-zăâîșț]+)\s+(?:nu\s+)?(?:mănânc|mananc|am\s+voie)',
         ]
         
         for pattern in general_patterns:
             matches = re.findall(pattern, conditions_lower)
             for match in matches:
-                if match and len(match) > 2:
-                    forbidden_keywords.append(match)
+                # Curăță și extrage cuvinte
+                words = [w.strip() for w in match.split() if len(w.strip()) > 2 and w.strip() not in ('sau', 'și', 'si', 'sau', 'de', 'la', 'cu')]
+                for w in words:
+                    if w not in forbidden_keywords:
+                        forbidden_keywords.append(w)
+                if len(match.strip()) > 2 and len(words) == 0 and match.strip() not in forbidden_keywords:
+                    forbidden_keywords.append(match.strip())
+        
+        # Extragem și din enunțuri "X sau Y nu mănânc"
+        split_phrases = re.split(r'[.,;!?]', conditions_lower)
+        for phrase in split_phrases:
+            if 'nu mănânc' in phrase or 'nu mananc' in phrase or 'nu am voie' in phrase or 'fără' in phrase or 'fara' in phrase:
+                parts = re.split(r'\s+(?:sau|or|și|si)\s+', phrase)
+                for part in parts:
+                    m = re.search(r'(?:nu\s+(?:mănânc|mananc|am\s+voie)|fără|fara|evit)\s+(.+)', part)
+                    if m:
+                        extracted = m.group(1).strip()
+                        words = [w.strip() for w in re.split(r'[\s,]+', extracted) if len(w.strip()) > 2]
+                        for w in words:
+                            if w not in forbidden_keywords:
+                                forbidden_keywords.append(w)
+        
+        # Normalizare: scoatem articole/sufixe românești (lactatele->lactate, rosii->roșii)
+        def _stem_ro(word: str) -> str:
+            w = word.strip().lower()
+            for suf in ['le', 'ul', 'ului', 'ei', 'ilor', 'ele']:
+                if len(w) > len(suf) + 2 and w.endswith(suf):
+                    return w[:-len(suf)]
+            return w
+        
+        # Expandăm cu sinonime + stem
+        expanded_keywords: List[str] = []
+        seen: set = set()
+        for kw in forbidden_keywords:
+            for form in [kw, _stem_ro(kw)]:
+                if form and len(form) > 2 and form not in seen:
+                    expanded_keywords.append(form)
+                    seen.add(form)
+            if kw in self.FOOD_RESTRICTION_SYNONYMS:
+                for syn in self.FOOD_RESTRICTION_SYNONYMS[kw]:
+                    if syn not in seen:
+                        expanded_keywords.append(syn)
+                        seen.add(syn)
+        forbidden_keywords = expanded_keywords
         
         simple_food_keywords = {
             'ouă': ['ouă', 'oua', 'ou', 'eggs'],
@@ -623,8 +787,25 @@ class NutritionalRuleEngine:
             'nuci': ['nuci', 'nucă', 'nuts'],
             'leguminoase': ['leguminoase', 'fasole', 'linte', 'legumes', 'beans'],
             'soia': ['soia', 'soy'],
-            'gluten': ['gluten', 'grâu', 'grau', 'wheat']
+            'gluten': ['gluten', 'grâu', 'grau', 'wheat'],
+            'roșii': ['rosii', 'roșii', 'tomate', 'tomatoes'],
+            'ardei': ['ardei', 'piper'],
+            'ciocolată': ['ciocolata', 'ciocolată', 'chocolate'],
+            'cafea': ['cafea', 'coffee'],
+            'alcool': ['alcool', 'bere', 'vin'],
+            'zahăr': ['zahar', 'zahăr', 'sugar'],
         }
+        
+        positive_patterns = [
+            ('vreau', ['porc', 'pui', 'vita', 'vită', 'miel', 'peste', 'pește', 'carne']),
+            ('doresc', ['porc', 'pui', 'vita', 'vită', 'miel', 'peste', 'pește', 'carne']),
+            ('prefer', ['porc', 'pui', 'vita', 'vită', 'miel', 'peste', 'pește']),
+        ]
+        preferred_categories: List[str] = []
+        for verb, categories in positive_patterns:
+            for cat in categories:
+                if f'{verb} {cat}' in conditions_lower or f'{verb} carne de {cat}' in conditions_lower:
+                    preferred_categories.append(cat)
         
         words = re.split(r'[,\s\.;]+', conditions_lower)
         for word in words:
@@ -635,14 +816,15 @@ class NutritionalRuleEngine:
                         if category not in forbidden_categories:
                             if not any(positive in conditions_lower for positive in [
                                 'pot mânca', 'pot mananca', 'pot consuma', 'mănânc', 'mananc',
-                                'consum', 'mănâncă', 'mananca'
+                                'consum', 'mănâncă', 'mananca', 'vreau', 'doresc', 'prefer'
                             ]):
                                 forbidden_categories.append(category)
                                 break
         
         return {
             'forbidden_categories': forbidden_categories,
-            'forbidden_keywords': forbidden_keywords
+            'forbidden_keywords': forbidden_keywords,
+            'preferred_categories': list(set(preferred_categories))
         }
     
     def _is_compatible(self, food: FoodItem, user: UserProfile) -> bool:
@@ -781,8 +963,17 @@ class NutritionalRuleEngine:
             food_category_lower = food.category.lower() if food.category else ''
             
             restrictions = self._parse_food_restrictions(user.medical_conditions)
+            preferred = set(restrictions.get('preferred_categories', []) or [])
             
             for forbidden_category in restrictions['forbidden_categories']:
+                # Dacă utilizatorul a spus "vreau carne de porc" etc., permite alimentul preferat
+                if forbidden_category in preferred:
+                    continue
+                if preferred and forbidden_category == 'carne':
+                    if any(p in food_category_lower or p in food_name_lower for p in ['porc', 'pui', 'vita', 'vită', 'miel']) and \
+                       any(p in preferred for p in ['porc', 'pui', 'vita', 'vită', 'miel']):
+                        continue
+                
                 if forbidden_category in food_category_lower:
                     return False
                 
@@ -791,13 +982,24 @@ class NutritionalRuleEngine:
                     'fructe': ['fructe', 'fructa', 'fruit', 'fruits'],
                     'cereale': ['cereale', 'cereala', 'grain', 'grains', 'cereal'],
                     'carne': ['carne', 'meat', 'pui', 'porc', 'vita', 'miel'],
+                    'pui': ['pui', 'puișor', 'puisoare', 'chicken', 'curcan', 'curcană', 'găină', 'gaina'],
+                    'porc': ['porc', 'porcine', 'pork', 'bacon', 'șuncă', 'sunca', 'ceafă', 'ceafa', 'muschi', 'cârnați', 'carnati'],
+                    'vita': ['vita', 'vită', 'vaca', 'vacă', 'beef', 'carne de vita', 'carne de vită'],
+                    'miel': ['miel', 'miel de', 'lamb', 'oaie', 'mouton'],
                     'peste': ['peste', 'pește', 'pescăruș', 'fish', 'seafood'],
                     'lactate': ['lactate', 'lapte', 'dairy', 'milk'],
                     'semințe': ['semințe', 'seminte', 'seeds'],
                     'nuci': ['nuci', 'nucă', 'nuts'],
                     'leguminoase': ['leguminoase', 'fasole', 'linte', 'legumes', 'beans'],
                     'ouă': ['ouă', 'oua', 'ou', 'eggs'],
-                    'soia': ['soia', 'soy']
+                    'soia': ['soia', 'soy'],
+                    'roșii': ['roșii', 'rosii', 'tomate', 'tomatoes', 'ketchup', 'sos de roșii'],
+                    'ardei': ['ardei', 'ardei gras', 'piper', 'pepper', 'ardei iute'],
+                    'ciocolată': ['ciocolată', 'ciocolata', 'chocolate', 'cacao'],
+                    'cafea': ['cafea', 'coffee', 'espresso', 'cappuccino'],
+                    'alcool': ['alcool', 'bere', 'vin', 'vinuri', 'alcoholic'],
+                    'zahăr': ['zahăr', 'zahar', 'sugar', 'dulce', 'dulciuri', 'bomboane', 'prăjituri'],
+                    'gluten': ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine', 'paste', 'spaghete'],
                 }
                 
                 if forbidden_category in category_mappings:
