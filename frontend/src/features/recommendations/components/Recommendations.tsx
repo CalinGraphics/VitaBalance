@@ -27,6 +27,10 @@ interface Recommendation {
     alternatives?: string[]
   }
   recommendation_id: number
+  feedback?: {
+    likes: number
+    dislikes: number
+  }
 }
 
 interface RecommendationsProps {
@@ -259,6 +263,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
             key={rec.food_id}
             recommendation={rec}
             index={index}
+            userId={user.id}
           />
         ))}
       </div>

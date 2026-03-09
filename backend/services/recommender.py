@@ -1,4 +1,5 @@
 from typing import List, Dict, Optional, Tuple
+from dataclasses import replace
 from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
 from services.deficit_calculator import DeficitCalculator
@@ -22,7 +23,19 @@ class RecommenderService:
         user_feedbacks: Optional[List[FeedbackItem]] = None,
         feedback_by_food: Optional[Dict[int, List]] = None
     ) -> List[Dict]:
-        """Generează recomandări personalizate pentru utilizator"""
+        """Generează recomandări personalizate pentru utilizator.
+
+        Folosește întotdeauna toate sursele de context:
+        - profil (vârstă, greutate, dietă, alergii, condiții medicale)
+        - analize medicale (valorile + câmpul de observații/diagnostic)
+        """
+        # Integrează observațiile / diagnosticul din analize în câmpul medical_conditions,
+        # astfel încât restricțiile de tip „nu am voie pește sau legume” să fie respectate.
+        effective_user = user
+        if lab_results and lab_results.notes:
+            merged_conditions = f"{user.medical_conditions or ''} {lab_results.notes or ''}".strip()
+            if merged_conditions:
+                effective_user = replace(user, medical_conditions=merged_conditions)
         filtered_deficits = {
             k: v for k, v in deficits.items()
             if k in self.nutrients and v > 0
@@ -34,7 +47,7 @@ class RecommenderService:
             for food in foods:
                 recommendation = self.rule_engine.evaluate_food(
                     food=food,
-                    user=user,
+                    user=effective_user,
                     deficits=filtered_deficits,
                     lab_results=lab_results
                 )
@@ -60,7 +73,7 @@ class RecommenderService:
         # 2) Dacă nu există deficite sau regulile sunt prea restrictive și nu întorc nimic,
         # generează un fallback pe baza profilului utilizatorului (dietă, alergii, condiții medicale)
         if not recommendations:
-            return self._generate_fallback_recommendations(user=user, foods=foods)
+            return self._generate_fallback_recommendations(user=effective_user, foods=foods)
 
         recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
         return recommendations[:20]
@@ -111,6 +124,21 @@ class RecommenderService:
 
         fallback_recommendations: List[Tuple[float, Dict]] = []
 
+        nutrient_labels: Dict[str, str] = {
+            'iron': 'Fier',
+            'calcium': 'Calciu',
+            'magnesium': 'Magneziu',
+            'vitamin_d': 'Vitamina D',
+            'vitamin_b12': 'Vitamina B12',
+            'folate': 'Folat / acid folic',
+            'zinc': 'Zinc',
+            'vitamin_a': 'Vitamina A',
+            'vitamin_c': 'Vitamina C',
+            'iodine': 'Iod',
+            'vitamin_k': 'Vitamina K',
+            'potassium': 'Potasiu',
+        }
+
         for food in foods:
             # Respectă toate restricțiile: dacă alimentul nu e compatibil, îl sărim.
             if not self.rule_engine._is_compatible(food, user):  # type: ignore[attr-defined]
@@ -155,10 +183,15 @@ class RecommenderService:
 
             avg_coverage = total_coverage / len(covered_nutrients)
 
+            pretty_nutrients = [
+                nutrient_labels.get(n, n) for n in sorted(set(covered_nutrients))
+            ]
+            nutrients_text = ", ".join(pretty_nutrients)
+
             explanation = (
                 "Acest aliment are un profil nutritiv echilibrat și poate susține "
                 "aportul zilnic recomandat pentru mai mulți nutrienți esențiali "
-                f"({', '.join(sorted(covered_nutrients))})."
+                f"({nutrients_text})."
             )
 
             fallback_recommendations.append((

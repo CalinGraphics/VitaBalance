@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Info } from 'lucide-react'
+import { CheckCircle2, Info, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
+import { feedbackService } from '../../../services/api'
 
 /** Elimină prefixul [context: ...] sau [Context: ...] din textele de recomandare. */
 function faraPrefixContext(s: string): string {
@@ -31,15 +33,45 @@ interface RecommendationCardProps {
       alternatives?: string[]
     }
     recommendation_id: number
+    feedback?: {
+      likes: number
+      dislikes: number
+    }
   }
   index: number
+  userId: number
 }
 
 const RecommendationCard = ({
   recommendation,
-  index
+  index,
+  userId,
 }: RecommendationCardProps) => {
-  const { food, explanation, coverage } = recommendation
+  const { food, explanation, coverage, feedback } = recommendation
+  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [feedbackError, setFeedbackError] = useState<string | null>(null)
+
+  const sendFeedback = async (rating: number) => {
+    if (!userId || !recommendation.recommendation_id) return
+    setFeedbackStatus('sending')
+    setFeedbackError(null)
+    try {
+      await feedbackService.create({
+        user_id: userId,
+        recommendation_id: recommendation.recommendation_id,
+        rating,
+        tried: true,
+      })
+      setFeedbackStatus('sent')
+    } catch (err: any) {
+      const msg =
+        err?.message ||
+        err?.response?.data?.detail ||
+        'Nu s-a putut trimite feedback-ul. Încearcă din nou.'
+      setFeedbackError(msg)
+      setFeedbackStatus('error')
+    }
+  }
 
   return (
     <motion.div
@@ -128,6 +160,60 @@ const RecommendationCard = ({
             <p className="text-base sm:text-sm font-semibold text-slate-200 mb-2">Alternative similare:</p>
             <p className="text-base sm:text-sm text-slate-300 break-words">{explanation.alternatives.join(', ')}</p>
           </div>
+        )}
+
+        {/* Feedback buttons */}
+        <div className="mt-5 pt-4 border-t border-white/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 mb-1 sm:mb-0">
+            <span>Cum ți se pare această recomandare?</span>
+            {feedback && (feedback.likes > 0 || feedback.dislikes > 0) && (
+              <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs text-slate-500">
+                {feedback.likes > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <ThumbsUp className="w-3 h-3 text-emerald-400" />
+                    {feedback.likes}
+                  </span>
+                )}
+                {feedback.dislikes > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <ThumbsDown className="w-3 h-3 text-rose-400" />
+                    {feedback.dislikes}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => sendFeedback(5)}
+              disabled={feedbackStatus === 'sending' || feedbackStatus === 'sent'}
+              className="min-h-[36px] inline-flex items-center gap-1.5 rounded-full border border-emerald-400/50 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-60 disabled:cursor-default touch-manipulation"
+            >
+              <ThumbsUp className="w-4 h-4" />
+              Îmi place
+            </button>
+            <button
+              type="button"
+              onClick={() => sendFeedback(1)}
+              disabled={feedbackStatus === 'sending' || feedbackStatus === 'sent'}
+              className="min-h-[36px] inline-flex items-center gap-1.5 rounded-full border border-rose-400/50 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10 disabled:opacity-60 disabled:cursor-default touch-manipulation"
+            >
+              <ThumbsDown className="w-4 h-4" />
+              Nu prea
+            </button>
+          </div>
+        </div>
+
+        {feedbackStatus === 'sent' && (
+          <p className="mt-2 text-xs text-emerald-300">
+            Mulțumim pentru feedback, îl folosim pentru a ajusta recomandările viitoare.
+          </p>
+        )}
+        {feedbackStatus === 'error' && feedbackError && (
+          <p className="mt-2 text-xs text-rose-300">
+            {feedbackError}
+          </p>
         )}
       </GlassCard>
     </motion.div>
