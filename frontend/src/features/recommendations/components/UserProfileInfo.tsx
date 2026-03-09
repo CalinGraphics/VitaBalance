@@ -46,7 +46,7 @@ const UserProfileInfo = ({ user }: UserProfileInfoProps) => {
         <h3 className="text-lg sm:text-xl font-bold text-slate-100">Profil Utilizator</h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Date biometrice */}
         <div className="flex items-start gap-2">
           <Scale className="w-5 h-5 text-neonCyan flex-shrink-0 mt-0.5" />
