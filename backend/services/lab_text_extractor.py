@@ -78,6 +78,7 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         # unele PDF-uri pot lipi numărul de etichetă (ex: "Hemoglobină15,2")
         (r"hemoglobina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl|g\.d\.l)?", "hemoglobin"),
         (r"\bhb\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
+        (r"\bhgb\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
         (r"hemoglobin[ăa]?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "hemoglobin"),
         (r"(\d+[.,]\d+|\d+)\s*(?:g/dl)?\s*hemoglobina?", "hemoglobin"),
         (r"hemoglobina?\s*(\d+[.,]\d+|\d+)", "hemoglobin"),

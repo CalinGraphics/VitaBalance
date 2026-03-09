@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
 interface LayoutProps {
@@ -15,6 +15,18 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout, onProfileClick, showProfile, onLabResultsClick, showLabResults, onDashboardClick, showDashboard }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hasNavButtons = Boolean(
+    (showDashboard && onDashboardClick) ||
+      (showLabResults && onLabResultsClick) ||
+      (showProfile && onProfileClick) ||
+      (showLogout && onLogout)
+  );
+
+  useEffect(() => {
+    if (!hasNavButtons && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [hasNavButtons, mobileMenuOpen]);
 
   const navButtons = (
     <>
@@ -77,20 +89,22 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout, onProfi
             {navButtons}
           </div>
           {/* Mobile hamburger */}
-          <div className="flex md:hidden items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-white/10 hover:border-neonCyan/50 text-slate-300 hover:text-neonCyan transition touch-manipulation"
-              aria-label={mobileMenuOpen ? 'Închide meniul' : 'Deschide meniul'}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+          {hasNavButtons && (
+            <div className="flex md:hidden items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-white/10 hover:border-neonCyan/50 text-slate-300 hover:text-neonCyan transition touch-manipulation"
+                aria-label={mobileMenuOpen ? 'Închide meniul' : 'Deschide meniul'}
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+          )}
         </header>
 
         {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
+        {hasNavButtons && mobileMenuOpen && (
           <div className="md:hidden z-20 w-full max-w-7xl mb-4 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl p-4 flex flex-col gap-2">
             {navButtons}
           </div>
