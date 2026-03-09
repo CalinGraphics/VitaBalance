@@ -263,7 +263,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
             key={rec.food_id}
             recommendation={rec}
             index={index}
-            userId={user.id}
+            userId={user.id!}
           />
         ))}
       </div>
