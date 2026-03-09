@@ -15,16 +15,16 @@ interface MedicalProfilePageProps {
 const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) => {
   const [formData, setFormData] = useState<Partial<User>>({
     email: authUser.email,
-    name: authUser.fullName,
+    name: '',
     sex: 'F',
     activity_level: 'moderate',
     diet_type: 'omnivore',
     allergies: '',
     medical_conditions: ''
   })
-  const [ageText, setAgeText] = useState('25')
-  const [weightText, setWeightText] = useState('70')
-  const [heightText, setHeightText] = useState('170')
+  const [ageText, setAgeText] = useState('')
+  const [weightText, setWeightText] = useState('')
+  const [heightText, setHeightText] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -112,7 +112,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
                 label="Nume complet"
                 value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nume Prenume"
+                placeholder="Introduceți numele complet"
               />
 
               <InputField
@@ -120,7 +120,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
                 type="email"
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="exemplu@email.com"
+                placeholder="Adresă de email"
               />
 
               <div>
@@ -131,7 +131,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
                   pattern="[0-9]*"
                   value={ageText}
                   onChange={(e) => setAgeText(sanitizeIntInput(e.target.value))}
-                  placeholder="25"
+                  placeholder="Introduceți vârsta"
                 />
               </div>
 
@@ -153,7 +153,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={weightText}
                 onChange={(e) => setWeightText(sanitizeDecimalInput(e.target.value))}
-                placeholder="70"
+                placeholder="Introduceți greutatea (kg)"
               />
 
               <InputField
@@ -163,7 +163,7 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={heightText}
                 onChange={(e) => setHeightText(sanitizeDecimalInput(e.target.value))}
-                placeholder="170"
+                placeholder="Introduceți înălțimea (cm)"
               />
 
               <SelectField
