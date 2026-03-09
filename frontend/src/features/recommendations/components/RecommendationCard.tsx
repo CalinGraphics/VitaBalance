@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Info, ThumbsUp, ThumbsDown, X } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
-import { feedbackService, recommendationsService } from '../../../services/api'
+import { feedbackService } from '../../../services/api'
 
 /** Elimină prefixul [context: ...] sau [Context: ...] din textele de recomandare. */
 function faraPrefixContext(s: string): string {
