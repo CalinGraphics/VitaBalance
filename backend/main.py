@@ -490,10 +490,9 @@ async def get_recommendations(
 
     foods = food_repo.get_all()
     if not foods:
-        raise HTTPException(
-            status_code=404,
-            detail="Nu există alimente în baza de date. Vă rugăm să contactați administratorul.",
-        )
+        # Dacă nu există alimente în baza de date, întoarcem o listă goală.
+        # Frontend-ul va afișa un mesaj prietenos, în loc de eroare 404.
+        return []
 
     lab_results = lab_repo.get_latest_by_user_id(request.user_id)
     user_feedbacks = feedback_repo.get_by_user_id(request.user_id)
@@ -638,10 +637,8 @@ async def get_recommendations(
             feedback_by_food=feedback_by_food,
         )
         if not rec_list:
-            raise HTTPException(
-                status_code=404,
-                detail="Nu s-au găsit alimente compatibile cu criteriile dumneavoastră.",
-            )
+            # Nu s-au găsit alimente compatibile – întoarcem listă goală, nu 404.
+            return []
         explanation_gen = ExplanationGenerator()
         to_insert = []
         for rec in rec_list[:10]:

@@ -83,9 +83,8 @@ api.interceptors.response.use(
     ) {
       clearToken()
     }
-    if (status === 404) {
-      return Promise.reject(error)
-    }
+    // Pentru toate status-urile (inclusiv 404) formatează un mesaj clar,
+    // dar păstrează codul de status în error.response.status.
     error.message = extractErrorMessage(error)
     return Promise.reject(error)
   }
