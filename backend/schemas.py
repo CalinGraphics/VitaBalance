@@ -62,6 +62,8 @@ class LabResultResponse(LabResultBase):
 # Recommendation Schemas
 class RecommendationRequest(BaseModel):
     user_id: int
+    exclude_food_ids: Optional[List[int]] = None
+    replace_recommendation_id: Optional[int] = None
 
 class FoodInfo(BaseModel):
     id: int
