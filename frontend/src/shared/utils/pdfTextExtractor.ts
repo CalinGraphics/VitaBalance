@@ -23,7 +23,12 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
     textParts.push(pageText)
   }
 
-  // Unifică paginile; normalizăm spațiile multiple și newline-urile ca spațiu pentru parsing mai bun
+  // Unifică paginile. Păstrăm newline-urile între pagini pentru parsing mai bun (tabele/rapoarte),
+  // dar normalizăm spațiile ca să evităm token-uri rupte.
   const full = textParts.join('\n')
-  return full.replace(/\s+/g, ' ').trim()
+  return full
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }

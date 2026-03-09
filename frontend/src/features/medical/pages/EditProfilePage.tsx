@@ -4,6 +4,7 @@ import { UserCog, Save, FlaskConical, ArrowLeft } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
+import { parseOptionalDecimal, parseOptionalInt, sanitizeDecimalInput, sanitizeIntInput } from '../../../shared/utils/numberParsing'
 import type { User } from '../../../shared/types'
 
 interface EditProfilePageProps {
@@ -17,15 +18,15 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
   const [formData, setFormData] = useState<Partial<User>>({
     email: user.email,
     name: user.name,
-    age: user.age,
     sex: user.sex,
-    weight: user.weight,
-    height: user.height,
     activity_level: user.activity_level,
     diet_type: user.diet_type,
     allergies: user.allergies || '',
     medical_conditions: user.medical_conditions || ''
   })
+  const [ageText, setAgeText] = useState(user.age != null ? String(user.age) : '')
+  const [weightText, setWeightText] = useState(user.weight != null ? String(user.weight) : '')
+  const [heightText, setHeightText] = useState(user.height != null ? String(user.height) : '')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,15 +47,15 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
         setFormData({
           email: response.email,
           name: response.name,
-          age: response.age,
           sex: response.sex,
-          weight: response.weight,
-          height: response.height,
           activity_level: response.activity_level,
           diet_type: response.diet_type,
           allergies: response.allergies || '',
           medical_conditions: response.medical_conditions || ''
         })
+        setAgeText(response.age != null ? String(response.age) : '')
+        setWeightText(response.weight != null ? String(response.weight) : '')
+        setHeightText(response.height != null ? String(response.height) : '')
       }
     } catch (error) {
       console.error('Eroare la încărcarea datelor:', error)
@@ -69,8 +70,31 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
     setSuccess(false)
 
     try {
+      const age = parseOptionalInt(ageText)
+      const weight = parseOptionalDecimal(weightText)
+      const height = parseOptionalDecimal(heightText)
+
+      if (age === undefined) {
+        setError('Vârsta este obligatorie.')
+        return
+      }
+      if (weight === undefined) {
+        setError('Greutatea este obligatorie.')
+        return
+      }
+      if (height === undefined) {
+        setError('Înălțimea este obligatorie.')
+        return
+      }
+
       // Backend uses email to identify and update user
-      const response = await profileService.update(user.id || 0, formData)
+      const payload: Partial<User> = {
+        ...formData,
+        age,
+        weight,
+        height,
+      }
+      const response = await profileService.update(user.id || 0, payload)
       setSuccess(true)
       
       // Actualizează utilizatorul cu datele noi
@@ -174,9 +198,11 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
               <div>
                 <InputField
                   label="Vârstă"
-                  type="number"
-                  value={formData.age?.toString() || ''}
-                  onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || 25 })}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={ageText}
+                  onChange={(e) => setAgeText(sanitizeIntInput(e.target.value))}
                   placeholder="25"
                 />
               </div>
@@ -194,19 +220,21 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
 
               <InputField
                 label="Greutate (kg)"
-                type="number"
-                step="0.1"
-                value={formData.weight?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 70 })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={weightText}
+                onChange={(e) => setWeightText(sanitizeDecimalInput(e.target.value))}
                 placeholder="70"
               />
 
               <InputField
                 label="Înălțime (cm)"
-                type="number"
-                step="0.1"
-                value={formData.height?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, height: parseFloat(e.target.value) || 170 })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={heightText}
+                onChange={(e) => setHeightText(sanitizeDecimalInput(e.target.value))}
                 placeholder="170"
               />
 

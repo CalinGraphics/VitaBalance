@@ -4,6 +4,7 @@ import { UserPlus, ArrowRight } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
 import { profileService } from '../../../services/api'
+import { parseOptionalDecimal, parseOptionalInt, sanitizeDecimalInput, sanitizeIntInput } from '../../../shared/utils/numberParsing'
 import type { User, AuthUser } from '../../../shared/types'
 
 interface MedicalProfilePageProps {
@@ -15,15 +16,15 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
   const [formData, setFormData] = useState<Partial<User>>({
     email: authUser.email,
     name: authUser.fullName,
-    age: 25,
     sex: 'F',
-    weight: 70,
-    height: 170,
     activity_level: 'moderate',
     diet_type: 'omnivore',
     allergies: '',
     medical_conditions: ''
   })
+  const [ageText, setAgeText] = useState('25')
+  const [weightText, setWeightText] = useState('70')
+  const [heightText, setHeightText] = useState('170')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +35,31 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
     setError(null)
 
     try {
-      const response = await profileService.create(formData)
+      const age = parseOptionalInt(ageText)
+      const weight = parseOptionalDecimal(weightText)
+      const height = parseOptionalDecimal(heightText)
+
+      if (age === undefined) {
+        setError('Vârsta este obligatorie.')
+        return
+      }
+      if (weight === undefined) {
+        setError('Greutatea este obligatorie.')
+        return
+      }
+      if (height === undefined) {
+        setError('Înălțimea este obligatorie.')
+        return
+      }
+
+      const payload: Partial<User> = {
+        ...formData,
+        age,
+        weight,
+        height,
+      }
+
+      const response = await profileService.create(payload)
       onComplete(response)
     } catch (err: any) {
       console.error('Eroare la salvarea profilului:', err)
@@ -101,9 +126,11 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
               <div>
                 <InputField
                   label="Vârstă"
-                  type="number"
-                  value={formData.age?.toString() || ''}
-                  onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || 25 })}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={ageText}
+                  onChange={(e) => setAgeText(sanitizeIntInput(e.target.value))}
                   placeholder="25"
                 />
               </div>
@@ -121,17 +148,21 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
 
               <InputField
                 label="Greutate (kg)"
-                type="number"
-                value={formData.weight?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 70 })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={weightText}
+                onChange={(e) => setWeightText(sanitizeDecimalInput(e.target.value))}
                 placeholder="70"
               />
 
               <InputField
                 label="Înălțime (cm)"
-                type="number"
-                value={formData.height?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, height: parseFloat(e.target.value) || 170 })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={heightText}
+                onChange={(e) => setHeightText(sanitizeDecimalInput(e.target.value))}
                 placeholder="170"
               />
 

@@ -4,6 +4,7 @@ import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft } fro
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
 import { labResultsService } from '../../../services/api'
 import { extractTextFromPdfFile } from '../../../shared/utils/pdfTextExtractor'
+import { parseOptionalDecimal, sanitizeDecimalInput } from '../../../shared/utils/numberParsing'
 import type { User } from '../../../shared/types'
 
 interface MedicalLabResultsPageProps {
@@ -30,24 +31,98 @@ interface LabResult {
   notes?: string
 }
 
+type LabKey =
+  | 'hemoglobin'
+  | 'ferritin'
+  | 'vitamin_d'
+  | 'vitamin_b12'
+  | 'calcium'
+  | 'magnesium'
+  | 'zinc'
+  | 'protein'
+  | 'folate'
+  | 'vitamin_a'
+  | 'iodine'
+  | 'vitamin_k'
+  | 'potassium'
+
+const LAB_KEYS: LabKey[] = [
+  'hemoglobin',
+  'ferritin',
+  'vitamin_d',
+  'vitamin_b12',
+  'calcium',
+  'magnesium',
+  'zinc',
+  'protein',
+  'folate',
+  'vitamin_a',
+  'iodine',
+  'vitamin_k',
+  'potassium',
+]
+
+function extractLabValuesFromTextLocal(text: string): Partial<Record<LabKey, number>> {
+  const t = (text || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const tryParse = (raw: string | undefined): number | undefined => {
+    if (!raw) return undefined
+    const n = Number(raw.replace(',', '.'))
+    return Number.isFinite(n) ? n : undefined
+  }
+
+  const pickFirst = (patterns: RegExp[]): number | undefined => {
+    for (const p of patterns) {
+      const m = t.match(p)
+      if (m?.[1]) {
+        const v = tryParse(m[1])
+        if (v !== undefined) return v
+      }
+    }
+    return undefined
+  }
+
+  return {
+    hemoglobin: pickFirst([
+      /\b(?:hemoglobina|hemoglobină|hemoglobin)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i,
+      /\b(?:hgb)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i,
+      /\b(?:hb)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i,
+    ]),
+    ferritin: pickFirst([/\b(?:feritina|feritină|ferritin)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_d: pickFirst([/\b(?:25\s*-?\s*oh\s*-?\s*d|vit(?:\.)?\s*d|vitamina\s*d)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_b12: pickFirst([/\b(?:vit(?:\.)?\s*b\s*12|b\s*12|cobalamina)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    calcium: pickFirst([/\b(?:calciu|calcium)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    magnesium: pickFirst([/\b(?:magneziu|magnesium)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    zinc: pickFirst([/\b(?:zinc|zn)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    protein: pickFirst([/\b(?:proteine|protein(?:a)?)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    folate: pickFirst([/\b(?:folat|acid\s*folic|vit(?:\.)?\s*b9)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_a: pickFirst([/\b(?:vit(?:\.)?\s*a|vitamina\s*a|retinol)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    iodine: pickFirst([/\b(?:iod|iodine)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_k: pickFirst([/\b(?:vit(?:\.)?\s*k|vitamina\s*k)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    potassium: pickFirst([/\b(?:potasiu|potassium)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+  }
+}
+
 const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalLabResultsPageProps) => {
-  const [formData, setFormData] = useState<LabResult>({
-    user_id: user.id || 0,
-    hemoglobin: undefined,
-    ferritin: undefined,
-    vitamin_d: undefined,
-    vitamin_b12: undefined,
-    calcium: undefined,
-    magnesium: undefined,
-    zinc: undefined,
-    protein: undefined,
-    folate: undefined,
-    vitamin_a: undefined,
-    iodine: undefined,
-    vitamin_k: undefined,
-    potassium: undefined,
-    notes: ''
-  })
+  const [inputs, setInputs] = useState<Record<LabKey, string> & { notes: string }>(() => ({
+    hemoglobin: '',
+    ferritin: '',
+    vitamin_d: '',
+    vitamin_b12: '',
+    calcium: '',
+    magnesium: '',
+    zinc: '',
+    protein: '',
+    folate: '',
+    vitamin_a: '',
+    iodine: '',
+    vitamin_k: '',
+    potassium: '',
+    notes: '',
+  }))
 
   const [loading, setLoading] = useState(false)
   const [loadingExisting, setLoadingExisting] = useState(true)
@@ -61,23 +136,22 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         .then((items: LabResult[]) => {
           if (Array.isArray(items) && items.length > 0) {
             const latest = items[0]
-            setFormData(prev => ({
+            setInputs(prev => ({
               ...prev,
-              user_id: user.id || 0,
-              hemoglobin: latest.hemoglobin ?? prev.hemoglobin,
-              ferritin: latest.ferritin ?? prev.ferritin,
-              vitamin_d: latest.vitamin_d ?? prev.vitamin_d,
-              vitamin_b12: latest.vitamin_b12 ?? prev.vitamin_b12,
-              calcium: latest.calcium ?? prev.calcium,
-              magnesium: latest.magnesium ?? prev.magnesium,
-              zinc: latest.zinc ?? prev.zinc,
-              protein: latest.protein ?? prev.protein,
-              folate: latest.folate ?? prev.folate,
-              vitamin_a: latest.vitamin_a ?? prev.vitamin_a,
-              iodine: latest.iodine ?? prev.iodine,
-              vitamin_k: latest.vitamin_k ?? prev.vitamin_k,
-              potassium: latest.potassium ?? prev.potassium,
-              notes: latest.notes ?? prev.notes
+              hemoglobin: latest.hemoglobin != null ? String(latest.hemoglobin) : prev.hemoglobin,
+              ferritin: latest.ferritin != null ? String(latest.ferritin) : prev.ferritin,
+              vitamin_d: latest.vitamin_d != null ? String(latest.vitamin_d) : prev.vitamin_d,
+              vitamin_b12: latest.vitamin_b12 != null ? String(latest.vitamin_b12) : prev.vitamin_b12,
+              calcium: latest.calcium != null ? String(latest.calcium) : prev.calcium,
+              magnesium: latest.magnesium != null ? String(latest.magnesium) : prev.magnesium,
+              zinc: latest.zinc != null ? String(latest.zinc) : prev.zinc,
+              protein: latest.protein != null ? String(latest.protein) : prev.protein,
+              folate: latest.folate != null ? String(latest.folate) : prev.folate,
+              vitamin_a: latest.vitamin_a != null ? String(latest.vitamin_a) : prev.vitamin_a,
+              iodine: latest.iodine != null ? String(latest.iodine) : prev.iodine,
+              vitamin_k: latest.vitamin_k != null ? String(latest.vitamin_k) : prev.vitamin_k,
+              potassium: latest.potassium != null ? String(latest.potassium) : prev.potassium,
+              notes: latest.notes ?? prev.notes,
             }))
           }
         })
@@ -94,12 +168,23 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
     setError(null)
 
     try {
-      const hasAnyValue = Object.entries(formData).some(
-        ([key, value]) => key !== 'user_id' && key !== 'notes' && value !== undefined && value !== null && value !== ''
-      )
+      const payload: LabResult = {
+        user_id: user.id || 0,
+        notes: inputs.notes?.trim() || '',
+      }
+      for (const k of LAB_KEYS) {
+        const v = parseOptionalDecimal(inputs[k])
+        if (v !== undefined) {
+          ;(payload as any)[k] = v
+        }
+      }
+
+      const hasAnyValue =
+        LAB_KEYS.some((k) => parseOptionalDecimal(inputs[k]) !== undefined) ||
+        (inputs.notes?.trim()?.length ?? 0) > 0
 
       if (hasAnyValue) {
-        await labResultsService.create(formData)
+        await labResultsService.create(payload)
       }
       onComplete()
     } catch (err: any) {
@@ -148,7 +233,19 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         setExtractPdfMessage('Nu s-a putut extrage text din PDF. Poate fișierul este scanat sau protejat.')
         return
       }
+      const localExtracted = extractLabValuesFromTextLocal(text)
       const extracted = await labResultsService.extractFromText(text)
+      const merged: Partial<Record<LabKey, number>> = {}
+      for (const k of LAB_KEYS) {
+        const backendVal = (extracted as any)?.[k]
+        const localVal = (localExtracted as any)?.[k]
+        merged[k] =
+          backendVal !== null && backendVal !== undefined && backendVal !== ''
+            ? backendVal
+            : localVal !== null && localVal !== undefined && localVal !== ''
+              ? localVal
+              : undefined
+      }
       const knownKeyLabels: Record<string, string> = {
         hemoglobin: 'Hemoglobină',
         ferritin: 'Feritină',
@@ -165,25 +262,25 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         potassium: 'Potasiu',
       }
       const extractedKnownKeys = Object.keys(knownKeyLabels).filter((k) => {
-        const v = (extracted as any)?.[k]
+        const v = (merged as any)?.[k]
         return v != null && v !== undefined && v !== ''
       })
       const count = extractedKnownKeys.length
-      setFormData(prev => ({
+      setInputs(prev => ({
         ...prev,
-        hemoglobin: extracted.hemoglobin ?? prev.hemoglobin,
-        ferritin: extracted.ferritin ?? prev.ferritin,
-        vitamin_d: extracted.vitamin_d ?? prev.vitamin_d,
-        vitamin_b12: extracted.vitamin_b12 ?? prev.vitamin_b12,
-        calcium: extracted.calcium ?? prev.calcium,
-        magnesium: extracted.magnesium ?? prev.magnesium,
-        zinc: extracted.zinc ?? prev.zinc,
-        protein: extracted.protein ?? prev.protein,
-        folate: extracted.folate ?? prev.folate,
-        vitamin_a: extracted.vitamin_a ?? prev.vitamin_a,
-        iodine: extracted.iodine ?? prev.iodine,
-        vitamin_k: extracted.vitamin_k ?? prev.vitamin_k,
-        potassium: extracted.potassium ?? prev.potassium
+        hemoglobin: merged.hemoglobin != null ? String(merged.hemoglobin) : prev.hemoglobin,
+        ferritin: merged.ferritin != null ? String(merged.ferritin) : prev.ferritin,
+        vitamin_d: merged.vitamin_d != null ? String(merged.vitamin_d) : prev.vitamin_d,
+        vitamin_b12: merged.vitamin_b12 != null ? String(merged.vitamin_b12) : prev.vitamin_b12,
+        calcium: merged.calcium != null ? String(merged.calcium) : prev.calcium,
+        magnesium: merged.magnesium != null ? String(merged.magnesium) : prev.magnesium,
+        zinc: merged.zinc != null ? String(merged.zinc) : prev.zinc,
+        protein: merged.protein != null ? String(merged.protein) : prev.protein,
+        folate: merged.folate != null ? String(merged.folate) : prev.folate,
+        vitamin_a: merged.vitamin_a != null ? String(merged.vitamin_a) : prev.vitamin_a,
+        iodine: merged.iodine != null ? String(merged.iodine) : prev.iodine,
+        vitamin_k: merged.vitamin_k != null ? String(merged.vitamin_k) : prev.vitamin_k,
+        potassium: merged.potassium != null ? String(merged.potassium) : prev.potassium,
       }))
       setExtractPdfMessage(count > 0
         ? `S-au extras ${count} valori: ${extractedKnownKeys.map((k) => knownKeyLabels[k] || k).join(', ')}. Verifică și completează manual dacă e cazul.`
@@ -279,105 +376,129 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputField
                 label="Hemoglobină (g/dL)"
-                type="number"
-                value={formData.hemoglobin?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, hemoglobin: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.hemoglobin}
+                onChange={(e) => setInputs({ ...inputs, hemoglobin: sanitizeDecimalInput(e.target.value) })}
                 placeholder="12-16 g/dL"
               />
 
               <InputField
                 label="Feritină (ng/mL)"
-                type="number"
-                value={formData.ferritin?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, ferritin: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.ferritin}
+                onChange={(e) => setInputs({ ...inputs, ferritin: sanitizeDecimalInput(e.target.value) })}
                 placeholder="15-150 ng/mL"
               />
 
               <InputField
                 label="Vitamina D (ng/mL)"
-                type="number"
-                value={formData.vitamin_d?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, vitamin_d: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.vitamin_d}
+                onChange={(e) => setInputs({ ...inputs, vitamin_d: sanitizeDecimalInput(e.target.value) })}
                 placeholder="30-100 ng/mL"
               />
 
               <InputField
                 label="Vitamina B12 (pg/mL)"
-                type="number"
-                value={formData.vitamin_b12?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, vitamin_b12: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.vitamin_b12}
+                onChange={(e) => setInputs({ ...inputs, vitamin_b12: sanitizeDecimalInput(e.target.value) })}
                 placeholder="200-900 pg/mL"
               />
 
               <InputField
                 label="Calciu (mg/dL)"
-                type="number"
-                value={formData.calcium?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, calcium: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.calcium}
+                onChange={(e) => setInputs({ ...inputs, calcium: sanitizeDecimalInput(e.target.value) })}
                 placeholder="8.5-10.5 mg/dL"
               />
 
               <InputField
                 label="Magneziu (mg/dL)"
-                type="number"
-                value={formData.magnesium?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, magnesium: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.magnesium}
+                onChange={(e) => setInputs({ ...inputs, magnesium: sanitizeDecimalInput(e.target.value) })}
                 placeholder="1.7-2.2 mg/dL"
               />
 
               <InputField
                 label="Zinc (mcg/dL)"
-                type="number"
-                value={formData.zinc?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, zinc: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.zinc}
+                onChange={(e) => setInputs({ ...inputs, zinc: sanitizeDecimalInput(e.target.value) })}
                 placeholder="70-100 mcg/dL"
               />
 
               <InputField
                 label="Proteine (g/dL)"
-                type="number"
-                value={formData.protein?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, protein: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.protein}
+                onChange={(e) => setInputs({ ...inputs, protein: sanitizeDecimalInput(e.target.value) })}
                 placeholder="6.0-8.0 g/dL"
               />
 
               <InputField
                 label="Folat / Acid folic (ng/mL)"
-                type="number"
-                value={formData.folate?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, folate: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.folate}
+                onChange={(e) => setInputs({ ...inputs, folate: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 3 ng/mL"
               />
 
               <InputField
                 label="Vitamina A (μg/dL)"
-                type="number"
-                value={formData.vitamin_a?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, vitamin_a: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.vitamin_a}
+                onChange={(e) => setInputs({ ...inputs, vitamin_a: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 20 μg/dL"
               />
 
               <InputField
                 label="Iod (μg/L)"
-                type="number"
-                value={formData.iodine?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, iodine: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.iodine}
+                onChange={(e) => setInputs({ ...inputs, iodine: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 100 μg/L"
               />
 
               <InputField
                 label="Potasiu (mmol/L)"
-                type="number"
-                value={formData.potassium?.toString() || ''}
-                onChange={(e) => setFormData({ ...formData, potassium: e.target.value ? parseFloat(e.target.value) : undefined })}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.potassium}
+                onChange={(e) => setInputs({ ...inputs, potassium: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 3.5 mmol/L"
               />
             </div>
 
             <InputField
               label="Observații sau diagnostic medical"
-              value={formData.notes || ''}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              value={inputs.notes || ''}
+              onChange={(e) => setInputs({ ...inputs, notes: e.target.value })}
               placeholder="Adaugă orice observații sau informații suplimentare..."
               textarea={true}
               rows={4}

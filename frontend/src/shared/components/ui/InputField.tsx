@@ -10,6 +10,8 @@ interface InputFieldProps {
   textarea?: boolean;
   rows?: number;
   step?: string;
+  inputMode?: React.InputHTMLAttributes<HTMLInputElement>['inputMode'];
+  pattern?: string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -22,6 +24,8 @@ const InputField: React.FC<InputFieldProps> = ({
   textarea = false,
   rows = 3,
   step,
+  inputMode,
+  pattern,
 }) => {
   // Base classes - NO BORDER classes in className, only in style; min-h for touch targets on mobile
   const baseClasses = 'w-full min-h-[44px] rounded-xl px-3 py-3 sm:py-2.5 text-base sm:text-sm text-slate-100 placeholder:text-slate-500 transition-all bg-slate-950/40';
@@ -87,6 +91,8 @@ const InputField: React.FC<InputFieldProps> = ({
           onChange={onChange}
           placeholder={placeholder}
           step={step}
+          inputMode={inputMode}
+          pattern={pattern}
           className={`${baseClasses} ${borderClass}`}
           style={inputStyle}
           onFocus={(e) => {

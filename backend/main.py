@@ -2,7 +2,7 @@
 VitaBalance API – production-ready.
 Data: Supabase only. Auth: JWT middleware (to be added). No SQLite.
 """
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
@@ -171,12 +171,35 @@ class VerifyMagicLinkResponse(BaseModel):
 
 
 @app.post("/api/auth/request-magic-link", response_model=MagicLinkResponse)
-async def api_request_magic_link(body: MagicLinkRequest):
+async def api_request_magic_link(body: MagicLinkRequest, background_tasks: BackgroundTasks):
     """Trimite link magic pe email. Opțional fullName pentru înregistrare."""
     if not body.email or not str(body.email).strip():
         raise HTTPException(status_code=400, detail="Email obligatoriu")
     try:
-        ok = request_magic_link(str(body.email).strip(), full_name=body.fullName)
+        email = str(body.email).strip().lower()
+        # Generăm tokenul imediat (rapid), iar trimiterea efectivă a emailului o facem în background
+        # ca să nu blocăm UX-ul pentru apelul extern către providerul de email.
+        from repositories.magic_link_repository import create_token
+        from services.email_service import send_magic_link_email
+
+        token = create_token(email, full_name=body.fullName)
+        base = settings.frontend_base_url.rstrip("/")
+        link_url = f"{base}/?token={token}"
+
+        if not settings.resend_api_key and not settings.debug:
+            raise RuntimeError(
+                "Configurația de email lipsește pe server: RESEND_API_KEY nu este setată. "
+                "Adaugă RESEND_API_KEY în environment-ul serviciului backend și redeployează aplicația."
+            )
+
+        def _safe_send():
+            try:
+                send_magic_link_email(email, link_url)
+            except Exception as e:
+                print("[VitaBalance] Eroare la trimitere magic link (background):", e)
+
+        background_tasks.add_task(_safe_send)
+        ok = True
     except RuntimeError as e:
         # Propagăm mesajul exact (de ex. lipsă RESEND_API_KEY sau eroare Resend)
         raise HTTPException(status_code=500, detail=str(e))
