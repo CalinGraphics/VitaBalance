@@ -229,11 +229,20 @@ Aceste metrici evalueaz\u{a} ordinea recomandărilor \c{s}i calitatea listei Top
 \subsection*{Metrici de evaluare global\u{a}}
 
 \paragraph{Coverage.}
-\textbf{Defini\c{t}ie:} Propor\c{t}ia de itemi din catalog care sunt recomanda\c{t}i cel pu\c{t}in o dat\u{a}.
+\textbf{Defini\c{t}ie (la nivel de catalog):} Propor\c{t}ia de itemi din catalog care sunt recomanda\c{t}i cel pu\c{t}in o dat\u{a}.
 \begin{equation}
   \text{Coverage} = \frac{\text{itemi recomanda\c{t}i (distinc\c{t}i)}}{\text{itemi total \^{i}n catalog}}
 \end{equation}
 \textbf{Interpretare:} Sistemul recomand\u{a} divers sau doar aceia\c{s}i itemi populari? Valoare mic\u{a} $\rightarrow$ sistem biased spre popularitate. Pentru \textit{VitaBalance}, un coverage ridicat indic\u{a} c\u{a} aplica\c{t}ia utilizeaz\u{a} o gam\u{a} variat\u{a} de alimente din catalog, nu doar c\^{a}teva op\c{t}iuni frecvente.
+
+\medskip
+
+\noindent\textbf{Coverage-ul nutri\c{t}ional afi\c{s}at \^{i}n interfa\c{t}\u{a}.}
+\^{I}n cardurile de recomand\u{a}ri ale aplica\c{t}iei, pentru fiecare aliment este afi\c{s}at un procent de acoperire care indic\u{a} c\u{a}t din deficitul nutri\c{t}ional estimat poate fi ``acoperit'' de o por\c{t}ie standard (150~g) din acel aliment. Backend-ul calculeaz\u{a} acest indicator pentru to\c{t}i nutrien\c{t}ii deficitari pe care alimentul \^{i}i poate acoperi, folosind o formul\u{a} de tip:
+\begin{equation}
+  \text{coverage\_pct}(n) = \frac{\text{aport\_por\c{t}ie}(n)}{\text{aport\_por\c{t}ie}(n) + \max(\text{deficit}(n), 0{,}25 \cdot \text{RDI}(n))} \times 100,
+\end{equation}
+unde $\text{aport\_por\c{t}ie}(n)$ este cantitatea de nutrient $n$ din 150~g de aliment, \text{deficit}(n) este deficitul estimat pentru utilizator, iar \text{RDI}(n) este doza recomandat\u{a} zilnic\u{a}. Pentru a evita situa\c{t}iile \^{i}n care deficitele foarte mici ar duce la valori de 100\% aproape permanente, denominatorul este plafonat la cel pu\c{t}in 25\% din RDI. Procentul afi\c{s}at pe card reprezint\u{a} media ponderat\u{a} (dup\u{a} m\u{a}rimea deficitului) a acestor valori pentru to\c{t}i nutrien\c{t}ii acoperi\c{t}i de aliment.
 
 \subsection*{Definirea itemilor relevan\c{t}i \^{i}n \textit{VitaBalance}}
 

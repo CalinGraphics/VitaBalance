@@ -305,7 +305,7 @@ const RecommendationCard = ({
                   type="button"
                   onClick={() => handleDislikeConfirm(true)}
                   disabled={replaceLoading}
-                  className="flex-1 min-h-[44px] rounded-xl bg-gradient-to-r from-neonCyan to-neonPurple text-slate-950 font-semibold hover:opacity-90 disabled:opacity-60 transition"
+                  className="flex-1 min-h-[44px] rounded-full border border-neonCyan/40 bg-gradient-to-r from-neonCyan/25 via-slate-900/60 to-neonPurple/30 text-neonCyan font-semibold shadow-[0_0_18px_rgba(0,245,255,0.5)] hover:shadow-[0_0_28px_rgba(0,245,255,0.8)] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                 >
                   {replaceLoading ? 'Se înlocuiește...' : 'Da'}
                 </button>
