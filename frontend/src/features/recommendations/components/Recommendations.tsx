@@ -48,6 +48,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [visibleCount, setVisibleCount] = useState(10)
   const [prevUserValues, setPrevUserValues] = useState({
     diet_type: user.diet_type,
     activity_level: user.activity_level,
@@ -80,6 +81,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       
       if (Array.isArray(data) && data.length > 0) {
         setRecommendations(data)
+        setVisibleCount(Math.min(10, data.length))
         setError(null)
       } else {
         if (import.meta.env.DEV) {
@@ -149,6 +151,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   useEffect(() => {
     if (refreshKey && refreshKey > 0) {
       fetchRecommendations(true)
+      setVisibleCount(10)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey])
@@ -259,7 +262,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
       {/* Cardurile individuale de recomandări */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
-        {recommendations.map((rec, index) => (
+        {recommendations.slice(0, visibleCount).map((rec, index) => (
           <RecommendationCard
             key={`${rec.recommendation_id}-${rec.food_id}`}
             recommendation={rec}
@@ -289,6 +292,19 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
           />
         ))}
       </div>
+
+      {recommendations.length > visibleCount && (
+        <div className="flex justify-center">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setVisibleCount((prev) => Math.min(prev + 5, recommendations.length))}
+            className="mt-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-6 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)] touch-manipulation"
+          >
+            Vezi mai multe
+          </motion.button>
+        </div>
+      )}
 
       {loading && (
         <GlassCard className="text-center py-12">

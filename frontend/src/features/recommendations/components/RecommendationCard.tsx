@@ -211,7 +211,7 @@ const RecommendationCard = ({
           )}
 
           {/* Feedback buttons */}
-          <div className="mt-5 pt-4 border-t border-white/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 mt-auto pt-4 border-t border-white/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 mb-1 sm:mb-0">
               <span>Cum ți se pare această recomandare?</span>
               {(counts.likes > 0 || counts.dislikes > 0) && (
