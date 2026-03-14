@@ -130,9 +130,9 @@ const RecommendationCard = ({
         transition={{ delay: index * 0.04, duration: 0.22, ease: 'easeOut' }}
         className="h-full"
       >
-        <GlassCard className="h-full flex flex-col md:max-w-none hover:shadow-neon transition-all duration-300">
+        <GlassCard className="h-full min-h-[520px] flex flex-col hover:shadow-neon transition-all duration-300">
           {/* Conținut principal */}
-          <div>
+          <div className="flex-1">
             {/* Header */}
             <div className="flex items-start justify-between mb-4 min-w-0">
               <div className="flex-1 min-w-0">
@@ -214,27 +214,11 @@ const RecommendationCard = ({
           </div>
 
           {/* Zona de feedback fixată la baza cardului */}
-          <div className="mt-auto pt-4 border-t border-white/10">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 mb-1 sm:mb-0">
-                <span>Cum ți se pare această recomandare?</span>
-                {(counts.likes > 0 || counts.dislikes > 0) && (
-                  <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs text-slate-500">
-                    {counts.likes > 0 && (
-                      <span className="inline-flex items-center gap-1">
-                        <ThumbsUp className="w-3 h-3 text-emerald-400" />
-                        {counts.likes}
-                      </span>
-                    )}
-                    {counts.dislikes > 0 && (
-                      <span className="inline-flex items-center gap-1">
-                        <ThumbsDown className="w-3 h-3 text-rose-400" />
-                        {counts.dislikes}
-                      </span>
-                    )}
-                  </span>
-                )}
-              </div>
+          <div className="mt-auto pt-4">
+            <div className="flex flex-row items-center justify-between">
+              <p className="text-xs sm:text-sm text-slate-300">
+                Cum ți se pare această recomandare?
+              </p>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -311,7 +295,7 @@ const RecommendationCard = ({
                   type="button"
                   onClick={() => handleDislikeConfirm(true)}
                   disabled={replaceLoading}
-                  className="flex-1 min-h-[44px] rounded-full border border-neonCyan/40 bg-gradient-to-r from-neonCyan/25 via-slate-900/60 to-neonPurple/30 text-neonCyan font-semibold shadow-[0_0_18px_rgba(0,245,255,0.5)] hover:shadow-[0_0_28px_rgba(0,245,255,0.8)] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 min-h-[44px] rounded-full border border-neonCyan/60 bg-gradient-to-r from-neonCyan/40 via-neonPurple/60 to-neonMagenta/60 text-slate-50 font-semibold shadow-[0_0_18px_rgba(0,245,255,0.5)] hover:shadow-[0_0_28px_rgba(0,245,255,0.9)] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-center"
                 >
                   {replaceLoading ? 'Se înlocuiește...' : 'Da'}
                 </button>
@@ -319,7 +303,7 @@ const RecommendationCard = ({
                   type="button"
                   onClick={() => handleDislikeConfirm(false)}
                   disabled={replaceLoading}
-                  className="flex-1 min-h-[44px] rounded-xl border border-slate-500 text-slate-300 hover:bg-slate-700 transition"
+                  className="flex-1 min-h-[44px] rounded-full border border-slate-500/80 bg-slate-800/60 text-slate-200 font-semibold hover:bg-slate-700/80 hover:border-slate-300 transition-all min-w-[0] text-center"
                 >
                   Nu
                 </button>
