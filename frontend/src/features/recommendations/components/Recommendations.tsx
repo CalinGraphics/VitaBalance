@@ -258,7 +258,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       )}
 
       {/* Cardurile individuale de recomandări */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
         {recommendations.map((rec, index) => (
           <RecommendationCard
             key={`${rec.recommendation_id}-${rec.food_id}`}

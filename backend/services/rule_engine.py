@@ -725,6 +725,9 @@ class NutritionalRuleEngine:
             r'alergic\s+(?:la\s+)?([a-zăâîșț]+)',
             r'nu\s+pot\s+tolera\s+([a-zăâîșț]+)',
             r'(?:sau|or|și|si)\s+([a-zăâîșț]+)\s+(?:nu\s+)?(?:mănânc|mananc|am\s+voie)',
+            # Formulări de tipul „alimente care au cartofi”, „alimente care conțin X”
+            r'alimente\s+care\s+au\s+([a-zăâîșț\s]+?)(?:\.|,|;|$)',
+            r'alimente\s+care\s+conțin\s+([a-zăâîșț\s]+?)(?:\.|,|;|$)',
         ]
         
         for pattern in general_patterns:
