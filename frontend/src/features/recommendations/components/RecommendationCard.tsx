@@ -128,8 +128,9 @@ const RecommendationCard = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1, duration: 0.5 }}
+        className="h-full"
       >
-        <GlassCard className="hover:shadow-neon transition-all duration-300">
+        <GlassCard className="h-full flex flex-col hover:shadow-neon transition-all duration-300">
           {/* Header */}
           <div className="flex items-start justify-between mb-4 min-w-0">
             <div className="flex-1 min-w-0">
