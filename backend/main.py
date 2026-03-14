@@ -535,9 +535,6 @@ async def get_recommendations(
         if lab_dt and (rec_dt is None or lab_dt > rec_dt):
             should_generate = True
 
-    if force_regenerate and existing:
-        rec_repo.delete_by_user_id(request.user_id)
-
     # Înlocuire unei recomandări (după dislike + "Da, schimb-o")
     exclude_ids = set(request.exclude_food_ids or [])
     is_replace_only = False
@@ -550,6 +547,19 @@ async def get_recommendations(
             exclude_ids.add(rec_to_replace.food_id)
             rec_repo.delete_by_id(request.replace_recommendation_id)
             is_replace_only = True
+
+    # La înlocuire punctuală („Nu prea” + „Da, schimb-o”), evită să recomandăm
+    # din nou un aliment care este deja în lista de recomandări a utilizatorului.
+    # Astfel prevenim duplicatele de tip „același preparat de mai multe ori”.
+    if is_replace_only:
+        existing_recs_for_user = rec_repo.get_by_user_id(request.user_id, limit=100)
+        for r in existing_recs_for_user:
+            exclude_ids.add(r.food_id)
+
+    # Dacă trebuie să regenerăm recomandările (profil/analize noi) și nu suntem într-un scenariu
+    # de înlocuire punctuală, ștergem toate recomandările vechi pentru a evita duplicatele.
+    if should_generate and existing is not None and not is_replace_only:
+        rec_repo.delete_by_user_id(request.user_id)
 
     foods_filtered = [f for f in foods if f.id not in exclude_ids] if exclude_ids else foods
 
@@ -590,7 +600,7 @@ async def get_recommendations(
                 }])
         # Reîncarcă counts după insert (noua rec nu e încă în counts)
         feedback_counts_by_rec = feedback_repo.get_counts_by_recommendation()
-        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=10)
+        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=20)
         food_by_id = {f.id: f for f in foods}
         explanation_gen = ExplanationGenerator()
         for rec in existing_recs:
@@ -629,7 +639,8 @@ async def get_recommendations(
         )
         explanation_gen = ExplanationGenerator()
         to_insert = []
-        for rec in rec_list[:10]:
+        # Persistăm până la 20 de recomandări, sortate deja descrescător după coverage/score.
+        for rec in rec_list[:20]:
             food = next((f for f in foods if f.id == rec["food_id"]), None)
             if not food:
                 continue
@@ -653,6 +664,7 @@ async def get_recommendations(
         if to_insert:
             inserted = rec_repo.insert_many(to_insert)
             food_by_id = {f.id: f for f in foods}
+            # Asigurăm același ranking ca `rec_list` pe primele N poziții.
             for i, rec in enumerate(inserted):
                 if i >= len(rec_list):
                     break
@@ -681,7 +693,7 @@ async def get_recommendations(
                     "my_rating": user_feedback_by_rec.get(rec.id),
                 })
     else:
-        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=10)
+        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=20)
         food_by_id = {f.id: f for f in foods}
         explanation_gen = ExplanationGenerator()
         for rec in existing_recs:
@@ -724,7 +736,8 @@ async def get_recommendations(
             return []
         explanation_gen = ExplanationGenerator()
         to_insert = []
-        for rec in rec_list[:10]:
+        # Persistăm până la 20 de recomandări fallback.
+        for rec in rec_list[:20]:
             food = next((f for f in foods if f.id == rec["food_id"]), None)
             if not food:
                 continue
@@ -774,8 +787,22 @@ async def get_recommendations(
                 "feedback": counts,
                 "my_rating": user_feedback_by_rec.get(rec.id),
             })
+    # Elimină orice duplicate pe baza food_id (ex. aceeași mâncare inserată de mai multe ori
+    # în urma unor regenerări sau înlocuiri anterioare), păstrând doar prima apariție
+    # în ordinea deja sortată (coverage/score).
+    unique_recommendations: List[dict] = []
+    seen_food_ids: set[int] = set()
+    for rec in recommendations:
+        fid = rec.get("food_id")
+        if fid is None:
+            unique_recommendations.append(rec)
+            continue
+        if fid in seen_food_ids:
+            continue
+        seen_food_ids.add(fid)
+        unique_recommendations.append(rec)
 
-    return recommendations
+    return unique_recommendations
 
 
 @app.delete("/api/recommendations/{user_id}")

@@ -217,6 +217,12 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     )
   }
 
+  const visibleRecommendations = recommendations.slice(0, visibleCount)
+  const tailCount = visibleRecommendations.length % 3
+  const mainCount = tailCount === 0 ? visibleRecommendations.length : visibleRecommendations.length - tailCount
+  const mainRecommendations = visibleRecommendations.slice(0, mainCount)
+  const tailRecommendations = visibleRecommendations.slice(mainCount)
+
   return (
     <div className="space-y-8">
       {/* Date profil utilizator */}
@@ -261,45 +267,81 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       )}
 
       {/* Cardurile individuale de recomandări */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
-        {recommendations.slice(0, visibleCount).map((rec, index) => (
-          <RecommendationCard
-            key={`${rec.recommendation_id}-${rec.food_id}`}
-            recommendation={rec}
-            index={index}
-            userId={user.id!}
-            onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
-              setRecommendations((prev) =>
-                prev.map((r) =>
-                  r.recommendation_id === recId
-                    ? {
-                        ...r,
-                        feedback: { ...(r.feedback || { likes: 0, dislikes: 0 }), likes: newLikes, dislikes: newDislikes },
-                        my_rating: _rating,
-                      }
-                    : r
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-stretch">
+        {mainRecommendations.map((rec, index) => (
+          <div key={`${rec.recommendation_id}-${rec.food_id}`} className="w-full h-full">
+            <RecommendationCard
+              recommendation={rec}
+              index={index}
+              userId={user.id!}
+              onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
+                setRecommendations((prev) =>
+                  prev.map((r) =>
+                    r.recommendation_id === recId
+                      ? {
+                          ...r,
+                          feedback: { ...(r.feedback || { likes: 0, dislikes: 0 }), likes: newLikes, dislikes: newDislikes },
+                          my_rating: _rating,
+                        }
+                      : r
+                  )
                 )
-              )
-            }}
-            onReplaceRequested={async (recId) => {
-              const data = await recommendationsService.replace(user.id!, recId)
-              if (Array.isArray(data) && data.length > 0) {
-                setRecommendations(data)
-              } else {
-                await fetchRecommendations(false)
-              }
-            }}
-          />
+              }}
+              onReplaceRequested={async (recId) => {
+                const data = await recommendationsService.replace(user.id!, recId)
+                if (Array.isArray(data) && data.length > 0) {
+                  setRecommendations(data)
+                } else {
+                  await fetchRecommendations(false)
+                }
+              }}
+            />
+          </div>
         ))}
+
+        {tailRecommendations.length > 0 && (
+          <div className="md:col-span-3 flex justify-center gap-4 sm:gap-6 items-stretch">
+            {tailRecommendations.map((rec, idx) => (
+              <div key={`${rec.recommendation_id}-${rec.food_id}`} className="w-full md:w-1/3 flex">
+                <RecommendationCard
+                  recommendation={rec}
+                  index={mainRecommendations.length + idx}
+                  userId={user.id!}
+                  onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
+                    setRecommendations((prev) =>
+                      prev.map((r) =>
+                        r.recommendation_id === recId
+                          ? {
+                              ...r,
+                              feedback: { ...(r.feedback || { likes: 0, dislikes: 0 }), likes: newLikes, dislikes: newDislikes },
+                              my_rating: _rating,
+                            }
+                          : r
+                      )
+                    )
+                  }}
+                  onReplaceRequested={async (recId) => {
+                    const data = await recommendationsService.replace(user.id!, recId)
+                    if (Array.isArray(data) && data.length > 0) {
+                      setRecommendations(data)
+                    } else {
+                      await fetchRecommendations(false)
+                    }
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {recommendations.length > visibleCount && (
-        <div className="flex justify-center">
+        <div className="flex justify-center mt-8 mb-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setVisibleCount((prev) => Math.min(prev + 5, recommendations.length))}
-            className="mt-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-6 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)] touch-manipulation"
+            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl border border-neonCyan/60 bg-gradient-to-r from-slate-800/70 via-slate-900/80 to-slate-950 px-7 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/70 hover:to-slate-900 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_18px_rgba(0,245,255,0.35)] hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] touch-manipulation"
           >
             Vezi mai multe
           </motion.button>
