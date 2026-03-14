@@ -68,7 +68,7 @@ Testarea a fost realizat\u{a} local, pe aceea\c{s}i ma\c{s}in\u{a} pe care rulea
 
 \begin{itemize}
   \item \textbf{Chrome DevTools (tab-ul Network)}, folosit pentru urm\u{a}rirea cererilor HTTP generate de aplica\c{t}ia React, m\u{a}surarea timpilor de r\u{a}spuns \c{s}i a timpului total de \^{i}nc\u{a}rcare al paginii principale. Valorile au fost citite direct din panoul \textit{Network}, iar pentru fiecare opera\c{t}ie critic\u{a} s-au efectuat cel pu\c{t}in 6 rul\u{a}ri succesive.
-  \item \textbf{Postman}, utilizat pentru a trimite \^{i}n mod controlat cereri c\u{a}tre endpoint-urile relevante (\texttt{/api/auth}, \texttt{/api/profile/by-email}, \texttt{/api?re\-com\-men\-da\-tions}) \c{s}i pentru a nota timpii de r\u{a}spuns raporta\c{t}i de instrument. Aceast\u{a} abordare a permis izolarea timpului de procesare al serverului de eventualele \^{i}nt\^{a}rzieri introduse de interfa\c{t}a React.
+  \item \textbf{Postman}, utilizat pentru a trimite \^{i}n mod controlat cereri c\u{a}tre endpoint-urile relevante (\texttt{/api/auth/login}, \texttt{/api/profile/by-email/\{email\}}, \texttt{/api/recommendations}) \c{s}i pentru a nota timpii de r\u{a}spuns raporta\c{t}i de instrument. Aceast\u{a} abordare a permis izolarea timpului de procesare al serverului de eventualele \^{i}nt\^{a}rzieri introduse de interfa\c{t}a React.
 \end{itemize}
 
 \subsubsection*{M\u{a}surarea metricilor de UX}
@@ -97,9 +97,9 @@ Tabelul~\ref{tab:timpi-operatii} centralizeaz\u{a} timpii de r\u{a}spuns m\u{a}s
     \toprule
     \textbf{Opera\c{t}ie} & \textbf{Nr. rul\u{a}ri} & \textbf{T\textsubscript{min} (ms)} & \textbf{T\textsubscript{med} (ms)} & \textbf{T\textsubscript{max} (ms)} \\
     \midrule
-    Login (\texttt{/api/auth})                                    & 6 & 300 & 360 & 420 \\
-    Profil utilizator (\texttt{/api/profile/by-email})            & 6 & 80  & 90  & 100 \\
-    Recomand\u{a}ri (\texttt{/api?recommendations})               & 6 & 580 & 620 & 680 \\
+    Login (\texttt{/api/auth/login})                              & 6 & 300 & 360 & 420 \\
+    Profil utilizator (\texttt{/api/profile/by-email/\{email\}})  & 6 & 80  & 90  & 100 \\
+    Recomand\u{a}ri (\texttt{/api/recommendations})               & 6 & 580 & 620 & 680 \\
     \bottomrule
   \end{tabular}
 \end{table}
