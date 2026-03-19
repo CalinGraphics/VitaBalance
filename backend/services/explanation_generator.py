@@ -72,7 +72,15 @@ class ExplanationGenerator:
         if coverage > 0 and not is_fallback_profile_based:
             reasons.append(f"Acoperire estimată: {coverage:.1f}% din necesarul nutrițional vizat")
         if is_fallback_profile_based:
-            reasons.append("Recomandare de profil (fără biomarkeri disponibili), pe baza compatibilității alimentare.")
+            if has_lab_data:
+                reasons.append(
+                    "Recomandare de profil și analize: nu se evidențiază deficite active, "
+                    "dar alimentul susține menținerea unui aport nutrițional echilibrat."
+                )
+            else:
+                reasons.append(
+                    "Recomandare de profil (fără biomarkeri disponibili), pe baza compatibilității alimentare."
+                )
         elif has_lab_data:
             reasons.append("Recomandare informată de profilul tău și valorile disponibile din analize medicale.")
         else:
