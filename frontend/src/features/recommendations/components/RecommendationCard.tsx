@@ -215,11 +215,6 @@ const RecommendationCard = ({
 
           {/* Zona de feedback fixată la baza cardului */}
           <div className="mt-auto pt-4">
-            {counts.likes > 0 && (
-              <p className="text-xs text-emerald-400/90 mb-2">
-                Apreciat de {counts.likes} {counts.likes === 1 ? 'utilizator' : 'utilizatori'}
-              </p>
-            )}
             <div className="flex flex-row items-center justify-between">
               <p className="text-xs sm:text-sm text-slate-300">
                 Cum ți se pare această recomandare?
@@ -229,27 +224,27 @@ const RecommendationCard = ({
                   type="button"
                   onClick={() => sendFeedback(5)}
                   disabled={feedbackStatus === 'sending' || hasLiked}
-                  className={`min-h-[36px] inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
+                  className={`min-h-[36px] inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
                     hasLiked
                       ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300 cursor-default'
                       : 'border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-60 disabled:cursor-default'
                   }`}
                 >
-                  <ThumbsUp className="w-4 h-4" />
-                  Îmi place
+                  <ThumbsUp className="w-4 h-4 flex-shrink-0" />
+                  <span className="tabular-nums font-bold">{counts.likes}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleDislikeClick}
                   disabled={feedbackStatus === 'sending' || hasDisliked}
-                  className={`min-h-[36px] inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
+                  className={`min-h-[36px] inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
                     hasDisliked
                       ? 'border-rose-400 bg-rose-500/20 text-rose-300 cursor-default'
                       : 'border-rose-400/50 text-rose-300 hover:bg-rose-500/10 disabled:opacity-60 disabled:cursor-default'
                   }`}
                 >
-                  <ThumbsDown className="w-4 h-4" />
-                  Nu prea
+                  <ThumbsDown className="w-4 h-4 flex-shrink-0" />
+                  <span className="tabular-nums font-bold">{counts.dislikes}</span>
                 </button>
               </div>
             </div>
