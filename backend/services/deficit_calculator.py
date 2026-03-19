@@ -3,6 +3,14 @@ from domain.models import UserProfile, LabResultItem
 
 
 class DeficitCalculator:
+    # Nutrienți care au corespondent direct în modelul de analize.
+    # Dacă există un set de analize, dar valoarea e NULL pentru unul dintre acești
+    # nutrienți, îl tratăm ca „necunoscut” și NU estimăm deficit din dietă.
+    LAB_BACKED_NUTRIENTS = {
+        'iron', 'calcium', 'vitamin_d', 'vitamin_b12', 'magnesium',
+        'protein', 'zinc', 'folate', 'vitamin_a', 'iodine', 'vitamin_k', 'potassium'
+    }
+
     RDI_TABLES = {
         'iron': {
             'M': {'18-50': 8, '50+': 8},
@@ -224,6 +232,11 @@ class DeficitCalculator:
                 if lab_value is not None:
                     deficit = self._calculate_deficit_from_labs(nutrient, lab_value, rdi)
                     deficits[nutrient] = max(0, deficit)
+                    continue
+                # Dacă există analize, dar acest marker nu a fost completat (NULL),
+                # nu presupunem deficit pe baza estimărilor din dietă/profil.
+                if nutrient in self.LAB_BACKED_NUTRIENTS:
+                    deficits[nutrient] = 0
                     continue
             
             current_intake = self.estimate_current_intake(nutrient, user)
