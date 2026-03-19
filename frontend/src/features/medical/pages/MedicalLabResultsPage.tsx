@@ -87,23 +87,31 @@ function extractLabValuesFromTextLocal(text: string): Partial<Record<LabKey, num
 
   return {
     hemoglobin: pickFirst([
-      /\b(?:hemoglobina|hemoglobină|hemoglobin)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\b(?:hgb)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\b(?:hb)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i,
+      /\b(?:hemoglobina|hemoglobină|hemoglobin)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
+      /\b(?:hgb)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
+      /\b(?:hb)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
     ]),
-    ferritin: pickFirst([/\b(?:feritina|feritină|ferritin)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    vitamin_d: pickFirst([/\b(?:25\s*-?\s*oh\s*-?\s*d|vit(?:\.)?\s*d|vitamina\s*d)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    vitamin_b12: pickFirst([/\b(?:vit(?:\.)?\s*b\s*12|b\s*12|cobalamina)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    calcium: pickFirst([/\b(?:calciu|calcium)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    magnesium: pickFirst([/\b(?:magneziu|magnesium)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    zinc: pickFirst([/\b(?:zinc|zn)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    protein: pickFirst([/\b(?:proteine|protein(?:a)?)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    folate: pickFirst([/\b(?:folat|acid\s*folic|vit(?:\.)?\s*b9)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    vitamin_a: pickFirst([/\b(?:vit(?:\.)?\s*a|vitamina\s*a|retinol)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    iodine: pickFirst([/\b(?:iod|iodine)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    vitamin_k: pickFirst([/\b(?:vit(?:\.)?\s*k|vitamina\s*k)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
-    potassium: pickFirst([/\b(?:potasiu|potassium)\b\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    ferritin: pickFirst([/\b(?:feritina|feritină|ferritin)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_d: pickFirst([/\b(?:25\s*-?\s*oh\s*-?\s*d|vit(?:\.)?\s*d|vitamina\s*d)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_b12: pickFirst([/\b(?:vit(?:\.)?\s*b\s*12|b\s*12|cobalamina)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    calcium: pickFirst([/\b(?:calciu|calcium)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    magnesium: pickFirst([/\b(?:magneziu|magnesium)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    zinc: pickFirst([/\b(?:zinc|zn)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    protein: pickFirst([/\b(?:proteine|protein(?:a)?)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    folate: pickFirst([/\b(?:folat|acid\s*folic|vit(?:\.)?\s*b9)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_a: pickFirst([/\b(?:vit(?:\.)?\s*a|vitamina\s*a|retinol)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    iodine: pickFirst([/\b(?:iod|iodine)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_k: pickFirst([/\b(?:vit(?:\.)?\s*k|vitamina\s*k)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    potassium: pickFirst([/\b(?:potasiu|potassium)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
   }
+}
+
+/** Convertește valoarea din API la string pentru input. Null/undefined/0 → '' (câmp gol, placeholder cu interval estimativ). */
+function toInputValue(v: number | null | undefined): string {
+  if (v == null) return ''
+  const n = Number(v)
+  if (!Number.isFinite(n) || n === 0) return ''
+  return String(v)
 }
 
 const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalLabResultsPageProps) => {
@@ -136,23 +144,22 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         .then((items: LabResult[]) => {
           if (Array.isArray(items) && items.length > 0) {
             const latest = items[0]
-            setInputs(prev => ({
-              ...prev,
-              hemoglobin: latest.hemoglobin != null ? String(latest.hemoglobin) : prev.hemoglobin,
-              ferritin: latest.ferritin != null ? String(latest.ferritin) : prev.ferritin,
-              vitamin_d: latest.vitamin_d != null ? String(latest.vitamin_d) : prev.vitamin_d,
-              vitamin_b12: latest.vitamin_b12 != null ? String(latest.vitamin_b12) : prev.vitamin_b12,
-              calcium: latest.calcium != null ? String(latest.calcium) : prev.calcium,
-              magnesium: latest.magnesium != null ? String(latest.magnesium) : prev.magnesium,
-              zinc: latest.zinc != null ? String(latest.zinc) : prev.zinc,
-              protein: latest.protein != null ? String(latest.protein) : prev.protein,
-              folate: latest.folate != null ? String(latest.folate) : prev.folate,
-              vitamin_a: latest.vitamin_a != null ? String(latest.vitamin_a) : prev.vitamin_a,
-              iodine: latest.iodine != null ? String(latest.iodine) : prev.iodine,
-              vitamin_k: latest.vitamin_k != null ? String(latest.vitamin_k) : prev.vitamin_k,
-              potassium: latest.potassium != null ? String(latest.potassium) : prev.potassium,
-              notes: latest.notes ?? prev.notes,
-            }))
+            setInputs({
+              hemoglobin: toInputValue(latest.hemoglobin),
+              ferritin: toInputValue(latest.ferritin),
+              vitamin_d: toInputValue(latest.vitamin_d),
+              vitamin_b12: toInputValue(latest.vitamin_b12),
+              calcium: toInputValue(latest.calcium),
+              magnesium: toInputValue(latest.magnesium),
+              zinc: toInputValue(latest.zinc),
+              protein: toInputValue(latest.protein),
+              folate: toInputValue(latest.folate),
+              vitamin_a: toInputValue(latest.vitamin_a),
+              iodine: toInputValue(latest.iodine),
+              vitamin_k: toInputValue(latest.vitamin_k),
+              potassium: toInputValue(latest.potassium),
+              notes: latest.notes ?? '',
+            })
           }
         })
         .catch(() => { /* ignoră - utilizatorul poate completa manual */ })
@@ -168,15 +175,13 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
     setError(null)
 
     try {
-      const payload: LabResult = {
+      const payload: LabResult & Record<string, unknown> = {
         user_id: user.id || 0,
         notes: inputs.notes?.trim() || '',
       }
       for (const k of LAB_KEYS) {
         const v = parseOptionalDecimal(inputs[k])
-        if (v !== undefined) {
-          ;(payload as any)[k] = v
-        }
+        ;(payload as any)[k] = v !== undefined ? v : null
       }
 
       await labResultsService.create(payload)
@@ -397,6 +402,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.hemoglobin}
                 onChange={(e) => setInputs({ ...inputs, hemoglobin: sanitizeDecimalInput(e.target.value) })}
                 placeholder="12-16 g/dL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -407,6 +413,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.ferritin}
                 onChange={(e) => setInputs({ ...inputs, ferritin: sanitizeDecimalInput(e.target.value) })}
                 placeholder="15-150 ng/mL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -417,6 +424,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.vitamin_d}
                 onChange={(e) => setInputs({ ...inputs, vitamin_d: sanitizeDecimalInput(e.target.value) })}
                 placeholder="30-100 ng/mL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -427,6 +435,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.vitamin_b12}
                 onChange={(e) => setInputs({ ...inputs, vitamin_b12: sanitizeDecimalInput(e.target.value) })}
                 placeholder="200-900 pg/mL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -437,6 +446,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.calcium}
                 onChange={(e) => setInputs({ ...inputs, calcium: sanitizeDecimalInput(e.target.value) })}
                 placeholder="8.5-10.5 mg/dL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -447,6 +457,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.magnesium}
                 onChange={(e) => setInputs({ ...inputs, magnesium: sanitizeDecimalInput(e.target.value) })}
                 placeholder="1.7-2.2 mg/dL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -457,6 +468,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.zinc}
                 onChange={(e) => setInputs({ ...inputs, zinc: sanitizeDecimalInput(e.target.value) })}
                 placeholder="70-100 mcg/dL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -467,6 +479,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.protein}
                 onChange={(e) => setInputs({ ...inputs, protein: sanitizeDecimalInput(e.target.value) })}
                 placeholder="6.0-8.0 g/dL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -477,6 +490,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.folate}
                 onChange={(e) => setInputs({ ...inputs, folate: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 3 ng/mL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -487,6 +501,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.vitamin_a}
                 onChange={(e) => setInputs({ ...inputs, vitamin_a: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 20 μg/dL"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -497,6 +512,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.iodine}
                 onChange={(e) => setInputs({ ...inputs, iodine: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 100 μg/L"
+                transparentWhenEmpty
               />
 
               <InputField
@@ -507,6 +523,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.potassium}
                 onChange={(e) => setInputs({ ...inputs, potassium: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 3.5 mmol/L"
+                transparentWhenEmpty
               />
             </div>
 

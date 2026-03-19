@@ -12,6 +12,8 @@ interface InputFieldProps {
   step?: string;
   inputMode?: React.InputHTMLAttributes<HTMLInputElement>['inputMode'];
   pattern?: string;
+  /** Când true și value e gol, câmpul arată mai transparent (pentru câmpuri opționale) */
+  transparentWhenEmpty?: boolean;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -26,9 +28,14 @@ const InputField: React.FC<InputFieldProps> = ({
   step,
   inputMode,
   pattern,
+  transparentWhenEmpty = false,
 }) => {
-  // Base classes - NO BORDER classes in className, only in style; min-h for touch targets on mobile
-  const baseClasses = 'w-full min-h-[44px] rounded-xl px-3 py-3 sm:py-2.5 text-base sm:text-sm text-slate-100 placeholder:text-slate-500 transition-all bg-slate-950/40';
+  const isEmpty = !value || value.trim() === '';
+  const useGhostStyle = transparentWhenEmpty && isEmpty;
+  // Base classes - când gol și transparentWhenEmpty: fundal mai transparent, placeholder mai subtil
+  const baseClasses = useGhostStyle
+    ? 'w-full min-h-[44px] rounded-xl px-3 py-3 sm:py-2.5 text-base sm:text-sm text-slate-100 placeholder:text-slate-500/60 transition-all bg-slate-950/20'
+    : 'w-full min-h-[44px] rounded-xl px-3 py-3 sm:py-2.5 text-base sm:text-sm text-slate-100 placeholder:text-slate-500 transition-all bg-slate-950/40';
   
   const borderClass = error 
     ? 'focus:ring-red-500/30 focus:ring-2' 
@@ -48,9 +55,11 @@ const InputField: React.FC<InputFieldProps> = ({
     outlineStyle: 'none',
     border: error 
       ? '1px solid rgba(239, 68, 68, 0.8)' 
-      : '1px solid rgba(255, 255, 255, 0.1)',
+      : useGhostStyle 
+        ? '1px solid rgba(255, 255, 255, 0.06)' 
+        : '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '0.75rem',
-    backgroundColor: 'rgba(2, 6, 23, 0.4)',
+    backgroundColor: useGhostStyle ? 'rgba(2, 6, 23, 0.15)' : 'rgba(2, 6, 23, 0.4)',
     color: 'rgb(241, 245, 249)',
   };
 

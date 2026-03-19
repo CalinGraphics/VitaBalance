@@ -45,3 +45,27 @@ class LabResultRepository:
         if not resp.data or len(resp.data) == 0:
             raise ValueError("Insert lab_results returned no data")
         return row_to_lab_result(resp.data[0])
+
+    def update(self, lab_result_id: int, data: dict) -> LabResultItem:
+        """Actualizează un rând existent. Pentru câmpuri goale, data poate conține None (setează NULL)."""
+        update_data = {k: v for k, v in data.items() if k != "user_id"}
+        resp = (
+            self._client.table(self.TABLE)
+            .update(update_data)
+            .eq("id", lab_result_id)
+            .execute()
+        )
+        if not resp.data or len(resp.data) == 0:
+            raise ValueError("Update lab_results returned no data")
+        return row_to_lab_result(resp.data[0])
+
+    def upsert_for_user(self, user_id: int, data: dict) -> LabResultItem:
+        """
+        Dacă utilizatorul are deja rezultate (ultimul rând), actualizează-l.
+        Altfel creează un rând nou. Un singur set de analize per user (update în loc de insert).
+        """
+        latest = self.get_latest_by_user_id(user_id)
+        if latest:
+            update_data = {k: v for k, v in data.items() if k != "user_id"}
+            return self.update(latest.id, update_data)
+        return self.create(user_id, data)

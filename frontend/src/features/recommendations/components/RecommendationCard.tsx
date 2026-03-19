@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Info, ThumbsUp, ThumbsDown, X } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
@@ -59,6 +59,11 @@ const RecommendationCard = ({
   const [localCounts, setLocalCounts] = useState(feedback ? { ...feedback } : { likes: 0, dislikes: 0 })
   const [showDislikeModal, setShowDislikeModal] = useState(false)
   const [replaceLoading, setReplaceLoading] = useState(false)
+
+  useEffect(() => {
+    setMyRating(recommendation.my_rating)
+    setLocalCounts(recommendation.feedback ? { ...recommendation.feedback } : { likes: 0, dislikes: 0 })
+  }, [recommendation.recommendation_id, recommendation.my_rating, recommendation.feedback?.likes, recommendation.feedback?.dislikes])
 
   const counts = localCounts
 

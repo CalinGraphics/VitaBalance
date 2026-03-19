@@ -208,15 +208,16 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     )
   }
 
-  // Error boundary - dacă nu există user
-  if (!user) {
+  // Error boundary - dacă nu există user sau id
+  if (!user || !user.id) {
     return (
       <div className="w-full text-center py-12">
-        <p className="text-red-400">Eroare: Date utilizator lipsă</p>
+        <p className="text-red-400">Eroare: ID utilizator lipsă. Reconectează-te.</p>
       </div>
     )
   }
 
+  const userId = user.id
   const visibleRecommendations = recommendations.slice(0, visibleCount)
   const tailCount = visibleRecommendations.length % 3
   const mainCount = tailCount === 0 ? visibleRecommendations.length : visibleRecommendations.length - tailCount
@@ -273,7 +274,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
             <RecommendationCard
               recommendation={rec}
               index={index}
-              userId={user.id!}
+              userId={userId}
               onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
                 setRecommendations((prev) =>
                   prev.map((r) =>
@@ -288,7 +289,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                 )
               }}
               onReplaceRequested={async (recId) => {
-                const data = await recommendationsService.replace(user.id!, recId)
+                const data = await recommendationsService.replace(userId, recId)
                 if (Array.isArray(data) && data.length > 0) {
                   setRecommendations(data)
                 } else {
@@ -306,7 +307,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                 <RecommendationCard
                   recommendation={rec}
                   index={mainRecommendations.length + idx}
-                  userId={user.id!}
+                  userId={userId}
                   onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
                     setRecommendations((prev) =>
                       prev.map((r) =>
@@ -321,7 +322,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                     )
                   }}
                   onReplaceRequested={async (recId) => {
-                    const data = await recommendationsService.replace(user.id!, recId)
+                    const data = await recommendationsService.replace(userId, recId)
                     if (Array.isArray(data) && data.length > 0) {
                       setRecommendations(data)
                     } else {

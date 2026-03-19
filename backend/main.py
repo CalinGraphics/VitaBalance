@@ -408,7 +408,7 @@ async def create_lab_results(lab_result: LabResultCreate, current_user: dict = D
     _ensure_user_resource(current_user, lab_result.user_id)
     repo = LabResultRepository()
     data = lab_result.model_dump(exclude={"user_id"})
-    created = repo.create(lab_result.user_id, data)
+    created = repo.upsert_for_user(lab_result.user_id, data)
     return LabResultResponse(
         id=created.id,
         user_id=created.user_id,
