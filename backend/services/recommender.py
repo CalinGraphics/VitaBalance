@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional, Tuple
 from dataclasses import replace
+import unicodedata
 from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
 from services.deficit_calculator import DeficitCalculator
@@ -159,7 +160,7 @@ class RecommenderService:
                 'potassium': getattr(food, 'potassium', 0) or 0,
             }
 
-            portion_grams = 150.0
+            portion_grams = float(self._portion_for_category(food.category))
             total_score = 0.0
             total_coverage = 0.0
             covered_nutrients: List[str] = []
@@ -182,6 +183,12 @@ class RecommenderService:
 
             if not covered_nutrients or total_score <= 0:
                 continue
+
+            # Penalizare pentru categorii mai puțin utile în recomandări principale
+            # (ex: condimente/dulciuri/ultra-procesate), chiar dacă pe hârtie au micronutrienți.
+            quality_factor = self._category_quality_factor(food.category)
+            total_score *= quality_factor
+            total_coverage *= quality_factor
 
             avg_coverage = total_coverage / len(covered_nutrients)
 
@@ -226,4 +233,62 @@ class RecommenderService:
 
         # Sortează descrescător după scor total (densitate nutritivă globală)
         fallback_recommendations.sort(key=lambda x: x[0], reverse=True)
-        return [item for _, item in fallback_recommendations[:20]]
+
+        # Diversitate pe categorii: evită top-uri dominate de o singură categorie.
+        selected: List[Dict] = []
+        per_category_counts: Dict[str, int] = {}
+        for _, item in fallback_recommendations:
+            food_obj = next((f for f in foods if f.id == item["food_id"]), None)
+            category_key = self._normalize_category(food_obj.category if food_obj else "")
+            max_per_category = self._max_items_per_category(category_key)
+            current = per_category_counts.get(category_key, 0)
+            if current >= max_per_category:
+                continue
+            selected.append(item)
+            per_category_counts[category_key] = current + 1
+            if len(selected) >= 20:
+                break
+        return selected
+
+    def _normalize_category(self, category: str) -> str:
+        raw = (category or "").strip().lower()
+        folded = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
+        return folded
+
+    def _portion_for_category(self, category: str) -> int:
+        cat = self._normalize_category(category)
+        portions = {
+            "peste & fructe de mare": 130,
+            "carne": 130,
+            "oua": 120,
+            "leguminoase": 170,
+            "legume": 200,
+            "fructe": 180,
+            "lactate": 200,
+            "nuci & seminte": 40,
+            "cereale": 150,
+            "alte": 140,
+            "altele": 140,
+        }
+        return portions.get(cat, 150)
+
+    def _category_quality_factor(self, category: str) -> float:
+        cat = self._normalize_category(category)
+        penalties = {
+            "condimente & mirodenii": 0.30,
+            "dulciuri": 0.45,
+            "snacks": 0.55,
+            "bauturi": 0.55,
+            "alte": 0.75,
+            "altele": 0.75,
+        }
+        return penalties.get(cat, 1.0)
+
+    def _max_items_per_category(self, category_key: str) -> int:
+        caps = {
+            "condimente & mirodenii": 1,
+            "dulciuri": 1,
+            "snacks": 1,
+            "bauturi": 1,
+        }
+        return caps.get(category_key, 4)

@@ -246,6 +246,23 @@ class DeficitCalculator:
             rdi = self.get_rdi(nutrient, user)
             
             if lab_results:
+                # Tratament special pentru fier:
+                # preferăm ferritina; dacă lipsește, folosim hemoglobina.
+                if nutrient == 'iron':
+                    if getattr(lab_results, 'ferritin', None) is not None:
+                        lab_value = lab_results.ferritin
+                        deficit = self._calculate_deficit_from_labs(nutrient, lab_value, rdi)
+                        deficits[nutrient] = max(0, deficit)
+                        continue
+                    if getattr(lab_results, 'hemoglobin', None) is not None:
+                        deficit = self._calculate_iron_deficit_from_hemoglobin(
+                            lab_results.hemoglobin, user, rdi
+                        )
+                        deficits[nutrient] = max(0, deficit)
+                        continue
+                    deficits[nutrient] = 0
+                    continue
+
                 lab_value = self._get_lab_value(nutrient, lab_results)
                 
                 if lab_value is not None:
@@ -338,4 +355,23 @@ class DeficitCalculator:
             return rdi * normalized_deficit
         else:
             return 0
+
+    def _calculate_iron_deficit_from_hemoglobin(self, hemoglobin: float, user: UserProfile, rdi: float) -> float:
+        """
+        Fallback pentru fier când ferritina nu este disponibilă:
+        estimează severitatea pe baza hemoglobinei.
+        """
+        sex = (user.sex or "").upper()
+        if sex == "M":
+            threshold = 13.5  # g/dL
+        elif sex == "F":
+            threshold = 12.0  # g/dL
+        else:
+            threshold = 12.5  # g/dL
+
+        if hemoglobin < threshold:
+            deficit_ratio = (threshold - hemoglobin) / threshold
+            normalized_deficit = min(1.5, max(0.3, deficit_ratio))
+            return rdi * normalized_deficit
+        return 0
 

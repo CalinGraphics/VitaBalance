@@ -1,4 +1,5 @@
 from typing import List, Dict, Optional
+import unicodedata
 from domain.models import FoodItem, UserProfile
 
 
@@ -169,11 +170,11 @@ class ExplanationGenerator:
 
     def _estimate_portion_by_category(self, food: FoodItem) -> int:
         """Porție orientativă în grame, diferențiată pe categorii alimentare."""
-        category = (food.category or "").strip().lower()
+        category = self._normalize_category(food.category or "")
         portions = {
-            "pește & fructe de mare": 130,
+            "peste & fructe de mare": 130,
             "carne": 130,
-            "ouă": 120,
+            "oua": 120,
             "leguminoase": 170,
             "legume": 200,
             "fructe": 180,
@@ -184,6 +185,10 @@ class ExplanationGenerator:
             "altele": 140,
         }
         return portions.get(category, 150)
+
+    def _normalize_category(self, value: str) -> str:
+        raw = (value or "").strip().lower()
+        return unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
     
     def _get_top_nutrients(self, food: FoodItem, deficits: Dict[str, float]) -> List[tuple]:
         """Identifică nutrienții principali din aliment care corespund deficitelor"""
