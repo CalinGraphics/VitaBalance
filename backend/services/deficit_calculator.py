@@ -229,7 +229,13 @@ class DeficitCalculator:
         has_lab_panel = False
         if lab_results is not None:
             for nutrient in self.LAB_BACKED_NUTRIENTS:
-                v = self._get_lab_value(nutrient, lab_results)
+                if nutrient == 'iron':
+                    # Pentru fier, acceptăm panel valid dacă există fie ferritină, fie hemoglobină.
+                    v = getattr(lab_results, 'ferritin', None)
+                    if v is None:
+                        v = getattr(lab_results, 'hemoglobin', None)
+                else:
+                    v = self._get_lab_value(nutrient, lab_results)
                 if v is not None:
                     has_lab_panel = True
                     break

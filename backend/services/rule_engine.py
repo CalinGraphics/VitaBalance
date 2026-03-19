@@ -1,6 +1,7 @@
 
 from typing import List, Dict, Optional, Tuple
 import re
+import unicodedata
 from dataclasses import dataclass
 from domain.models import FoodItem, UserProfile, LabResultItem
 from enum import Enum
@@ -65,6 +66,12 @@ class NutritionalRuleEngine:
             }
         }
         self.scoped_rules_engine = ScopedRulesEngine()
+
+    def _normalize_text(self, value: str) -> str:
+        """Normalizează textul pentru matching robust (diacritice, underscore, spații)."""
+        raw = (value or "").strip().lower().replace("_", " ").replace("-", " ")
+        folded = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
+        return re.sub(r"\s+", " ", folded).strip()
     
     def evaluate_food(
         self,
@@ -591,13 +598,13 @@ class NutritionalRuleEngine:
         if not medical_conditions:
             return {'forbidden_categories': [], 'forbidden_keywords': [], 'preferred_categories': []}
         
-        conditions_lower = medical_conditions.lower()
+        conditions_lower = self._normalize_text(medical_conditions)
         forbidden_categories = []
         forbidden_keywords = []
         
         # 1) Condiții medicale cunoscute → restricții alimentare
         for cond_key, food_keywords in self.MEDICAL_CONDITION_RESTRICTIONS.items():
-            if cond_key in conditions_lower:
+            if self._normalize_text(cond_key) in conditions_lower:
                 for kw in food_keywords:
                     if kw not in forbidden_keywords:
                         forbidden_keywords.append(kw)
@@ -702,7 +709,8 @@ class NutritionalRuleEngine:
         }
         
         for category, patterns in category_patterns.items():
-            if any(pattern in conditions_lower for pattern in patterns):
+            patterns_norm = [self._normalize_text(p) for p in patterns]
+            if any(pattern in conditions_lower for pattern in patterns_norm):
                 forbidden_categories.append(category)
         
         # Patternuri generale – extrag orice aliment menționat ca interzis
@@ -767,15 +775,17 @@ class NutritionalRuleEngine:
         expanded_keywords: List[str] = []
         seen: set = set()
         for kw in forbidden_keywords:
-            for form in [kw, _stem_ro(kw)]:
+            kw_norm = self._normalize_text(kw)
+            for form in [kw_norm, _stem_ro(kw_norm)]:
                 if form and len(form) > 2 and form not in seen:
                     expanded_keywords.append(form)
                     seen.add(form)
-            if kw in self.FOOD_RESTRICTION_SYNONYMS:
-                for syn in self.FOOD_RESTRICTION_SYNONYMS[kw]:
-                    if syn not in seen:
-                        expanded_keywords.append(syn)
-                        seen.add(syn)
+            if kw_norm in self.FOOD_RESTRICTION_SYNONYMS:
+                for syn in self.FOOD_RESTRICTION_SYNONYMS[kw_norm]:
+                    syn_norm = self._normalize_text(syn)
+                    if syn_norm not in seen:
+                        expanded_keywords.append(syn_norm)
+                        seen.add(syn_norm)
         forbidden_keywords = expanded_keywords
         
         simple_food_keywords = {
@@ -961,9 +971,9 @@ class NutritionalRuleEngine:
                     return False
         
         if user.medical_conditions:
-            conditions_lower = user.medical_conditions.lower()
-            food_name_lower = food.name.lower() if food.name else ''
-            food_category_lower = food.category.lower() if food.category else ''
+            conditions_lower = self._normalize_text(user.medical_conditions)
+            food_name_lower = self._normalize_text(food.name or '')
+            food_category_lower = self._normalize_text(food.category or '')
             
             restrictions = self._parse_food_restrictions(user.medical_conditions)
             preferred = set(restrictions.get('preferred_categories', []) or [])
@@ -977,7 +987,7 @@ class NutritionalRuleEngine:
                        any(p in preferred for p in ['porc', 'pui', 'vita', 'vită', 'miel']):
                         continue
                 
-                if forbidden_category in food_category_lower:
+                if self._normalize_text(forbidden_category) in food_category_lower:
                     return False
                 
                 category_mappings = {
@@ -1007,11 +1017,17 @@ class NutritionalRuleEngine:
                 
                 if forbidden_category in category_mappings:
                     for variant in category_mappings[forbidden_category]:
-                        if variant in food_category_lower or variant in food_name_lower:
+                        variant_norm = self._normalize_text(variant)
+                        if variant_norm in food_category_lower or variant_norm in food_name_lower:
                             return False
             
             for keyword in restrictions['forbidden_keywords']:
-                if keyword in food_name_lower or keyword in food_category_lower:
+                kw = self._normalize_text(keyword)
+                if not kw:
+                    continue
+                if re.search(rf"\b{re.escape(kw)}\b", food_name_lower) or re.search(rf"\b{re.escape(kw)}\b", food_category_lower):
+                    return False
+                if kw in food_name_lower or kw in food_category_lower:
                     return False
             
             if 'rinichi' in conditions_lower or 'oxalat' in conditions_lower or 'renal' in conditions_lower:
