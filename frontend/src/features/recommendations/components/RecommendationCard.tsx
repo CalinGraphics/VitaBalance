@@ -148,7 +148,7 @@ const RecommendationCard = ({
                   </span>
                 </div>
                 <p className="text-base sm:text-sm text-slate-300 mb-3">
-                  Porție sugerată: <strong className="text-neonCyan">{explanation.portion}g</strong> (cam un bol)
+                  Porție sugerată: <strong className="text-neonCyan">{explanation.portion}g</strong>
                 </p>
                 <div className="flex items-center gap-2 mb-4 min-w-0">
                   <div className="flex-1 min-w-0 bg-slate-800 rounded-full h-3 sm:h-2.5 overflow-hidden">

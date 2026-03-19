@@ -53,7 +53,7 @@ class ExplanationGenerator:
         coverage: float,
         has_lab_data: bool = False,
     ) -> Dict:
-        portion = 150
+        portion = self._estimate_portion_by_category(food)
         is_fallback_profile_based = 'fallback_profile_based' in matched_rules
         
         if explanations:
@@ -69,13 +69,13 @@ class ExplanationGenerator:
         # Scurte bullet-uri, fără a repeta paragraful principal (evită dublarea în UI)
         reasons = []
         if coverage > 0 and not is_fallback_profile_based:
-            reasons.append(f"Acoperă {coverage:.1f}% din deficitul tău nutrițional total")
+            reasons.append(f"Acoperire estimată: {coverage:.1f}% din necesarul nutrițional vizat")
         if is_fallback_profile_based:
-            reasons.append("Recomandare bazată pe profilul tău alimentar și compatibilitatea generală.")
+            reasons.append("Recomandare de profil (fără biomarkeri disponibili), pe baza compatibilității alimentare.")
         elif has_lab_data:
-            reasons.append("Recomandat în funcție de profilul tău și analizele medicale.")
+            reasons.append("Recomandare informată de profilul tău și valorile disponibile din analize medicale.")
         else:
-            reasons.append("Recomandat în funcție de profilul tău și nevoile tale nutriționale.")
+            reasons.append("Recomandare bazată pe profilul tău și modelul estimativ de necesar nutrițional.")
         
         tips = self._generate_tips_from_rules(matched_rules, food)
         if not tips:
@@ -99,7 +99,7 @@ class ExplanationGenerator:
         coverage: float
     ) -> Dict:
         """Generează explicație tradițională (fallback)"""
-        portion = 150
+        portion = self._estimate_portion_by_category(food)
         reasons = []
         tips = []
         alternatives = []
@@ -166,6 +166,24 @@ class ExplanationGenerator:
             'tips': tips if tips else None,
             'alternatives': alternatives if alternatives else None
         }
+
+    def _estimate_portion_by_category(self, food: FoodItem) -> int:
+        """Porție orientativă în grame, diferențiată pe categorii alimentare."""
+        category = (food.category or "").strip().lower()
+        portions = {
+            "pește & fructe de mare": 130,
+            "carne": 130,
+            "ouă": 120,
+            "leguminoase": 170,
+            "legume": 200,
+            "fructe": 180,
+            "lactate": 200,
+            "nuci & seminte": 40,
+            "cereale": 150,
+            "alte": 140,
+            "altele": 140,
+        }
+        return portions.get(category, 150)
     
     def _get_top_nutrients(self, food: FoodItem, deficits: Dict[str, float]) -> List[tuple]:
         """Identifică nutrienții principali din aliment care corespund deficitelor"""
