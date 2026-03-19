@@ -496,7 +496,7 @@ async def get_recommendations(
 
     lab_results = lab_repo.get_latest_by_user_id(request.user_id)
     user_feedbacks = feedback_repo.get_by_user_id(request.user_id)
-    feedback_counts_by_rec = feedback_repo.get_counts_by_recommendation()
+    feedback_counts_by_food = feedback_repo.get_counts_by_food_id()
     user_feedback_by_rec = {fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None}
 
     feedback_by_food: dict = {}
@@ -599,7 +599,7 @@ async def get_recommendations(
                     "coverage_percentage": rec_list[0]["coverage"],
                 }])
         # Reîncarcă counts după insert (noua rec nu e încă în counts)
-        feedback_counts_by_rec = feedback_repo.get_counts_by_recommendation()
+        feedback_counts_by_food = feedback_repo.get_counts_by_food_id()
         existing_recs = rec_repo.get_by_user_id(request.user_id, limit=20)
         food_by_id = {f.id: f for f in foods}
         explanation_gen = ExplanationGenerator()
@@ -616,7 +616,7 @@ async def get_recommendations(
                 explanations=[rec.explanation] if rec.explanation else None,
                 matched_rules=[],
             )
-            counts = feedback_counts_by_rec.get(rec.id, {"likes": 0, "dislikes": 0})
+            counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append({
                 "food_id": food.id,
                 "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
@@ -681,7 +681,7 @@ async def get_recommendations(
                     explanations=orig.get("explanations"),
                     matched_rules=orig.get("matched_rules"),
                 )
-                counts = feedback_counts_by_rec.get(rec.id, {"likes": 0, "dislikes": 0})
+                counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
                 recommendations.append({
                     "food_id": food.id,
                     "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
@@ -709,7 +709,7 @@ async def get_recommendations(
                 explanations=[rec.explanation] if rec.explanation else None,
                 matched_rules=[],
             )
-            counts = feedback_counts_by_rec.get(rec.id, {"likes": 0, "dislikes": 0})
+            counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append({
                 "food_id": food.id,
                 "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
@@ -776,7 +776,7 @@ async def get_recommendations(
                 explanations=orig.get("explanations"),
                 matched_rules=orig.get("matched_rules"),
             )
-            counts = feedback_counts_by_rec.get(rec.id, {"likes": 0, "dislikes": 0})
+            counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append({
                 "food_id": food.id,
                 "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},

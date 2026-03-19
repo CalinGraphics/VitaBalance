@@ -215,6 +215,11 @@ const RecommendationCard = ({
 
           {/* Zona de feedback fixată la baza cardului */}
           <div className="mt-auto pt-4">
+            {counts.likes > 0 && (
+              <p className="text-xs text-emerald-400/90 mb-2">
+                Apreciat de {counts.likes} {counts.likes === 1 ? 'utilizator' : 'utilizatori'}
+              </p>
+            )}
             <div className="flex flex-row items-center justify-between">
               <p className="text-xs sm:text-sm text-slate-300">
                 Cum ți se pare această recomandare?
