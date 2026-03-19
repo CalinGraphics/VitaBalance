@@ -568,7 +568,7 @@ async def get_recommendations(
     has_lab_data = False
     if lab_results is not None:
         for key in [
-            "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
+            "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
             "protein", "zinc", "folate", "vitamin_a", "iodine", "vitamin_k", "potassium"
         ]:
             if getattr(lab_results, key, None) is not None:
