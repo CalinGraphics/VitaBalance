@@ -565,6 +565,15 @@ async def get_recommendations(
 
     calculator = DeficitCalculator()
     deficits = calculator.calculate_deficits(user, lab_results)
+    has_lab_data = False
+    if lab_results is not None:
+        for key in [
+            "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
+            "protein", "zinc", "folate", "vitamin_a", "iodine", "vitamin_k", "potassium"
+        ]:
+            if getattr(lab_results, key, None) is not None:
+                has_lab_data = True
+                break
 
     recommendations: List[dict] = []
     if is_replace_only:
@@ -589,6 +598,7 @@ async def get_recommendations(
                     coverage=rec_list[0]["coverage"],
                     explanations=rec_list[0].get("explanations"),
                     matched_rules=rec_list[0].get("matched_rules"),
+                    has_lab_data=has_lab_data,
                 )
                 rec_repo.insert_many([{
                     "user_id": user.id,
@@ -615,6 +625,7 @@ async def get_recommendations(
                 coverage=rec.coverage_percentage or 0,
                 explanations=[rec.explanation] if rec.explanation else None,
                 matched_rules=[],
+                has_lab_data=has_lab_data,
             )
             counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append({
@@ -652,6 +663,7 @@ async def get_recommendations(
                 coverage=rec["coverage"],
                 explanations=rec.get("explanations"),
                 matched_rules=rec.get("matched_rules"),
+                has_lab_data=has_lab_data,
             )
             to_insert.append({
                 "user_id": user.id,
@@ -680,6 +692,7 @@ async def get_recommendations(
                     coverage=orig["coverage"],
                     explanations=orig.get("explanations"),
                     matched_rules=orig.get("matched_rules"),
+                    has_lab_data=has_lab_data,
                 )
                 counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
                 recommendations.append({
@@ -708,6 +721,7 @@ async def get_recommendations(
                 coverage=rec.coverage_percentage or 0,
                 explanations=[rec.explanation] if rec.explanation else None,
                 matched_rules=[],
+                has_lab_data=has_lab_data,
             )
             counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append({
@@ -749,6 +763,7 @@ async def get_recommendations(
                 coverage=rec["coverage"],
                 explanations=rec.get("explanations"),
                 matched_rules=rec.get("matched_rules"),
+                has_lab_data=has_lab_data,
             )
             to_insert.append({
                 "user_id": user.id,
@@ -775,6 +790,7 @@ async def get_recommendations(
                 coverage=orig["coverage"],
                 explanations=orig.get("explanations"),
                 matched_rules=orig.get("matched_rules"),
+                has_lab_data=has_lab_data,
             )
             counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append({

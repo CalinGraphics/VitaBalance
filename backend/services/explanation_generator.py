@@ -24,7 +24,8 @@ class ExplanationGenerator:
         score: float,
         coverage: float,
         explanations: Optional[List[str]] = None,
-        matched_rules: Optional[List[str]] = None
+        matched_rules: Optional[List[str]] = None,
+        has_lab_data: bool = False,
     ) -> Dict:
         """Generează o explicație completă pentru o recomandare"""
         if explanations and len(explanations) > 0:
@@ -32,7 +33,8 @@ class ExplanationGenerator:
                 food=food,
                 explanations=explanations,
                 matched_rules=matched_rules or [],
-                coverage=coverage
+                coverage=coverage,
+                has_lab_data=has_lab_data,
             )
         
         return self._generate_traditional_explanation(
@@ -48,20 +50,32 @@ class ExplanationGenerator:
         food: FoodItem,
         explanations: List[str],
         matched_rules: List[str],
-        coverage: float
+        coverage: float,
+        has_lab_data: bool = False,
     ) -> Dict:
         portion = 150
+        is_fallback_profile_based = 'fallback_profile_based' in matched_rules
         
         if explanations:
             main_text = " ".join(explanations)
         else:
             main_text = f"Am recomandat {food.name.lower()} pentru valoarea sa nutrițională."
+        if not has_lab_data and "deficit" in main_text.lower():
+            main_text = (
+                f"Am recomandat {food.name.lower()} pentru profilul său nutritiv "
+                "și compatibilitatea cu nevoile tale generale."
+            )
         
         # Scurte bullet-uri, fără a repeta paragraful principal (evită dublarea în UI)
         reasons = []
-        if coverage > 0:
+        if coverage > 0 and not is_fallback_profile_based:
             reasons.append(f"Acoperă {coverage:.1f}% din deficitul tău nutrițional total")
-        reasons.append("Recomandat în funcție de profilul tău și analizele medicale.")
+        if is_fallback_profile_based:
+            reasons.append("Recomandare bazată pe profilul tău alimentar și compatibilitatea generală.")
+        elif has_lab_data:
+            reasons.append("Recomandat în funcție de profilul tău și analizele medicale.")
+        else:
+            reasons.append("Recomandat în funcție de profilul tău și nevoile tale nutriționale.")
         
         tips = self._generate_tips_from_rules(matched_rules, food)
         if not tips:

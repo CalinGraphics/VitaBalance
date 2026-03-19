@@ -222,6 +222,25 @@ class DeficitCalculator:
             notes_text = f"{notes_text} {lab_results.notes or ''}".lower()
         
         preferred_nutrients = self._parse_preferred_nutrients(notes_text)
+
+        # Dacă nu există analize deloc SAU există un rând dar toate valorile sunt NULL,
+        # nu calculăm deficite medicale estimate. În acest caz, recomandările vor merge
+        # pe fallback de profil, fără mesaje de tip „deficit de X”.
+        has_lab_panel = False
+        if lab_results is not None:
+            for nutrient in self.LAB_BACKED_NUTRIENTS:
+                v = self._get_lab_value(nutrient, lab_results)
+                if v is not None:
+                    has_lab_panel = True
+                    break
+        if not has_lab_panel:
+            # Dacă utilizatorul menționează explicit în observații nevoia de anumiți nutrienți,
+            # păstrăm doar acele prioritizări minime.
+            for nutrient in preferred_nutrients:
+                if nutrient in nutrients:
+                    rdi = self.get_rdi(nutrient, user)
+                    deficits[nutrient] = max(deficits.get(nutrient, 0), 0.3 * rdi)
+            return deficits
         
         for nutrient in nutrients:
             rdi = self.get_rdi(nutrient, user)
