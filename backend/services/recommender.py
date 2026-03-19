@@ -163,6 +163,7 @@ class RecommenderService:
             total_score = 0.0
             total_coverage = 0.0
             covered_nutrients: List[str] = []
+            nutrient_coverages: List[Tuple[str, float, float]] = []
 
             for nutrient, value_per_100g in nutrient_values.items():
                 if value_per_100g <= 0:
@@ -177,6 +178,7 @@ class RecommenderService:
                 total_score += coverage
                 total_coverage += coverage
                 covered_nutrients.append(nutrient)
+                nutrient_coverages.append((nutrient, portion_value, coverage))
 
             if not covered_nutrients or total_score <= 0:
                 continue
@@ -188,10 +190,26 @@ class RecommenderService:
             ]
             nutrients_text = ", ".join(pretty_nutrients)
 
+            # Explicație mai specifică pe aliment:
+            # evidențiem top contribuții nutriționale pentru porția sugerată.
+            nutrient_coverages.sort(key=lambda x: x[2], reverse=True)
+            highlights = nutrient_coverages[:3]
+            highlight_parts: List[str] = []
+            for nutrient, portion_value, cov in highlights:
+                label = nutrient_labels.get(nutrient, nutrient)
+                if portion_value >= 10:
+                    amount = f"{portion_value:.0f}"
+                else:
+                    amount = f"{portion_value:.1f}"
+                highlight_parts.append(
+                    f"{label}: ~{amount} per porție ({cov:.1f}% din aportul zilnic recomandat)"
+                )
+
             explanation = (
-                "Acest aliment are un profil nutritiv echilibrat și poate susține "
-                "aportul zilnic recomandat pentru mai mulți nutrienți esențiali "
-                f"({nutrients_text})."
+                f"{food.name} a fost selectat pe baza compatibilității clinico-nutriționale "
+                "cu profilul tău, pentru porția alimentară orientativă recomandată. "
+                f"Contribuții nutriționale dominante: {'; '.join(highlight_parts)}. "
+                f"Acoperirea globală estimată vizează în principal: {nutrients_text}."
             )
 
             fallback_recommendations.append((
