@@ -560,6 +560,24 @@ class NutritionalRuleEngine:
         'colecistită': ['ouă', 'grassimi'],
     }
 
+    # Alias-uri / formulări variate întâlnite în texte lungi de observații.
+    # Cheia este forma canonică folosită în MEDICAL_CONDITION_RESTRICTIONS.
+    CONDITION_ALIASES: Dict[str, List[str]] = {
+        'diabet': ['diabet', 'diabet zaharat', 'prediabet', 'glicemie mare', 'hiperglicemie'],
+        'hipertensiune': ['hipertensiune', 'hta', 'hipertensiune arteriala', 'tensiune mare'],
+        'celiachie': ['celiachie', 'boala celiaca', 'boala celiacă'],
+        'gluten': ['intoleranta la gluten', 'intoleranta gluten', 'sensibilitate la gluten'],
+        'lactoză': ['intoleranta la lactoza', 'intoleranta lactoza', 'lactoza', 'lactoză'],
+        'rinichi': ['boala cronica de rinichi', 'insuficienta renala', 'insuficienta renala cronica', 'bcr', 'renal'],
+        'reflux': ['reflux', 'gerd', 'boala de reflux', 'arsuri gastrice'],
+        'gastrita': ['gastrita', 'gastrită'],
+        'gout': ['guta', 'gută', 'hyperuricemie', 'hiperuricemie'],
+        'ibs': ['colon iritabil', 'ibs', 'sindrom colon iritabil'],
+        'colitis': ['colita', 'colită', 'colitis'],
+        'crohn': ['crohn', 'boala crohn'],
+        'ficat': ['ficat gras', 'steatoza hepatica', 'steatoza hepatica', 'hepatita'],
+    }
+
     # Sinonime: când utilizatorul menționează X, verificăm și variantele în numele alimentelor
     FOOD_RESTRICTION_SYNONYMS: Dict[str, List[str]] = {
         'pătlăgele': ['pătlăgele', 'patlagele', 'vinete', 'eggplant'],
@@ -604,7 +622,14 @@ class NutritionalRuleEngine:
         
         # 1) Condiții medicale cunoscute → restricții alimentare
         for cond_key, food_keywords in self.MEDICAL_CONDITION_RESTRICTIONS.items():
-            if self._normalize_text(cond_key) in conditions_lower:
+            cond_key_norm = self._normalize_text(cond_key)
+            matched = cond_key_norm in conditions_lower
+            if not matched:
+                for alias in self.CONDITION_ALIASES.get(cond_key, []):
+                    if self._normalize_text(alias) in conditions_lower:
+                        matched = True
+                        break
+            if matched:
                 for kw in food_keywords:
                     if kw not in forbidden_keywords:
                         forbidden_keywords.append(kw)
@@ -712,6 +737,32 @@ class NutritionalRuleEngine:
             patterns_norm = [self._normalize_text(p) for p in patterns]
             if any(pattern in conditions_lower for pattern in patterns_norm):
                 forbidden_categories.append(category)
+
+        # Extrage explicit liste compuse după negări de tip:
+        # "nu mananc peste, pui", "nu am voie peste si pui", etc.
+        list_patterns = [
+            r'nu\s+(?:mananc|pot manca|am voie)\s+([^.;!?]+)',
+            r'fara\s+([^.;!?]+)',
+            r'evit\s+([^.;!?]+)',
+            r'nu\s+consum\s+([^.;!?]+)',
+            r'exclud\s+([^.;!?]+)',
+            r'interzis\s+([^.;!?]+)',
+        ]
+        for pattern in list_patterns:
+            for m in re.finditer(pattern, conditions_lower):
+                segment = m.group(1)
+                # Tăiem eventuale continuări care schimbă sensul propoziției.
+                segment = re.split(r'\b(?:dar|insa|except|in afara de)\b', segment)[0]
+                parts = re.split(r',|\bsi\b|\bsau\b', segment)
+                for part in parts:
+                    token = part.strip()
+                    if not token:
+                        continue
+                    # Curățare de stop words uzuale din expresii compuse.
+                    token = re.sub(r'\b(?:de|din|la|cu|pe|care|ce|sa)\b', ' ', token).strip()
+                    token = re.sub(r'\s+', ' ', token).strip()
+                    if len(token) > 2 and token not in forbidden_keywords:
+                        forbidden_keywords.append(token)
         
         # Patternuri generale – extrag orice aliment menționat ca interzis
         general_patterns = [
