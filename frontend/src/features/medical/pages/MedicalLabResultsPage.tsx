@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft } from 'lucide-react'
+import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft, Trash2 } from 'lucide-react'
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
 import { labResultsService } from '../../../services/api'
 import { extractTextFromPdfFile } from '../../../shared/utils/pdfTextExtractor'
@@ -179,13 +179,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         }
       }
 
-      const hasAnyValue =
-        LAB_KEYS.some((k) => parseOptionalDecimal(inputs[k]) !== undefined) ||
-        (inputs.notes?.trim()?.length ?? 0) > 0
-
-      if (hasAnyValue) {
-        await labResultsService.create(payload)
-      }
+      await labResultsService.create(payload)
       onComplete()
     } catch (err: any) {
       console.error('Eroare la salvarea analizelor:', err)
@@ -214,6 +208,26 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
 
   const handleSkip = () => {
     onComplete()
+  }
+
+  const handleClearAll = () => {
+    setInputs({
+      hemoglobin: '',
+      ferritin: '',
+      vitamin_d: '',
+      vitamin_b12: '',
+      calcium: '',
+      magnesium: '',
+      zinc: '',
+      protein: '',
+      folate: '',
+      vitamin_a: '',
+      iodine: '',
+      vitamin_k: '',
+      potassium: '',
+      notes: '',
+    })
+    setError(null)
   }
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -324,7 +338,8 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
           <div className="bg-blue-900/30 border border-blue-500/30 rounded-xl p-4 mb-6">
             <p className="text-sm text-blue-200">
               <strong>Notă:</strong> Dacă nu ai analize recente, poți sări peste acest pas. 
-              Sistemul va folosi estimări bazate pe profilul tău.
+              Poți șterge orice valoare (sau toate) și salva – recomandările se vor actualiza 
+              pe baza noilor date și a profilului tău.
             </p>
           </div>
 
@@ -504,7 +519,15 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
               rows={4}
             />
 
-            <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch flex-wrap">
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="w-full sm:flex-1 min-h-[44px] rounded-xl border border-rose-500/40 bg-rose-500/10 px-6 py-3.5 text-sm font-semibold text-rose-300 hover:bg-rose-500/20 transition inline-flex items-center justify-center gap-2 touch-manipulation"
+              >
+                <Trash2 className="w-5 h-5" />
+                Șterge toate valorile
+              </button>
               <button
                 type="button"
                 onClick={handleSkip}

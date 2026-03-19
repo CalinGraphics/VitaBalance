@@ -107,6 +107,45 @@ class FeedbackRepository:
                 counts[rec_id]["dislikes"] += 1
         return counts
 
+    def get_counts_by_food_id(self) -> Dict[int, Dict[str, int]]:
+        """
+        Returnează pentru fiecare food_id agregatul de likes/dislikes din toate
+        feedback-urile, astfel încât alți utilizatori să vadă că o recomandare
+        a mai fost apreciată.
+        """
+        resp = self._client.table(self.TABLE).select("recommendation_id, rating").execute()
+        if not resp.data:
+            return {}
+        rec_ids = {r["recommendation_id"] for r in resp.data if r.get("recommendation_id") is not None}
+        if not rec_ids:
+            return {}
+        rec_resp = (
+            self._client.table("recommendations")
+            .select("id, food_id")
+            .in_("id", list(rec_ids))
+            .execute()
+        )
+        rec_to_food: Dict[int, int] = {}
+        if rec_resp.data:
+            for r in rec_resp.data:
+                fid = r.get("food_id")
+                if fid is not None:
+                    rec_to_food[r["id"]] = fid
+        counts: Dict[int, Dict[str, int]] = {}
+        for row in resp.data:
+            rec_id = row.get("recommendation_id")
+            rating = row.get("rating", 0)
+            if rec_id is None or rec_id not in rec_to_food:
+                continue
+            fid = rec_to_food[rec_id]
+            if fid not in counts:
+                counts[fid] = {"likes": 0, "dislikes": 0}
+            if isinstance(rating, (int, float)) and rating >= 4:
+                counts[fid]["likes"] += 1
+            elif isinstance(rating, (int, float)) and rating <= 2:
+                counts[fid]["dislikes"] += 1
+        return counts
+
     def create(
         self,
         user_id: int,
