@@ -1,0 +1,70 @@
+{
+  "condition_food_rules": [
+    {
+      "condition_patterns": ["celiachie", "boala celiaca", "gluten", "intoleranta la gluten", "sensibilitate la gluten"],
+      "avoid_keywords": ["gluten", "grau", "faina", "paine", "paste", "ovaz", "orz"]
+    },
+    {
+      "condition_patterns": ["intoleranta lactoza", "lactoza", "lactoză", "lactate"],
+      "avoid_keywords": ["lactate", "lapte", "branza", "iaurt", "smantana"]
+    },
+    {
+      "condition_patterns": ["reflux", "gerd", "boala de reflux", "arsuri gastrice"],
+      "avoid_keywords": ["cafea", "ciocolata", "frituri", "picant", "spicy", "chili", "sos iute", "ardei iute"]
+    },
+    {
+      "condition_patterns": ["gastrita", "gastrită", "ulcer"],
+      "avoid_keywords": ["cafea", "alcool", "picant", "spicy", "acide"]
+    },
+    {
+      "condition_patterns": ["gota", "gout", "hiperuricemie"],
+      "avoid_keywords": ["organe", "fructe de mare", "carne rosie"]
+    },
+    {
+      "condition_patterns": ["boala cronica de rinichi", "insuficienta renala", "renal", "rinichi"],
+      "avoid_keywords": ["oxalat", "spanac", "rabarbar", "sare"]
+    },
+    {
+      "condition_patterns": ["diabet", "diabet zaharat", "prediabet", "glicemie mare", "hiperglicemie"],
+      "avoid_keywords": ["zahar", "sirop", "bomboane", "dulciuri"]
+    },
+    {
+      "condition_patterns": ["hipertensiune", "hta", "tensiune mare"],
+      "avoid_keywords": ["sare", "salam", "carnati", "conserva"]
+    },
+    {
+      "condition_patterns": ["ibs", "colon iritabil"],
+      "avoid_keywords": ["lactate", "fructoza", "grau"]
+    },
+    {
+      "condition_patterns": ["colita", "colitis", "crohn"],
+      "avoid_keywords": ["lactate", "grau", "alimente grase"]
+    },
+    {
+      "condition_patterns": ["diverticulita"],
+      "avoid_keywords": ["seminte", "nuci", "popcorn"]
+    },
+    {
+      "condition_patterns": ["ficat gras", "steatoza hepatica", "hepatita", "pancreatic", "colecist", "colecistita"],
+      "avoid_keywords": ["alcool", "grasimi", "frituri"]
+    }
+  ],
+  "condition_trigger_rules": [
+    {
+      "condition_patterns": ["boala cronica de rinichi", "insuficienta renala", "renal", "rinichi", "oxalat"],
+      "avoid_keywords": ["spanac", "rabarbar", "nuca", "ciocolata", "ceai"]
+    },
+    {
+      "condition_patterns": ["diabet", "prediabet", "glicemie", "hiperglicemie"],
+      "avoid_keywords": ["zahar", "sirop", "dulceata", "bomboane"]
+    },
+    {
+      "condition_patterns": ["hipertensiune", "hta", "tensiune mare"],
+      "avoid_keywords": ["sare", "salam", "carnati", "conserva"]
+    },
+    {
+      "condition_patterns": ["reflux", "gerd", "arsuri gastrice", "gastrita", "ulcer"],
+      "avoid_keywords": ["picant", "spicy", "ardei iute", "chili", "jalapeno", "tabasco", "wasabi", "sos iute", "chutney picant", "otet", "citrice", "lamaie", "grapefruit", "rosii", "tomate"]
+    }
+  ]
+}

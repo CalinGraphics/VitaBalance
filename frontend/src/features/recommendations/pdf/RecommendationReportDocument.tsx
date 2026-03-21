@@ -32,6 +32,12 @@ function faraPrefixContext(s: string): string {
     .trim()
 }
 
+function normalizeSentenceEnd(s: string): string {
+  const t = (s || '').trim()
+  if (!t) return ''
+  return /[.!?]$/.test(t) ? t : `${t}.`
+}
+
 export interface RecommendationForPdf {
   food_id: number
   food: { id: number; name: string; category: string; image_url?: string }
@@ -182,7 +188,9 @@ export const RecommendationReportDocument: React.FC<RecommendationReportDocument
 
       {recommendations.map((rec, index) => {
         const descriere = faraDiacritice(faraPrefixContext(rec.explanation.text))
-        const motive = (rec.explanation.reasons || []).map((r) => faraDiacritice(faraPrefixContext(r)))
+        const motive = (rec.explanation.reasons || [])
+          .map((r) => normalizeSentenceEnd(faraDiacritice(faraPrefixContext(r))))
+          .filter(Boolean)
         return (
           <View key={rec.recommendation_id} style={styles.recommendationBlock} wrap={false}>
             <Text style={styles.foodName}>
