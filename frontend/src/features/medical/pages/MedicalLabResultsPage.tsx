@@ -62,6 +62,19 @@ const LAB_KEYS: LabKey[] = [
   'potassium',
 ]
 
+const OBSERVATION_SUGGESTIONS = [
+  'Anemie feriprivă confirmată',
+  'Deficiență de vitamina D',
+  'Deficiență de vitamina B12',
+  'Deficiență de magneziu',
+  'Deficiență de zinc',
+  'Intoleranță la lactoză',
+  'Intoleranță la gluten / boală celiacă',
+  'Hipertensiune arterială',
+  'Diabet zaharat / prediabet',
+  'Boală renală cronică',
+]
+
 function extractLabValuesFromTextLocal(text: string): Partial<Record<LabKey, number>> {
   const t = (text || '')
     .replace(/\u00a0/g, ' ')
@@ -535,6 +548,30 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
               textarea={true}
               rows={4}
             />
+            <div className="rounded-lg border border-slate-600/40 bg-slate-800/30 p-3">
+              <p className="mb-2 text-xs text-slate-300">
+                Sugestii utile pentru observații (apasă pentru a adăuga):
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {OBSERVATION_SUGGESTIONS.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() =>
+                      setInputs((prev) => {
+                        const current = (prev.notes || '').trim()
+                        if (!current) return { ...prev, notes: item }
+                        if (current.toLowerCase().includes(item.toLowerCase())) return prev
+                        return { ...prev, notes: `${current}; ${item}` }
+                      })
+                    }
+                    className="rounded-full border border-neonCyan/40 bg-neonCyan/10 px-3 py-1.5 text-xs font-medium text-neonCyan hover:bg-neonCyan/20 transition"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-4 items-stretch flex-wrap">
               <button

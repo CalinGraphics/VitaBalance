@@ -160,7 +160,7 @@ class RecommenderService:
                 'potassium': getattr(food, 'potassium', 0) or 0,
             }
 
-            portion_grams = float(self._portion_for_category(food.category))
+            portion_grams = float(self._portion_for_category(food.category, user))
             total_score = 0.0
             total_coverage = 0.0
             covered_nutrients: List[str] = []
@@ -255,7 +255,7 @@ class RecommenderService:
         folded = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
         return folded
 
-    def _portion_for_category(self, category: str) -> int:
+    def _portion_for_category(self, category: str, user: Optional[UserProfile] = None) -> int:
         cat = self._normalize_category(category)
         portions = {
             "peste & fructe de mare": 130,
@@ -270,7 +270,16 @@ class RecommenderService:
             "alte": 140,
             "altele": 140,
         }
-        return portions.get(cat, 150)
+        base = float(portions.get(cat, 150))
+        if user:
+            activity_factor = {
+                "sedentary": 0.95,
+                "moderate": 1.0,
+                "active": 1.1,
+                "very_active": 1.2,
+            }.get((user.activity_level or "moderate").lower(), 1.0)
+            base *= activity_factor
+        return max(30, int(round(base)))
 
     def _category_quality_factor(self, category: str) -> float:
         cat = self._normalize_category(category)

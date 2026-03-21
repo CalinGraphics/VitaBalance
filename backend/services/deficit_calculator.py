@@ -314,6 +314,16 @@ class DeficitCalculator:
         for nutrient, keywords in patterns:
             if any(kw in notes_text for kw in keywords):
                 preferred.add(nutrient)
+
+        # Semnale clinice frecvente din observații/diagnostic ce trebuie să influențeze prioritizarea.
+        if any(term in notes_text for term in ['anemie', 'anemic', 'anemia']):
+            preferred.add('iron')
+        if any(term in notes_text for term in ['deficienta de vitamina d', 'deficiență de vitamina d', 'hipovitaminoza d']):
+            preferred.add('vitamin_d')
+        if any(term in notes_text for term in ['deficienta de vitamina b12', 'deficiență de vitamina b12']):
+            preferred.add('vitamin_b12')
+        if any(term in notes_text for term in ['deficienta de magneziu', 'deficiență de magneziu']):
+            preferred.add('magnesium')
         
         return preferred
     

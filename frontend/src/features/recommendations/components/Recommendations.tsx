@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { UtensilsCrossed, Download } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
@@ -49,6 +49,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(10)
+  const latestFetchIdRef = useRef(0)
   const [prevUserValues, setPrevUserValues] = useState({
     diet_type: user.diet_type,
     activity_level: user.activity_level,
@@ -61,6 +62,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   })
 
   const fetchRecommendations = async (forceRegenerate: boolean = false) => {
+    const fetchId = ++latestFetchIdRef.current
     try {
       if (import.meta.env.DEV) {
         console.log('fetchRecommendations called for user.id:', user.id, 'forceRegenerate:', forceRegenerate)
@@ -69,6 +71,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       setError(null)
       if (!user || !user.id) {
         console.error('User sau user.id lipsește!', user)
+        if (fetchId !== latestFetchIdRef.current) return
         setError('ID-ul utilizatorului lipsește. Vă rugăm să vă conectați din nou.')
         setLoading(false)
         return
@@ -79,6 +82,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         console.log('Recomandări primite:', data)
       }
       
+      if (fetchId !== latestFetchIdRef.current) return
       if (Array.isArray(data) && data.length > 0) {
         setRecommendations(data)
         setVisibleCount(Math.min(10, data.length))
@@ -108,9 +112,11 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         }
       }
       
+      if (fetchId !== latestFetchIdRef.current) return
       setError(errorMessage)
       setRecommendations([])
     } finally {
+      if (fetchId !== latestFetchIdRef.current) return
       setLoading(false)
     }
   }

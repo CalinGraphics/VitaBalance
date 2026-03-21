@@ -32,6 +32,7 @@ class ExplanationGenerator:
         if explanations and len(explanations) > 0:
             return self._generate_from_rule_explanations(
                 food=food,
+                user=user,
                 explanations=explanations,
                 matched_rules=matched_rules or [],
                 coverage=coverage,
@@ -49,12 +50,13 @@ class ExplanationGenerator:
     def _generate_from_rule_explanations(
         self,
         food: FoodItem,
+        user: UserProfile,
         explanations: List[str],
         matched_rules: List[str],
         coverage: float,
         has_lab_data: bool = False,
     ) -> Dict:
-        portion = self._estimate_portion_by_category(food)
+        portion = self._estimate_portion_by_category(food, user)
         is_fallback_profile_based = 'fallback_profile_based' in matched_rules
         
         if explanations:
@@ -108,7 +110,7 @@ class ExplanationGenerator:
         coverage: float
     ) -> Dict:
         """Generează explicație tradițională (fallback)"""
-        portion = self._estimate_portion_by_category(food)
+        portion = self._estimate_portion_by_category(food, user)
         reasons = []
         tips = []
         alternatives = []
@@ -176,7 +178,7 @@ class ExplanationGenerator:
             'alternatives': alternatives if alternatives else None
         }
 
-    def _estimate_portion_by_category(self, food: FoodItem) -> int:
+    def _estimate_portion_by_category(self, food: FoodItem, user: Optional[UserProfile] = None) -> int:
         """Porție orientativă în grame, diferențiată pe categorii alimentare."""
         category = self._normalize_category(food.category or "")
         portions = {
@@ -192,7 +194,16 @@ class ExplanationGenerator:
             "alte": 140,
             "altele": 140,
         }
-        return portions.get(category, 150)
+        base = float(portions.get(category, 150))
+        if user:
+            activity_factor = {
+                "sedentary": 0.95,
+                "moderate": 1.0,
+                "active": 1.1,
+                "very_active": 1.2,
+            }.get((user.activity_level or "moderate").lower(), 1.0)
+            base *= activity_factor
+        return max(30, int(round(base)))
 
     def _normalize_category(self, value: str) -> str:
         raw = (value or "").strip().lower()

@@ -72,6 +72,31 @@ class NutritionalRuleEngine:
         raw = (value or "").strip().lower().replace("_", " ").replace("-", " ")
         folded = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
         return re.sub(r"\s+", " ", folded).strip()
+
+    def _portion_for_food(self, food: FoodItem, user: UserProfile) -> int:
+        cat = self._normalize_text(food.category or "")
+        portions = {
+            "peste & fructe de mare": 130,
+            "carne": 130,
+            "oua": 120,
+            "leguminoase": 170,
+            "legume": 200,
+            "fructe": 180,
+            "lactate": 200,
+            "nuci & seminte": 40,
+            "cereale": 150,
+            "alte": 140,
+            "altele": 140,
+        }
+        base = float(portions.get(cat, 150))
+        activity_factor = {
+            "sedentary": 0.95,
+            "moderate": 1.0,
+            "active": 1.1,
+            "very_active": 1.2,
+        }.get((user.activity_level or "moderate").lower(), 1.0)
+        adjusted = int(round(base * activity_factor))
+        return max(30, adjusted)
     
     def evaluate_food(
         self,
@@ -144,6 +169,54 @@ class NutritionalRuleEngine:
                 final_explanation = explanations_text
                 final_explanations.append(final_explanation)
                 final_matched_rules.extend(nutrient_rules[nutrient_str])
+
+            # Acoperire generică pentru nutrienții deficitari care nu au reguli scoped active.
+            # Fără acest pas, unele deficite (ex. anemie + vitamina D) pot părea că nu schimbă recomandările.
+            portion_grams = self._portion_for_food(food, user)
+            food_values = {
+                'iron': food.iron or 0,
+                'magnesium': food.magnesium or 0,
+                'calcium': food.calcium or 0,
+                'vitamin_d': food.vitamin_d or 0,
+                'vitamin_b12': food.vitamin_b12 or 0,
+                'zinc': food.zinc or 0,
+                'vitamin_c': food.vitamin_c or 0,
+                'folate': getattr(food, 'folate', 0) or 0,
+                'vitamin_a': getattr(food, 'vitamin_a', 0) or 0,
+                'iodine': getattr(food, 'iodine', 0) or 0,
+                'vitamin_k': getattr(food, 'vitamin_k', 0) or 0,
+                'potassium': getattr(food, 'potassium', 0) or 0,
+            }
+            nutrient_labels = {
+                'iron': 'fier',
+                'magnesium': 'magneziu',
+                'calcium': 'calciu',
+                'vitamin_d': 'vitamina D',
+                'vitamin_b12': 'vitamina B12',
+                'zinc': 'zinc',
+                'vitamin_c': 'vitamina C',
+                'folate': 'folat',
+                'vitamin_a': 'vitamina A',
+                'iodine': 'iod',
+                'vitamin_k': 'vitamina K',
+                'potassium': 'potasiu',
+            }
+            for nutrient_str, deficit_amount in deficits.items():
+                if deficit_amount <= 0 or nutrient_str in nutrient_scores:
+                    continue
+                nutrient_value = food_values.get(nutrient_str, 0)
+                if nutrient_value <= 0:
+                    continue
+                portion_value = (nutrient_value * portion_grams) / 100.0
+                generic_score = min(4.0, (portion_value / max(1.0, deficit_amount)) * 2.5)
+                if generic_score <= 0:
+                    continue
+                nutrient_scores[nutrient_str] = generic_score
+                final_explanations.append(
+                    f"Contribuie la deficitul de {nutrient_labels.get(nutrient_str, nutrient_str)}: "
+                    f"~{portion_value:.1f} per porția sugerată ({portion_grams}g)."
+                )
+                final_matched_rules.append(f"generic_{nutrient_str}")
             
             total_score = sum(nutrient_scores.values())
             nutrients_covered = list(nutrient_scores.keys())
@@ -211,26 +284,28 @@ class NutritionalRuleEngine:
         deficiency_level = self._classify_deficiency(deficit, NutrientType.IRON)
         
         if deficiency_level == DeficiencyLevel.SEVERE and iron_content >= thresholds['high']:
-            portion_value = (iron_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (iron_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=10.0,
                 explanation=f"Recomandat pentru deficit sever de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_severe_high",
                 nutrient=NutrientType.IRON.value,
                 priority=10
             )
         
         elif deficiency_level == DeficiencyLevel.SEVERE and iron_content >= thresholds['medium']:
-            portion_value = (iron_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (iron_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=8.0,
                 explanation=f"Recomandat pentru deficit sever de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_severe_medium",
                 nutrient=NutrientType.IRON.value,
                 priority=9
@@ -238,13 +313,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 3: Deficit moderat + Iron high
         elif deficiency_level == DeficiencyLevel.MODERATE and iron_content >= thresholds['high']:
-            portion_value = (iron_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (iron_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=8.5,
                 explanation=f"Recomandat pentru deficit moderat de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_moderate_high",
                 nutrient=NutrientType.IRON.value,
                 priority=8
@@ -252,13 +328,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 4: Deficit moderat + Iron medium
         elif deficiency_level == DeficiencyLevel.MODERATE and iron_content >= thresholds['medium']:
-            portion_value = (iron_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (iron_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=6.0,
                 explanation=f"Recomandat pentru deficit moderat de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_moderate_medium",
                 nutrient=NutrientType.IRON.value,
                 priority=7
@@ -266,13 +343,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 5: Deficit mild + Iron high
         elif deficiency_level == DeficiencyLevel.MILD and iron_content >= thresholds['high']:
-            portion_value = (iron_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (iron_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=7.0,
                 explanation=f"Recomandat pentru deficit ușor de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_mild_high",
                 nutrient=NutrientType.IRON.value,
                 priority=6
@@ -280,13 +358,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 6: Orice deficit + Iron low (dar peste pragul minim)
         elif iron_content >= thresholds['low']:
-            portion_value = (iron_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (iron_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=4.0,
                 explanation=f"Recomandat pentru aport de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_low",
                 nutrient=NutrientType.IRON.value,
                 priority=4
@@ -316,26 +395,28 @@ class NutritionalRuleEngine:
         deficiency_level = self._classify_deficiency(deficit, NutrientType.MAGNESIUM)
         
         if deficiency_level == DeficiencyLevel.SEVERE and magnesium_content >= thresholds['high']:
-            portion_value = (magnesium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (magnesium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=10.0,
                 explanation=f"Recomandat pentru deficit sever de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_severe_high",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=10
             )
         
         elif deficiency_level == DeficiencyLevel.SEVERE and magnesium_content >= thresholds['medium']:
-            portion_value = (magnesium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (magnesium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=8.0,
                 explanation=f"Recomandat pentru deficit sever de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_severe_medium",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=9
@@ -343,13 +424,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 3: Deficit moderat + Magnesium high
         elif deficiency_level == DeficiencyLevel.MODERATE and magnesium_content >= thresholds['high']:
-            portion_value = (magnesium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (magnesium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=8.5,
                 explanation=f"Recomandat pentru deficit moderat de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_moderate_high",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=8
@@ -357,13 +439,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 4: Deficit moderat + Magnesium medium
         elif deficiency_level == DeficiencyLevel.MODERATE and magnesium_content >= thresholds['medium']:
-            portion_value = (magnesium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (magnesium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=6.0,
                 explanation=f"Recomandat pentru deficit moderat de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_moderate_medium",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=7
@@ -371,13 +454,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 5: Deficit mild + Magnesium high
         elif deficiency_level == DeficiencyLevel.MILD and magnesium_content >= thresholds['high']:
-            portion_value = (magnesium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (magnesium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=7.0,
                 explanation=f"Recomandat pentru deficit ușor de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_mild_high",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=6
@@ -385,13 +469,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 6: Orice deficit + Magnesium low
         elif magnesium_content >= thresholds['low']:
-            portion_value = (magnesium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (magnesium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=4.0,
                 explanation=f"Recomandat pentru aport de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_low",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=4
@@ -420,26 +505,28 @@ class NutritionalRuleEngine:
         deficiency_level = self._classify_deficiency(deficit, NutrientType.CALCIUM)
         
         if deficiency_level == DeficiencyLevel.SEVERE and calcium_content >= thresholds['high']:
-            portion_value = (calcium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (calcium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=10.0,
                 explanation=f"Recomandat pentru deficit sever de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_severe_high",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=10
             )
         
         elif deficiency_level == DeficiencyLevel.SEVERE and calcium_content >= thresholds['medium']:
-            portion_value = (calcium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (calcium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=8.0,
                 explanation=f"Recomandat pentru deficit sever de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_severe_medium",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=9
@@ -447,13 +534,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 3: Deficit moderat + Calcium high
         elif deficiency_level == DeficiencyLevel.MODERATE and calcium_content >= thresholds['high']:
-            portion_value = (calcium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (calcium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=8.5,
                 explanation=f"Recomandat pentru deficit moderat de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_moderate_high",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=8
@@ -461,13 +549,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 4: Deficit moderat + Calcium medium
         elif deficiency_level == DeficiencyLevel.MODERATE and calcium_content >= thresholds['medium']:
-            portion_value = (calcium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (calcium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=6.0,
                 explanation=f"Recomandat pentru deficit moderat de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_moderate_medium",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=7
@@ -475,13 +564,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 5: Deficit mild + Calcium high
         elif deficiency_level == DeficiencyLevel.MILD and calcium_content >= thresholds['high']:
-            portion_value = (calcium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (calcium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=7.0,
                 explanation=f"Recomandat pentru deficit ușor de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_mild_high",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=6
@@ -489,13 +579,14 @@ class NutritionalRuleEngine:
         
         # REGULĂ 6: Orice deficit + Calcium low
         elif calcium_content >= thresholds['low']:
-            portion_value = (calcium_content * 150) / 100
+            portion_grams = self._portion_for_food(food, user)
+            portion_value = (calcium_content * portion_grams) / 100
             coverage_pct = min(100, (portion_value / deficit) * 100)
             return RuleResult(
                 matched=True,
                 score=4.0,
                 explanation=f"Recomandat pentru aport de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de 150g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_low",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=4
@@ -1152,7 +1243,7 @@ class NutritionalRuleEngine:
         raportul (portion/deficit) saturează imediat la 100% și pare „mereu 100”.
         Pentru stabilitate, folosim un denominator minim legat de RDI (25% din RDI) pentru nutrienții deficitari.
         """
-        portion_grams = 150
+        portion_grams = self._portion_for_food(food, user)
         total_weighted_coverage = 0
         total_weight = 0
 
