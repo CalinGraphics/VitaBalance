@@ -1,4 +1,6 @@
 from typing import Dict, Optional
+import re
+import unicodedata
 from domain.models import UserProfile, LabResultItem
 
 
@@ -297,33 +299,72 @@ class DeficitCalculator:
         return deficits
     
     def _parse_preferred_nutrients(self, notes_text: str) -> set:
-        """Detectează din observații nutrienți preferați (ex: 'bogat în zinc', 'nevoie de zinc')."""
+        """Detectează din observații nutrienți preferați pe baza unui set extins de pattern-uri."""
         preferred = set()
         if not notes_text:
             return preferred
-        
-        patterns = [
-            ('zinc', ['zinc', 'zn', 'bogat in zinc', 'bogate in zinc', 'nevoie de zinc', 'am nevoie de zinc']),
-            ('iron', ['fier', 'fer', 'bogat in fier', 'nevoie de fier', 'am nevoie de fier']),
-            ('calcium', ['calciu', 'calcium', 'bogat in calciu', 'nevoie de calciu']),
-            ('magnesium', ['magneziu', 'magnesium', 'bogat in magneziu', 'nevoie de magneziu']),
-            ('vitamin_d', ['vitamina d', 'vit d', 'vitamin d', 'bogat in vitamina d']),
-            ('vitamin_b12', ['b12', 'cobalamina', 'bogat in b12']),
-        ]
-        
-        for nutrient, keywords in patterns:
-            if any(kw in notes_text for kw in keywords):
-                preferred.add(nutrient)
 
-        # Semnale clinice frecvente din observații/diagnostic ce trebuie să influențeze prioritizarea.
-        if any(term in notes_text for term in ['anemie', 'anemic', 'anemia']):
-            preferred.add('iron')
-        if any(term in notes_text for term in ['deficienta de vitamina d', 'deficiență de vitamina d', 'hipovitaminoza d']):
-            preferred.add('vitamin_d')
-        if any(term in notes_text for term in ['deficienta de vitamina b12', 'deficiență de vitamina b12']):
-            preferred.add('vitamin_b12')
-        if any(term in notes_text for term in ['deficienta de magneziu', 'deficiență de magneziu']):
-            preferred.add('magnesium')
+        normalized = unicodedata.normalize("NFKD", notes_text.lower()).encode("ascii", "ignore").decode("ascii")
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+
+        pattern_map = {
+            'iron': [
+                r"\banemi[eaic]\b", r"\bferipriv", r"\bfier\b", r"\bferitin", r"\bhemoglobin[ae]?\b",
+                r"(deficienta|deficit|lipsa)\s+de\s+fier",
+            ],
+            'vitamin_d': [
+                r"\bvit(?:amina)?\s*d\b", r"\b25\s*oh\s*d\b", r"\bhipovitaminoza d\b",
+                r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*d",
+            ],
+            'vitamin_b12': [
+                r"\bb\s*12\b", r"\bcobalamin", r"\banemie megaloblastica\b",
+                r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*b\s*12",
+            ],
+            'magnesium': [
+                r"\bmagneziu\b", r"\bmagnesium\b", r"\bhypomagnes", r"\bhipomagnez",
+                r"(deficienta|deficit|lipsa)\s+de\s+magneziu",
+            ],
+            'calcium': [
+                r"\bcalciu\b", r"\bcalcium\b", r"\bhipocalc", r"\bosteopen", r"\bosteopor",
+                r"(deficienta|deficit|lipsa)\s+de\s+calciu",
+            ],
+            'zinc': [
+                r"\bzinc\b", r"\bzn\b", r"\bhipozinc",
+                r"(deficienta|deficit|lipsa)\s+de\s+zinc",
+            ],
+            'folate': [
+                r"\bfolat\b", r"\bacid folic\b", r"\bvit(?:amina)?\s*b9\b",
+                r"(deficienta|deficit|lipsa)\s+de\s+(folat|acid folic|vit(?:amina)?\s*b9)",
+            ],
+            'vitamin_a': [
+                r"\bvit(?:amina)?\s*a\b", r"\bretinol\b",
+                r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*a",
+            ],
+            'vitamin_k': [
+                r"\bvit(?:amina)?\s*k\b", r"\bcoagulare\b",
+                r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*k",
+            ],
+            'iodine': [
+                r"\biod\b", r"\biodine\b", r"\btiroid",
+                r"(deficienta|deficit|lipsa)\s+de\s+iod",
+            ],
+            'potassium': [
+                r"\bpotasiu\b", r"\bpotassium\b", r"\bhipokaliem",
+                r"(deficienta|deficit|lipsa)\s+de\s+potasiu",
+            ],
+            'protein': [
+                r"\bproteine?\b", r"\bhipoprotein", r"\bsarcopen",
+                r"(deficienta|deficit|lipsa)\s+de\s+proteine?",
+            ],
+            'vitamin_c': [
+                r"\bvit(?:amina)?\s*c\b", r"\bscorbut\b",
+                r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*c",
+            ],
+        }
+
+        for nutrient, regexes in pattern_map.items():
+            if any(re.search(rx, normalized, re.IGNORECASE) for rx in regexes):
+                preferred.add(nutrient)
         
         return preferred
     

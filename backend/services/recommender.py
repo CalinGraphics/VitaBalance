@@ -77,7 +77,7 @@ class RecommenderService:
             return self._generate_fallback_recommendations(user=effective_user, foods=foods)
 
         recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
-        return recommendations[:20]
+        return self._rebalance_by_category(user=effective_user, foods=foods, recommendations=recommendations)
     
     def _apply_feedback_adjustments(
         self,
@@ -189,6 +189,8 @@ class RecommenderService:
             quality_factor = self._category_quality_factor(food.category)
             total_score *= quality_factor
             total_coverage *= quality_factor
+            total_score *= self._category_preference_factor(food.category, user)
+            total_coverage *= self._category_preference_factor(food.category, user)
 
             avg_coverage = total_coverage / len(covered_nutrients)
 
@@ -235,20 +237,8 @@ class RecommenderService:
         fallback_recommendations.sort(key=lambda x: x[0], reverse=True)
 
         # Diversitate pe categorii: evită top-uri dominate de o singură categorie.
-        selected: List[Dict] = []
-        per_category_counts: Dict[str, int] = {}
-        for _, item in fallback_recommendations:
-            food_obj = next((f for f in foods if f.id == item["food_id"]), None)
-            category_key = self._normalize_category(food_obj.category if food_obj else "")
-            max_per_category = self._max_items_per_category(category_key)
-            current = per_category_counts.get(category_key, 0)
-            if current >= max_per_category:
-                continue
-            selected.append(item)
-            per_category_counts[category_key] = current + 1
-            if len(selected) >= 20:
-                break
-        return selected
+        sorted_items = [item for _, item in fallback_recommendations]
+        return self._rebalance_by_category(user=user, foods=foods, recommendations=sorted_items)
 
     def _normalize_category(self, category: str) -> str:
         raw = (category or "").strip().lower()
@@ -301,3 +291,62 @@ class RecommenderService:
             "bauturi": 1,
         }
         return caps.get(category_key, 4)
+
+    def _category_preference_factor(self, category: str, user: UserProfile) -> float:
+        cat = self._normalize_category(category)
+        diet = (user.diet_type or "").lower()
+        if diet == "omnivore":
+            if cat in {"carne", "peste & fructe de mare", "oua"}:
+                return 1.12
+            if cat in {"nuci & seminte"}:
+                return 0.88
+        if diet == "pescatarian":
+            if cat == "peste & fructe de mare":
+                return 1.12
+            if cat == "carne":
+                return 0.1
+        return 1.0
+
+    def _rebalance_by_category(self, user: UserProfile, foods: List[FoodItem], recommendations: List[Dict]) -> List[Dict]:
+        food_by_id = {f.id: f for f in foods}
+        selected: List[Dict] = []
+        per_category_counts: Dict[str, int] = {}
+        for item in recommendations:
+            food_obj = food_by_id.get(item.get("food_id"))
+            category_key = self._normalize_category(food_obj.category if food_obj else "")
+            max_per_category = self._max_items_per_category(category_key)
+            current = per_category_counts.get(category_key, 0)
+            if current >= max_per_category:
+                continue
+            selected.append(item)
+            per_category_counts[category_key] = current + 1
+            if len(selected) >= 20:
+                break
+
+        # Pentru omnivori, asigură cel puțin 2 recomandări din surse animale dacă sunt disponibile.
+        if (user.diet_type or "").lower() == "omnivore":
+            animal_categories = {"carne", "peste & fructe de mare", "oua"}
+            selected_ids = {x.get("food_id") for x in selected}
+            animal_selected = 0
+            for item in selected:
+                food_obj = food_by_id.get(item.get("food_id"))
+                if food_obj and self._normalize_category(food_obj.category) in animal_categories:
+                    animal_selected += 1
+            if animal_selected < 2:
+                for candidate in recommendations:
+                    fid = candidate.get("food_id")
+                    if fid in selected_ids:
+                        continue
+                    food_obj = food_by_id.get(fid)
+                    if not food_obj:
+                        continue
+                    if self._normalize_category(food_obj.category) not in animal_categories:
+                        continue
+                    selected.append(candidate)
+                    selected_ids.add(fid)
+                    animal_selected += 1
+                    if animal_selected >= 2 or len(selected) >= 20:
+                        break
+
+        selected.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
+        return selected[:20]
