@@ -2,6 +2,8 @@
 from typing import List, Dict, Optional, Tuple
 import re
 import unicodedata
+import json
+from pathlib import Path
 from dataclasses import dataclass
 from domain.models import FoodItem, UserProfile, LabResultItem
 from enum import Enum
@@ -66,12 +68,29 @@ class NutritionalRuleEngine:
             }
         }
         self.scoped_rules_engine = ScopedRulesEngine()
+        self.medical_rules_config = self._load_medical_rules_config()
 
     def _normalize_text(self, value: str) -> str:
         """Normalizează textul pentru matching robust (diacritice, underscore, spații)."""
         raw = (value or "").strip().lower().replace("_", " ").replace("-", " ")
         folded = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
         return re.sub(r"\s+", " ", folded).strip()
+
+    def _load_medical_rules_config(self) -> Dict:
+        """Încarcă reguli medicale externe (fără hardcodare în cod)."""
+        cfg_path = Path(__file__).resolve().parents[1] / "config" / "medical_rules.json"
+        if not cfg_path.exists():
+            return {"condition_food_rules": [], "condition_trigger_rules": []}
+        try:
+            with cfg_path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return {"condition_food_rules": [], "condition_trigger_rules": []}
+            data.setdefault("condition_food_rules", [])
+            data.setdefault("condition_trigger_rules", [])
+            return data
+        except Exception:
+            return {"condition_food_rules": [], "condition_trigger_rules": []}
 
     def _portion_for_food(self, food: FoodItem, user: UserProfile) -> int:
         cat = self._normalize_text(food.category or "")
@@ -622,53 +641,6 @@ class NutritionalRuleEngine:
         else:
             return DeficiencyLevel.NONE
     
-    # Mapare condiții medicale → alimente de evitat (conservator pentru siguranță)
-    MEDICAL_CONDITION_RESTRICTIONS: Dict[str, List[str]] = {
-        'celiachie': ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine', 'paste'],
-        'gluten': ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine', 'paste', 'ovăz', 'orz'],
-        'intoleranță lactoză': ['lactate', 'lapte', 'brânză', 'branza', 'iaurt', 'smântână'],
-        'lactoză': ['lactate', 'lapte', 'brânză', 'branza', 'iaurt'],
-        'reflux': ['cafea', 'ciocolată', 'grassimi', 'frituri', 'mâncăruri picante'],
-        'ged': ['cafea', 'ciocolată', 'grassimi', 'frituri'],
-        'gastrită': ['cafea', 'alcool', 'mâncăruri picante', 'acide'],
-        'gastrita': ['cafea', 'alcool'],
-        'ulcer': ['cafea', 'alcool'],
-        'gout': ['carne', 'organe', 'fructe de mare'],
-        'gota': ['carne', 'organe', 'fructe de mare'],
-        'renal': ['sare', 'potasiu', 'oxalat', 'spanac', 'rabarbar'],
-        'rinichi': ['sare', 'potasiu', 'oxalat', 'spanac', 'rabarbar'],
-        'diabet': ['zahăr', 'zahar', 'dulciuri', 'bomboane', 'sirop'],
-        'glicemie': ['zahăr', 'zahar', 'dulciuri'],
-        'hipertensiune': ['sare', 'salam', 'cârnați', 'conservă'],
-        'tensiune': ['sare', 'salam'],
-        'ibs': ['lactate', 'fructoză', 'grâu'],
-        'colitis': ['lactate', 'grâu', 'alimente grase'],
-        'crohn': ['lactate', 'grâu', 'seminte'],
-        'diverticulită': ['seminte', 'nuci', 'popcorn'],
-        'pancreatic': ['alcool', 'grassimi'],
-        'ficat': ['alcool', 'grassimi', 'frituri'],
-        'colecist': ['ouă', 'grassimi'],
-        'colecistită': ['ouă', 'grassimi'],
-    }
-
-    # Alias-uri / formulări variate întâlnite în texte lungi de observații.
-    # Cheia este forma canonică folosită în MEDICAL_CONDITION_RESTRICTIONS.
-    CONDITION_ALIASES: Dict[str, List[str]] = {
-        'diabet': ['diabet', 'diabet zaharat', 'prediabet', 'glicemie mare', 'hiperglicemie'],
-        'hipertensiune': ['hipertensiune', 'hta', 'hipertensiune arteriala', 'tensiune mare'],
-        'celiachie': ['celiachie', 'boala celiaca', 'boala celiacă'],
-        'gluten': ['intoleranta la gluten', 'intoleranta gluten', 'sensibilitate la gluten'],
-        'lactoză': ['intoleranta la lactoza', 'intoleranta lactoza', 'lactoza', 'lactoză'],
-        'rinichi': ['boala cronica de rinichi', 'insuficienta renala', 'insuficienta renala cronica', 'bcr', 'renal'],
-        'reflux': ['reflux', 'gerd', 'boala de reflux', 'arsuri gastrice'],
-        'gastrita': ['gastrita', 'gastrită'],
-        'gout': ['guta', 'gută', 'hyperuricemie', 'hiperuricemie'],
-        'ibs': ['colon iritabil', 'ibs', 'sindrom colon iritabil'],
-        'colitis': ['colita', 'colită', 'colitis'],
-        'crohn': ['crohn', 'boala crohn'],
-        'ficat': ['ficat gras', 'steatoza hepatica', 'steatoza hepatica', 'hepatita'],
-    }
-
     # Sinonime: când utilizatorul menționează X, verificăm și variantele în numele alimentelor
     FOOD_RESTRICTION_SYNONYMS: Dict[str, List[str]] = {
         'pătlăgele': ['pătlăgele', 'patlagele', 'vinete', 'eggplant'],
@@ -711,18 +683,13 @@ class NutritionalRuleEngine:
         forbidden_categories = []
         forbidden_keywords = []
         
-        # 1) Condiții medicale cunoscute → restricții alimentare
-        for cond_key, food_keywords in self.MEDICAL_CONDITION_RESTRICTIONS.items():
-            cond_key_norm = self._normalize_text(cond_key)
-            matched = cond_key_norm in conditions_lower
-            if not matched:
-                for alias in self.CONDITION_ALIASES.get(cond_key, []):
-                    if self._normalize_text(alias) in conditions_lower:
-                        matched = True
-                        break
-            if matched:
-                for kw in food_keywords:
-                    if kw not in forbidden_keywords:
+        # 1) Condiții medicale din config extern → restricții alimentare
+        for rule in self.medical_rules_config.get("condition_food_rules", []):
+            condition_patterns = [self._normalize_text(x) for x in rule.get("condition_patterns", [])]
+            avoid_keywords = [self._normalize_text(x) for x in rule.get("avoid_keywords", [])]
+            if any(p and p in conditions_lower for p in condition_patterns):
+                for kw in avoid_keywords:
+                    if kw and kw not in forbidden_keywords:
                         forbidden_keywords.append(kw)
         
         category_patterns = {
@@ -1172,20 +1139,17 @@ class NutritionalRuleEngine:
                 if kw in food_name_lower or kw in food_category_lower:
                     return False
             
-            if 'rinichi' in conditions_lower or 'oxalat' in conditions_lower or 'renal' in conditions_lower:
-                high_oxalate_foods = ['spanac', 'rabarbar', 'nucă', 'ciocolată', 'ceai']
-                if any(ox in food_name_lower or ox in food_category_lower for ox in high_oxalate_foods):
-                    return False
-            
-            if 'diabet' in conditions_lower or 'glicemie' in conditions_lower:
-                high_gi_foods = ['zahăr', 'sirop', 'dulceață', 'bomboane']
-                if any(gi in food_name_lower for gi in high_gi_foods):
-                    return False
-            
-            if 'hipertensiune' in conditions_lower or 'tensiune' in conditions_lower:
-                high_sodium_foods = ['sare', 'salam', 'cârnați', 'conservă']
-                if any(sod in food_name_lower or sod in food_category_lower for sod in high_sodium_foods):
-                    return False
+            # Reguli de tip "dacă ai condiția X, evită trigger-ele Y" din config extern.
+            for rule in self.medical_rules_config.get("condition_trigger_rules", []):
+                condition_patterns = [self._normalize_text(x) for x in rule.get("condition_patterns", [])]
+                avoid_keywords = [self._normalize_text(x) for x in rule.get("avoid_keywords", [])]
+                if not any(p and p in conditions_lower for p in condition_patterns):
+                    continue
+                for kw in avoid_keywords:
+                    if not kw:
+                        continue
+                    if kw in food_name_lower or kw in food_category_lower:
+                        return False
             
             seed_restrictions = [
                 'nu am voie seminte', 'nu am voie semințe', 'fără seminte', 'fără semințe',
