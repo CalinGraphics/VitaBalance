@@ -67,6 +67,7 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         return _empty_result()
 
     normalized = _normalize_text(text)
+    normalized_lines = [ln.strip() for ln in re.split(r"[\r\n]+", normalized) if ln and ln.strip()]
     # Versiune fără diacritice (pentru PDF-uri care înlocuiesc ă->a etc.)
     normalized_ascii = _remove_diacritics(normalized)
     result = _empty_result()
@@ -182,6 +183,46 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
             match = re.search(pattern, text_to_scan, re.IGNORECASE)
             if match:
                 val = parse_val(match.group(1))
+                if val is not None:
+                    result[key] = val
+                    break
+
+    # Fallback orientat pe linii/tabele:
+    # evită cazurile când regex generic prinde capătul inferior al intervalului de referință (ex. "15-150").
+    line_key_patterns = {
+        "hemoglobin": [r"\bhemoglobina\b", r"\bhgb\b", r"\bhb\b"],
+        "ferritin": [r"\bferitina\b", r"\bferritin\b"],
+        "vitamin_d": [r"25-?oh-?d", r"\bvit\.?\s*d\b", r"\bvitamina\s*d\b"],
+        "vitamin_b12": [r"\bb\s*12\b", r"\bvit\.?\s*b12\b", r"\bcobalamina\b"],
+        "calcium": [r"\bcalciu\b", r"\bcalcium\b"],
+        "magnesium": [r"\bmagneziu\b", r"\bmagnesium\b"],
+        "zinc": [r"\bzinc\b", r"\bzn\b"],
+        "protein": [r"\bproteine?\b", r"\bprotein[ae]?\b"],
+        "folate": [r"\bfolat\b", r"\bacid\s*folic\b", r"\bvit\.?\s*b9\b"],
+        "vitamin_a": [r"\bvit\.?\s*a\b", r"\bvitamina\s*a\b", r"\bretinol\b"],
+        "iodine": [r"\biod\b", r"\biodine\b"],
+        "vitamin_k": [r"\bvit\.?\s*k\b", r"\bvitamina\s*k\b"],
+        "potassium": [r"\bpotasiu\b", r"\bpotassium\b", r"\bk\s*mmol/l\b"],
+    }
+
+    def _extract_line_value(line: str) -> Optional[float]:
+        # Capturăm numere care NU sunt urmate imediat de un interval (ex "15-150").
+        nums = re.finditer(r"(\d+(?:[.,]\d+)?)", line)
+        for m in nums:
+            tail = line[m.end(): m.end() + 8]
+            if re.match(r"\s*[-–]\s*\d", tail):
+                continue
+            val = parse_val(m.group(1))
+            if val is not None:
+                return val
+        return None
+
+    for key, key_patterns in line_key_patterns.items():
+        if result.get(key) is not None:
+            continue
+        for line in normalized_lines:
+            if any(re.search(kp, line, re.IGNORECASE) for kp in key_patterns):
+                val = _extract_line_value(line)
                 if val is not None:
                     result[key] = val
                     break
