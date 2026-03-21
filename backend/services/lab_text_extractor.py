@@ -4,7 +4,7 @@ Suportă formate comune: Hemoglobină 13.2 g/dL, Hb: 13.2, Feritină 45 ng/mL, t
 """
 import re
 import unicodedata
-from typing import Optional, Dict
+from typing import Optional, Dict, Callable
 
 
 def _collapse_spaced_letters(text: str) -> str:
@@ -67,7 +67,12 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         return _empty_result()
 
     normalized = _normalize_text(text)
-    normalized_lines = [ln.strip() for ln in re.split(r"[\r\n]+", normalized) if ln and ln.strip()]
+    # Pentru fallback pe linii, păstrăm delimitarea inițială de linii (altfel putem amesteca valori din parametri diferiți).
+    normalized_lines = [
+        _remove_diacritics(_normalize_text(ln)).strip()
+        for ln in re.split(r"[\r\n]+", text)
+        if ln and ln.strip()
+    ]
     # Versiune fără diacritice (pentru PDF-uri care înlocuiesc ă->a etc.)
     normalized_ascii = _remove_diacritics(normalized)
     result = _empty_result()
@@ -78,6 +83,7 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         # Hemoglobină
         # unele PDF-uri pot lipi numărul de etichetă (ex: "Hemoglobină15,2")
         (r"hemoglobina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl|g\.d\.l)?", "hemoglobin"),
+        (r"hemoglobina?\s+seric[ăa]?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "hemoglobin"),
         (r"\bhb\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
         (r"\bhgb\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:g/dl|g\/dl)?", "hemoglobin"),
         (r"hemoglobin[ăa]?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "hemoglobin"),
@@ -85,26 +91,29 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         (r"hemoglobina?\s*(\d+[.,]\d+|\d+)", "hemoglobin"),
         # Feritină
         (r"feritina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:ng/ml|μg/l|ug/l)?", "ferritin"),
+        (r"ferritina?\s*[:\s]*\s*(\d+[.,]\d+|\d+)\s*(?:ng/ml|μg/l|ug/l)?", "ferritin"),
         (r"ferritin\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "ferritin"),
         (r"feritin[ăa]?\s*[:\s]*\s*(\d+[.,]\d+|\d+)", "ferritin"),
         (r"feritina?\s*(\d+[.,]\d+|\d+)", "ferritin"),
         (r"(\d+[.,]\d+|\d+)\s*(?:ng/ml)?\s*feritina?", "ferritin"),
         # Vitamina D
-        (r"(?:25-?oh-?d|vitamina?\s*d|vit\.?\s*d)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:ng/ml|nmol/l)?", "vitamin_d"),
+        (r"(?:25-?oh-?d|25\s*\(?oh\)?\s*d|vitamina?\s*d|vit\.?\s*d)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:ng/ml|nmol/l)?", "vitamin_d"),
         (r"vitamina\s*d\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_d"),
         (r"vit\.?\s*d\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_d"),
         (r"(\d+[.,]\d+|\d+)\s*(?:ng/ml)?\s*(?:25-?oh-?d|vit\.?\s*d)", "vitamin_d"),
         # Vitamina B12
-        (r"(?:vitamina?\s*b\s*12|b\s*12|cobalamina)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:pg/ml|pmol/l)?", "vitamin_b12"),
+        (r"(?:vitamina?\s*b\s*12|b\s*12|cobalamina|cianocobalamina)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:pg/ml|pmol/l)?", "vitamin_b12"),
         (r"cobalamina\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
         (r"vit\.?\s*b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
         (r"b12\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_b12"),
         # Calciu
         (r"calciu(?:\s+\w+){0,3}\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "calcium"),
+        (r"calcium(?:\s+\w+){0,3}\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "calcium"),
         (r"\bca\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "calcium"),
         (r"calciu(?:\s+\w+){0,3}\s+(\d+[.,]\d+|\d+)", "calcium"),
         # Magneziu (evităm confuzia cu Mg = unitate)
         (r"magneziu(?:\s+\w+){0,2}\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "magnesium"),
+        (r"magnesium(?:\s+\w+){0,2}\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mg/dl|mmol/l)?", "magnesium"),
         (r"magneziu(?:\s+\w+){0,2}\s+(\d+[.,]\d+|\d+)", "magnesium"),
         # Zinc
         (r"\bzn\s*[:\s]*(\d+[.,]\d+|\d+)", "zinc"),
@@ -112,22 +121,24 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         (r"zinc\s+(\d+[.,]\d+|\d+)", "zinc"),
         # Proteine
         (r"proteine?\s*(?:totale?)?\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:g/dl)?", "protein"),
+        (r"total\s+protein(?:s)?\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:g/dl)?", "protein"),
         (r"protein[ăa]?\s*[:\s]*(\d+[.,]\d+|\d+)", "protein"),
         (r"proteine\s+(\d+[.,]\d+|\d+)", "protein"),
         # Folat
-        (r"(?:folat|acid\s*folic|vitamina?\s*b9)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:ng/ml)?", "folate"),
+        (r"(?:folat|folate|acid\s*folic|folic\s*acid|vitamina?\s*b9)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:ng/ml)?", "folate"),
         (r"folat\s*[:\s]*(\d+[.,]\d+|\d+)", "folate"),
         (r"folat\s+(\d+[.,]\d+|\d+)", "folate"),
         # Vitamina A
         (r"vitamina?\s*a\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μg/dl|mcg/dl)?", "vitamin_a"),
         (r"retinol\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_a"),
         # Iod
-        (r"iod\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μg/l|mcg/l)?", "iodine"),
+        (r"(?:iod|iodina|iodine)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μg/l|mcg/l)?", "iodine"),
         (r"iod\s+(\d+[.,]\d+|\d+)", "iodine"),
         # Vitamina K
-        (r"vitamina?\s*k\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_k"),
+        (r"(?:vitamina?\s*k|vit\.?\s*k|phylloquinone|filochinona)\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_k"),
         # Potasiu (K poate fi confundat cu potasiu - folosim "potasiu" mai întâi)
         (r"potasiu\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mmol/l)?", "potassium"),
+        (r"potassium\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:mmol/l)?", "potassium"),
         (r"potasiu\s+(\d+[.,]\d+|\d+)", "potassium"),
         (r"\bk\s*[:\s]*(\d+[.,]\d+|\d+)\s*mmol/l", "potassium"),
     ]
@@ -174,6 +185,7 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         (r"folat\s*[:\s]*(\d+[.,]\d+|\d+)", "folate"),
         (r"vit\.?\s*a\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_a"),
         (r"iod\s*[:\s]*(\d+[.,]\d+|\d+)", "iodine"),
+        (r"vit\.?\s*k\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_k"),
         (r"potasiu\s*[:\s]*(\d+[.,]\d+|\d+)", "potassium"),
     ]
     for pattern, key in generic:
@@ -190,39 +202,55 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
     # Fallback orientat pe linii/tabele:
     # evită cazurile când regex generic prinde capătul inferior al intervalului de referință (ex. "15-150").
     line_key_patterns = {
-        "hemoglobin": [r"\bhemoglobina\b", r"\bhgb\b", r"\bhb\b"],
-        "ferritin": [r"\bferitina\b", r"\bferritin\b"],
+        "hemoglobin": [r"\bhemoglobina\b", r"\bhemoglobin\b", r"\bhgb\b", r"\bhb\b"],
+        "ferritin": [r"\bferitina\b", r"\bferritina\b", r"\bferritin\b"],
         "vitamin_d": [r"25-?oh-?d", r"\bvit\.?\s*d\b", r"\bvitamina\s*d\b"],
-        "vitamin_b12": [r"\bb\s*12\b", r"\bvit\.?\s*b12\b", r"\bcobalamina\b"],
+        "vitamin_b12": [r"\bb\s*12\b", r"\bvit\.?\s*b12\b", r"\bcobalamina\b", r"\bcianocobalamina\b"],
         "calcium": [r"\bcalciu\b", r"\bcalcium\b"],
         "magnesium": [r"\bmagneziu\b", r"\bmagnesium\b"],
         "zinc": [r"\bzinc\b", r"\bzn\b"],
-        "protein": [r"\bproteine?\b", r"\bprotein[ae]?\b"],
-        "folate": [r"\bfolat\b", r"\bacid\s*folic\b", r"\bvit\.?\s*b9\b"],
+        "protein": [r"\bproteine?\b", r"\bprotein[ae]?\b", r"\btotal\s+protein(?:s)?\b"],
+        "folate": [r"\bfolat\b", r"\bfolate\b", r"\bacid\s*folic\b", r"\bfolic\s*acid\b", r"\bvit\.?\s*b9\b"],
         "vitamin_a": [r"\bvit\.?\s*a\b", r"\bvitamina\s*a\b", r"\bretinol\b"],
-        "iodine": [r"\biod\b", r"\biodine\b"],
-        "vitamin_k": [r"\bvit\.?\s*k\b", r"\bvitamina\s*k\b"],
+        "iodine": [r"\biod\b", r"\biodina\b", r"\biodine\b"],
+        "vitamin_k": [r"\bvit\.?\s*k\b", r"\bvitamina\s*k\b", r"\bphylloquinone\b", r"\bfilochinona\b"],
         "potassium": [r"\bpotasiu\b", r"\bpotassium\b", r"\bk\s*mmol/l\b"],
     }
 
-    def _extract_line_value(line: str) -> Optional[float]:
-        # Capturăm numere care NU sunt urmate imediat de un interval (ex "15-150").
+    def _extract_line_value(
+        line: str,
+        key_patterns: list[str],
+        validator: Optional[Callable[[float], bool]] = None
+    ) -> Optional[float]:
+        # Căutăm numărul de după eticheta analizei și ignorăm capetele intervalelor (ex "12.0 - 15.6").
+        start_idx = None
+        for kp in key_patterns:
+            m = re.search(kp, line, re.IGNORECASE)
+            if m:
+                if start_idx is None or m.start() < start_idx:
+                    start_idx = m.start()
+        if start_idx is None:
+            return None
+
         nums = re.finditer(r"(\d+(?:[.,]\d+)?)", line)
         for m in nums:
+            if m.start() < start_idx:
+                continue
             tail = line[m.end(): m.end() + 8]
             if re.match(r"\s*[-–]\s*\d", tail):
                 continue
             val = parse_val(m.group(1))
-            if val is not None:
+            if val is not None and (validator is None or validator(val)):
                 return val
         return None
 
     for key, key_patterns in line_key_patterns.items():
         if result.get(key) is not None:
             continue
+        validator = (lambda v: 3 <= v <= 25) if key == "hemoglobin" else None
         for line in normalized_lines:
             if any(re.search(kp, line, re.IGNORECASE) for kp in key_patterns):
-                val = _extract_line_value(line)
+                val = _extract_line_value(line, key_patterns, validator)
                 if val is not None:
                     result[key] = val
                     break

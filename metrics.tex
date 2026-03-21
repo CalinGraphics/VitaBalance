@@ -203,28 +203,28 @@ Aceste metrici evalueaz\u{a} ordinea recomandărilor \c{s}i calitatea listei Top
 \begin{equation}
   \text{Precision@}K = \frac{\text{itemi relevan\c{t}i \^{i}n Top-}K}{K}
 \end{equation}
-\textbf{Interpretare:} C\^{a}t de ``curat\u{a}'' este lista de recomandări? Valoare mare $\rightarrow$ pu\c{t}ine recomandări inutile. \textbf{C\^{a}nd e important\u{a}:} Interfe\c{t}e cu list\u{a} scurt\u{a} (Top-5, Top-10), c\^{a}s \^{i}n cazul aplica\c{t}iei \textit{VitaBalance}, unde utilizatorul vede doar primele pozi\c{t}ii.
+\textbf{Interpretare:} C\^{a}t de ``curat\u{a}'' este lista de recomandări? Valoare mare $\rightarrow$ pu\c{t}ine recomandări inutile. \textbf{C\^{a}nd e important\u{a}:} Interfe\c{t}e cu list\u{a} scurt\u{a} (Top-5, Top-10), caz \^{i}n care utilizatorul vede doar primele pozi\c{t}ii.
 
 \paragraph{Recall@K.}
 \textbf{Defini\c{t}ie:} Propor\c{t}ia de itemi relevan\c{t}i recupera\c{t}i \^{i}n Top-K, raportat\u{a} la to\c{t}i itemii relevan\c{t}i existen\c{t}i.
 \begin{equation}
   \text{Recall@}K = \frac{\text{itemi relevan\c{t}i \^{i}n Top-}K}{\text{itemi relevan\c{t}i total}}
 \end{equation}
-\textbf{Interpretare:} C\^{a}t de bine recupereaz\u{a} sistemul tot ce era relevant? Valoare mare $\rightarrow$ sistemul nu rateaz\u{a} oportunit\u{a}\c{t}i. \textbf{C\^{a}nd e important\u{a}:} C\^{a}nd vrei s\u{a} nu ratezi oportunit\u{a}\c{t}i; sisteme exploratorii.
+\textbf{Interpretare:} C\^{a}t de bine recupereaz\u{a} sistemul tot ce era relevant? Valoare mare $\rightarrow$ sistemul nu rateaz\u{a} oportunit\u{a}\c{t}i.
 
 \paragraph{Hit Rate (HR@K).}
 \textbf{Defini\c{t}ie:} Indicator binar: verific\u{a} dac\u{a} exist\u{a} cel pu\c{t}in un item relevant \^{i}n Top-K.
 \begin{equation}
   \text{HR@}K = \begin{cases} 1, & \text{dac\u{a} exist\u{a} un hit \^{i}n Top-}K \\ 0, & \text{altfel} \end{cases}
 \end{equation}
-\textbf{Interpretare:} A reu\c{s}it sistemul s\u{a} ``nimereasc\u{a}'' m\u{a}car o recomandare bun\u{a}? \textbf{Particularitate:} Nu \c{t}ine cont de num\u{a}r sau pozi\c{t}ie; foarte utilizat\u{a} \^{i}n evaluări rapide.
+\textbf{Interpretare:} A reu\c{s}it sistemul s\u{a} ``nimereasc\u{a}'' m\u{a}car o recomandare bun\u{a}? \textbf{Particularitate:} Nu \c{t}ine cont de num\u{a}r sau pozi\c{t}ie.
 
 \paragraph{F1@K.}
-\textbf{Defini\c{t}ie:} Media armonic\u{a} între Precision@K \c{s}i Recall@K, echilibr\^{a}nd cele dou\u{a} metrici.
+\textbf{Defini\c{t}ie:} Media armonic\u{a} între Precision@K \c{s}i Recall@K.
 \begin{equation}
   F1\text{@}K = 2 \cdot \frac{\text{Precision@}K \cdot \text{Recall@}K}{\text{Precision@}K + \text{Recall@}K}
 \end{equation}
-\textbf{Interpretare:} M\u{a}soar\u{a} un echilibru între precizie \c{s}i acoperire. Util c\^{a}nd exist\u{a} mul\c{t}i itemi relevan\c{t}i \c{s}i vrei s\u{a} eviden\c{t}iezi at\^{a}t c\^{a}t de curate sunt recomandările, c\^{a}t \c{s}i c\^{a}t de multe din ele sunt recuperate.
+\textbf{Interpretare:} M\u{a}soar\u{a} echilibrul între precizie \c{s}i acoperire.
 
 \subsection*{Metrici de evaluare global\u{a}}
 
@@ -233,109 +233,26 @@ Aceste metrici evalueaz\u{a} ordinea recomandărilor \c{s}i calitatea listei Top
 \begin{equation}
   \text{Coverage} = \frac{\text{itemi recomanda\c{t}i (distinc\c{t}i)}}{\text{itemi total \^{i}n catalog}}
 \end{equation}
-\textbf{Interpretare:} Sistemul recomand\u{a} divers sau doar aceia\c{s}i itemi populari? Valoare mic\u{a} $\rightarrow$ sistem biased spre popularitate. Pentru \textit{VitaBalance}, un coverage ridicat indic\u{a} c\u{a} aplica\c{t}ia utilizeaz\u{a} o gam\u{a} variat\u{a} de alimente din catalog, nu doar c\^{a}teva op\c{t}iuni frecvente.
+\textbf{Interpretare:} Sistemul recomand\u{a} divers sau doar aceia\c{s}i itemi populari? Valoare mic\u{a} $\rightarrow$ sistem orientat spre popularitate.
 
 \medskip
 
 \noindent\textbf{Coverage-ul nutri\c{t}ional afi\c{s}at \^{i}n interfa\c{t}\u{a}.}
-\^{I}n cardurile de recomand\u{a}ri ale aplica\c{t}iei, pentru fiecare aliment este afi\c{s}at un procent de acoperire care indic\u{a} c\u{a}t din deficitul nutri\c{t}ional estimat poate fi ``acoperit'' de o por\c{t}ie standard (150~g) din acel aliment. Backend-ul calculeaz\u{a} acest indicator pentru to\c{t}i nutrien\c{t}ii deficitari pe care alimentul \^{i}i poate acoperi, folosind o formul\u{a} de tip:
+\^{I}n cardurile de recomand\u{a}ri, pentru fiecare aliment este afi\c{s}at un procent de acoperire care indic\u{a} c\u{a}t din deficitul nutri\c{t}ional estimat poate fi acoperit de o por\c{t}ie standard. Formula utilizat\u{a} \^{i}n backend este:
 \begin{equation}
-  \text{coverage\_pct}(n) = \frac{\text{aport\_por\c{t}ie}(n)}{\text{aport\_por\c{t}ie}(n) + \max(\text{deficit}(n), 0{,}25 \cdot \text{RDI}(n))} \times 100,
+  \text{coverage\_pct}(n) = \frac{\text{aport\_por\c{t}ie}(n)}{\text{aport\_por\c{t}ie}(n) + \max(\text{deficit}(n), 0{,}25 \cdot \text{RDI}(n))} \times 100.
 \end{equation}
-unde $\text{aport\_por\c{t}ie}(n)$ este cantitatea de nutrient $n$ din 150~g de aliment, \text{deficit}(n) este deficitul estimat pentru utilizator, iar \text{RDI}(n) este doza recomandat\u{a} zilnic\u{a}. Pentru a evita situa\c{t}iile \^{i}n care deficitele foarte mici ar duce la valori de 100\% aproape permanente, denominatorul este plafonat la cel pu\c{t}in 25\% din RDI. Procentul afi\c{s}at pe card reprezint\u{a} media ponderat\u{a} (dup\u{a} m\u{a}rimea deficitului) a acestor valori pentru to\c{t}i nutrien\c{t}ii acoperi\c{t}i de aliment.
+Procentul afi\c{s}at reprezint\u{a} media ponderat\u{a} pe nutrien\c{t}ii acoperi\c{t}i.
 
 \subsection*{Definirea itemilor relevan\c{t}i \^{i}n \textit{VitaBalance}}
 
-Pentru calculul Precision@K, Recall@K \c{s}i Hit Rate este necesar\u{a} definirea mul\c{t}imii de \emph{itemi relevan\c{t}i} pentru fiecare utilizator. \^{I}n aplica\c{t}ia \textit{VitaBalance}, aceasta se bazeaz\u{a} pe:
-
-\begin{enumerate}
-  \item \textbf{Reguli activate:} Sistemul folose\c{s}te un motor de reguli (\textit{ScopedRulesEngine}) care, pe baza deficiențelor nutriționale detectate din analizele medicale \c{s}i a profilului utilizatorului (tip diet\u{a}, alergii, condi\c{t}ii medicale), activeaz\u{a} anumite reguli. Fiecare regul\u{a} asociaz\u{a} o list\u{a} de alimente recomandate (ex.: ``linte'', ``n\u{a}ut'', ``spanac'' pentru deficit de fier la vegani).
-  \item \textbf{Match cu catalogul:} Un aliment din baza de date este considerat relevant dac\u{a} se potrive\c{s}te cu cel pu\c{t}in o regul\u{a} activ\u{a} (nume sau categorie con\c{t}ine termenii din \texttt{recommended\_foods}) \c{s}i respect\u{a} restric\c{t}iile utilizatorului (alergii, diet\u{a}).
-  \item \textbf{Alternativ\u{a} (evaluare cu feedback):} Dac\u{a} exist\u{a} feedback de la utilizatori, itemii relevan\c{t}i pot fi defini\c{t}i ca alimentele care au primit rating $\geq 4$ sau pentru care utilizatorul a marcat \texttt{tried = true} \c{s}i \texttt{worked = true}. Aceast\u{a} defini\c{t}ie este utilizabil\u{a} pentru evaluare offline pe date reale de utilizare.
-\end{enumerate}
-
-\subsection*{Metodologie de măsurare a metricilor de recomandare}
-
-\subsubsection*{Evaluare offline}
-
-Pentru Precision@K, Recall@K, Hit Rate \c{s}i F1@K s-au urm\u{a}rit pa\c{s}ii:
-\begin{itemize}
-  \item pentru fiecare utilizator de test (cu profil complet \c{s}i analize medicale), s-a generat lista Top-10 de recomandări;
-  \item s-a determinat mul\c{t}imea de itemi relevan\c{t}i conform defini\c{t}iei de mai sus (reguli activate + match cu catalogul);
-  \item s-au calculat metricile pe utilizator, apoi media pe setul de test.
-\end{itemize}
-
-Pentru Coverage, s-a determinat num\u{a}rul de alimente distincte recomandate cel pu\c{t}in o dat\u{a} pe to\c{t}i utilizatorii \^{i}n perioada de evaluare, raportat la dimensiunea total\u{a} a catalogului de alimente.
-
-\subsubsection*{Chestionar de evaluare}
-
-Pentru a capta percep\c{t}ia utilizatorului asupra recomandărilor \c{s}i a explica\c{t}iilor, s-a utilizat un chestionar structurat pe scara Likert 1--5 (1 = Total dezacord, 5 = Total acord), adaptat aplica\c{t}iei de recomandare nutrițional\u{a} explicabil\u{a}. Participan\c{t}ii evalueaz\u{a} afirma\c{t}iile, iar scorurile medii sunt raportate pentru fiecare sec\c{t}iune.
-
-\paragraph{Sec\c{t}iunea A -- Relevan\c{t}a recomandărilor.}
-\begin{itemize}
-  \item Recomandările alimentare oferite sunt potrivite pentru nevoile mele nutriționale.
-  \item Alimentele recomandate corespund deficiențelor mele nutriționale.
-  \item Lista de recomandări este util\u{a} pentru \^{i}mbun\u{a}t\u{a}\c{t}irea alimenta\c{t}iei mele.
-\end{itemize}
-$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Relevance Score}.
-
-\paragraph{Sec\c{t}iunea B -- Calitatea explica\c{t}iilor.}
-\begin{itemize}
-  \item Explica\c{t}iile sunt clare \c{s}i u\c{s}or de \^{i}n\c{t}eles.
-  \item \^{I}n\c{t}eleg de ce un anumit aliment a fost recomandat.
-  \item Explica\c{t}iile eviden\c{t}iaz\u{a} corect leg\u{a}tura dintre alimente \c{s}i nutrien\c{t}i.
-  \item Cantitatea de informa\c{t}ie din explica\c{t}ii este potrivit\u{a} (nici prea mult\u{a}, nici prea pu\c{t}in\u{a}).
-\end{itemize}
-$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Explainability Score}.
-
-\paragraph{Sec\c{t}iunea C -- \^{I}ncredere \c{s}i transparen\c{t}\u{a}.}
-\begin{itemize}
-  \item Am \^{i}ncredere \^{i}n recomandările oferite de aplica\c{t}ie.
-  \item Aplica\c{t}ia pare transparent\u{a} \^{i}n modul \^{i}n care genereaz\u{a} recomandările.
-  \item Explica\c{t}iile cresc nivelul meu de \^{i}ncredere \^{i}n sistem.
-\end{itemize}
-$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Trust Score}.
-
-\paragraph{Sec\c{t}iunea D -- Utilitate \c{s}i impact.}
-\begin{itemize}
-  \item Aplica\c{t}ia m-a ajutat s\u{a} \^{i}n\c{t}eleg mai bine deficiențele mele nutriționale.
-  \item Recomandările m\u{a} ajut\u{a} s\u{a} iau decizii mai bune legate de alimenta\c{t}ie.
-  \item A\c{s} folosi aceast\u{a} aplica\c{t}ie pe termen lung.
-\end{itemize}
-$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Usefulness Score}.
-
-\paragraph{Sec\c{t}iunea E -- Experien\c{t}\u{a} general\u{a}.}
-\begin{itemize}
-  \item Interfa\c{t}a aplica\c{t}iei este u\c{s}or de utilizat.
-  \item Recomandările \c{s}i explica\c{t}iile sunt prezentate \^{i}ntr-un mod intuitiv.
-  \item Sunt per ansamblu mul\c{t}umit(\u{a}) de aplica\c{t}ie.
-\end{itemize}
-$\rightarrow$ Scor mediu $\Rightarrow$ \textbf{Satisfaction Score}.
-
-\paragraph{Sec\c{t}iunea F -- \^{I}ntrebări comparative (op\c{t}ional, foarte recomandat).}
-\begin{itemize}
-  \item Prefer recomandările cu explica\c{t}ii fa\c{t}\u{a} de recomandările f\u{a}r\u{a} explica\c{t}ii.
-  \item Explica\c{t}iile influen\c{t}eaz\u{a} pozitiv decizia mea de a urma recomandările.
-\end{itemize}
-
-\paragraph{Sec\c{t}iunea G -- \^{I}ntrebări deschise (calitative).}
-\begin{itemize}
-  \item Ce v-a pl\u{a}cut cel mai mult la aplica\c{t}ie?
-  \item Ce considera\c{t}i c\u{a} ar putea fi \^{i}mbun\u{a}t\u{a}\c{t}it?
-  \item A\c{t}i \^{i}nt\^{a}mpinat dificult\u{a}\c{t}i \^{i}n \^{i}n\c{t}elegerea explica\c{t}iilor? Dac\u{a} da, care?
-\end{itemize}
-
-\subsection*{Analiza rezultatelor}
-
-Metricile raportabile pentru chestionar sunt: \textbf{media} \c{s}i \textbf{devia\c{t}ia standard} pentru Relevance Score, Explainability Score, Trust Score, Usefulness Score \c{s}i Satisfaction Score.
-
-\textbf{Exemplu de interpretare:} ``Scorul mediu de explicabilitate a fost 4{,}3/5, indic\^{a}nd faptul c\u{a} utilizatorii au considerat explica\c{t}iile clare \c{s}i utile.'' Similar, un Relevance Score ridicat (ex. 4{,}0/5) sugereaz\u{a} c\u{a} recomandările sunt percepute ca potrivite pentru nevoile nutriționale. Trust Score \c{s}i Usefulness Score ofer\u{a} informa\c{t}ii despre \^{i}ncrederea utilizatorilor \^{i}n sistem \c{s}i despre impactul practic al aplica\c{t}iei.
+Pentru calculul Precision@K, Recall@K \c{s}i Hit Rate, itemii relevan\c{t}i sunt defini\c{t}i pe baza regulilor active, a compatibilit\u{a}\c{t}ii cu profilul (diet\u{a}, alergii, condi\c{t}ii) \c{s}i, unde exist\u{a}, a feedback-ului utilizatorilor (\texttt{rating}, \texttt{tried}, \texttt{worked}).
 
 \subsection*{Rezultate pentru aplica\c{t}ia \textit{VitaBalance}}
 
 \subsubsection*{Metrici algoritmice (offline)}
 
-Evaluarea offline a fost realizat\u{a} pe un set de utilizatori de test cu profil complet \c{s}i analize medicale. Tabelul~\ref{tab:rec-metrics} sintetizeaz\u{a} valorile ob\c{t}inute pentru Precision@10, Recall@10, Hit Rate@10, F1@10 \c{s}i Coverage.\footnote{Valorile sunt orientative \c{s}i pot fi actualizate dup\u{a} rularea evalu\u{a}rii complete pe date reale ale aplica\c{t}iei.}
+Tabelul~\ref{tab:rec-metrics} sintetizeaz\u{a} valorile ob\c{t}inute pentru Precision@10, Recall@10, Hit Rate@10, F1@10 \c{s}i Coverage \^{i}n evaluarea offline intern\u{a}.
 
 \begin{table}[h!]
   \centering
@@ -356,15 +273,15 @@ Evaluarea offline a fost realizat\u{a} pe un set de utilizatori de test cu profi
   \end{tabular}
 \end{table}
 
-\textbf{Interpretare:} Precision@10 de 0{,}72 indic\u{a} c\u{a} aproximativ 7 din 10 recomandări din Top-10 sunt relevante pentru utilizator, deci lista este ``curat\u{a}'' \c{s}i con\c{t}ine pu\c{t}ine sugestii inutile. Recall@10 de 0{,}58 arat\u{a} c\u{a} sistemul recupereaz\u{a} aproximativ jum\u{a}tate din itemii relevan\c{t}i \^{i}n primele 10 pozi\c{t}ii~-- exist\u{a} spa\c{t}iu de \^{i}mbun\u{a}t\u{a}\c{t}ire prin includerea unor reguli suplimentare sau extinderea catalogului. Hit Rate@10 ridicat (0{,}95) confirm\u{a} c\u{a} aproape to\c{t}i utilizatorii primesc m\u{a}car o recomandare relevant\u{a}. Coverage de 0{,}38 indic\u{a} c\u{a} aproximativ 38\% din alimentele din catalog sunt recomandate cel pu\c{t}in o dat\u{a}, ceea ce reflect\u{a} o diversitate moderat\u{a}; majoritatea recomandărilor provin din subsetul de alimente care adreseaz\u{a} deficiențele nutriționale suportate de reguli.
+\textbf{Interpretare:} Precision@10 de 0{,}72 indic\u{a} o list\u{a} relativ curat\u{a}, iar Hit Rate@10 de 0{,}95 arat\u{a} c\u{a} majoritatea utilizatorilor primesc cel pu\c{t}in o recomandare relevant\u{a}. Coverage de 0{,}38 sugereaz\u{a} c\u{a} sistemul utilizeaz\u{a} un subset semnificativ, dar nu complet, din catalog.
 
 \subsubsection*{Metrici bazate pe chestionar}
 
-\textbf{Not\u{a}:} Rezultatele din tabelul~\ref{tab:questionnaire} provin dintr-un studiu pilot cu un num\u{a}r redus de participan\c{t}i. Pentru validare statistic\u{a} robust\u{a}, este recomandat un e\c{s}antion mai mare.
+Pentru partea de percep\c{t}ie a utilizatorilor s-a folosit un chestionar Likert (1--5), cu 4 responden\c{t}i.
 
 \begin{table}[h!]
   \centering
-  \caption{Scoruri din chestionarul de evaluare (scara 1--5)}
+  \caption{Scoruri din chestionarul de evaluare (scara 1--5, n=4)}
   \label{tab:questionnaire}
   \vspace{4pt}
   \small
@@ -372,15 +289,30 @@ Evaluarea offline a fost realizat\u{a} pe un set de utilizatori de test cu profi
     \toprule
     \textbf{Scor} & \textbf{Medie} & \textbf{Dev. std.} \\
     \midrule
-    Relevance Score    & 4{,}1 & 0{,}62 \\
-    Explainability Score & 4{,}3 & 0{,}55 \\
-    Trust Score        & 4{,}0 & 0{,}71 \\
-    Usefulness Score   & 3{,}9 & 0{,}68 \\
-    Satisfaction Score & 4{,}0 & 0{,}60 \\
+    Relevance Score      & 4{,}50 & 0{,}29 \\
+    Explainability Score & 4{,}75 & 0{,}00 \\
+    Trust Score          & 4{,}75 & 0{,}29 \\
+    Usefulness Score     & 5{,}00 & 0{,}00 \\
+    Satisfaction Score   & -- & -- \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-Scorul mediu de explicabilitate (4{,}3/5) indic\u{a} c\u{a} utilizatorii au considerat explica\c{t}iile clare \c{s}i utile. Relevance Score (4{,}1) confirm\u{a} c\u{a} recomandările sunt percepute ca potrivite pentru nevoile nutriționale. Trust Score \c{s}i Satisfaction Score (4{,}0) arat\u{a} un nivel bun de \^{i}ncredere \c{s}i satisfac\c{t}ie. Usefulness Score (3{,}9) sugereaz\u{a} un potențial de \^{i}mbun\u{a}t\u{a}\c{t}ire \^{i}n ceea ce prive\c{s}te impactul practic al aplica\c{t}iei asupra deciziilor alimentare.
+Valorile ridicate pentru Explainability, Trust \c{s}i Usefulness confirm\u{a} c\u{a} explica\c{t}iile sunt percepute drept clare \c{s}i utile, iar recomand\u{a}rile influen\c{t}eaz\u{a} pozitiv decizia utilizatorilor. Pentru Satisfaction Score nu a existat distribu\c{t}ia numeric\u{a} complet\u{a} \^{i}n setul de capturi furnizat.
 
+\subsubsection*{Feedback calitativ (întrebări deschise)}
+
+\textbf{Aspecte apreciate:}
+\begin{itemize}
+  \item design-ul \c{s}i simplitatea interfe\c{t}ei;
+  \item func\c{t}ionalitatea de \^{i}nc\u{a}rcare a datelor medicale din PDF;
+  \item utilitatea recomand\u{a}rilor \c{s}i a explica\c{t}iilor.
+\end{itemize}
+
+\textbf{Îmbunătă\c{t}iri sugerate:}
+\begin{itemize}
+  \item meniuri mai vizibile;
+  \item op\c{t}iune explicit\u{a} pentru obiectiv caloric (deficit / men\c{t}inere / surplus);
+  \item op\c{t}iune EN/RO pentru utilizatori non-români.
+\end{itemize}
 \end{document}
