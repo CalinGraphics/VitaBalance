@@ -131,6 +131,13 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertFalse(self.rule_engine._is_compatible(coffee, user))
         self.assertTrue(self.rule_engine._is_compatible(lentils, user))
 
+    def test_reflux_blocks_spicy_chutney(self):
+        user = make_user(medical_conditions="am reflux gastroesofagian")
+        spicy = make_food(id=50, name="Chutney picant", category="sosuri")
+        neutral = make_food(id=51, name="Iaurt simplu", category="lactate")
+        self.assertFalse(self.rule_engine._is_compatible(spicy, user))
+        self.assertTrue(self.rule_engine._is_compatible(neutral, user))
+
 
 if __name__ == "__main__":
     unittest.main()
