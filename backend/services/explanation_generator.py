@@ -71,8 +71,6 @@ class ExplanationGenerator:
         
         # Scurte bullet-uri, fără a repeta paragraful principal (evită dublarea în UI)
         reasons = []
-        if coverage > 0 and not is_fallback_profile_based:
-            reasons.append(f"Acoperire estimată: {coverage:.1f}% din necesarul nutrițional vizat")
         if is_fallback_profile_based:
             if has_lab_data:
                 reasons.append(
