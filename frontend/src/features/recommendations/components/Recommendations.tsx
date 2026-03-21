@@ -49,6 +49,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(10)
+  const [selectedCategory, setSelectedCategory] = useState<'all' | string>('all')
   const latestFetchIdRef = useRef(0)
   const [prevUserValues, setPrevUserValues] = useState({
     diet_type: user.diet_type,
@@ -85,6 +86,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       if (fetchId !== latestFetchIdRef.current) return
       if (Array.isArray(data) && data.length > 0) {
         setRecommendations(data)
+        setSelectedCategory('all')
         setVisibleCount(Math.min(10, data.length))
         setError(null)
       } else {
@@ -224,7 +226,16 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   }
 
   const userId = user.id
-  const visibleRecommendations = recommendations.slice(0, visibleCount)
+  const categoryCounts = recommendations.reduce<Record<string, number>>((acc, rec) => {
+    const category = rec.food?.category || 'Altele'
+    acc[category] = (acc[category] || 0) + 1
+    return acc
+  }, {})
+  const availableCategories = Object.keys(categoryCounts).sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0))
+  const filteredRecommendations = selectedCategory === 'all'
+    ? recommendations
+    : recommendations.filter((rec) => rec.food?.category === selectedCategory)
+  const visibleRecommendations = filteredRecommendations.slice(0, visibleCount)
   const tailCount = visibleRecommendations.length % 3
   const mainCount = tailCount === 0 ? visibleRecommendations.length : visibleRecommendations.length - tailCount
   const mainRecommendations = visibleRecommendations.slice(0, mainCount)
@@ -271,6 +282,48 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
             <NutrientChart recommendations={recommendations} />
           </GlassCard>
         </motion.div>
+      )}
+
+      {recommendations.length > 0 && (
+        <GlassCard className="w-full !max-w-none">
+          <div className="mb-3">
+            <h3 className="text-lg font-semibold text-slate-100">Categorii recomandate</h3>
+            <p className="text-xs text-slate-400">Poți filtra recomandările pe categorii alimentare.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory('all')
+                setVisibleCount(10)
+              }}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                selectedCategory === 'all'
+                  ? 'border-neonCyan bg-neonCyan/20 text-neonCyan'
+                  : 'border-slate-600 text-slate-300 hover:border-neonCyan/60'
+              }`}
+            >
+              Toate ({recommendations.length})
+            </button>
+            {availableCategories.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => {
+                  setSelectedCategory(category)
+                  setVisibleCount(10)
+                }}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  selectedCategory === category
+                    ? 'border-neonCyan bg-neonCyan/20 text-neonCyan'
+                    : 'border-slate-600 text-slate-300 hover:border-neonCyan/60'
+                }`}
+              >
+                {category} ({categoryCounts[category]})
+              </button>
+            ))}
+          </div>
+        </GlassCard>
       )}
 
       {/* Cardurile individuale de recomandări */}
@@ -342,12 +395,12 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         )}
       </div>
 
-      {recommendations.length > visibleCount && (
+      {filteredRecommendations.length > visibleCount && (
         <div className="flex justify-center mt-8 mb-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setVisibleCount((prev) => Math.min(prev + 5, recommendations.length))}
+            onClick={() => setVisibleCount((prev) => Math.min(prev + 5, filteredRecommendations.length))}
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl border border-neonCyan/60 bg-gradient-to-r from-slate-800/70 via-slate-900/80 to-slate-950 px-7 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/70 hover:to-slate-900 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_18px_rgba(0,245,255,0.35)] hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] touch-manipulation"
           >
             Vezi mai multe
