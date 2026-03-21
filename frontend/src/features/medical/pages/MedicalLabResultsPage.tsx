@@ -68,12 +68,28 @@ const OBSERVATION_SUGGESTIONS = [
   'Deficiență de vitamina B12',
   'Deficiență de magneziu',
   'Deficiență de zinc',
+  'Deficiență de folat (vitamina B9)',
+  'Deficiență de calciu',
+  'Deficiență de iod',
+  'Deficiență de potasiu',
   'Intoleranță la lactoză',
   'Intoleranță la gluten / boală celiacă',
   'Hipertensiune arterială',
   'Diabet zaharat / prediabet',
+  'Reflux gastroesofagian',
   'Boală renală cronică',
+  'Nu pot consuma pește',
+  'Nu pot consuma lactate',
+  'Nu pot consuma semințe',
 ]
+
+const normalizeNoteText = (value: string): string =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
 
 function extractLabValuesFromTextLocal(text: string): Partial<Record<LabKey, number>> {
   const t = (text || '')
@@ -561,7 +577,9 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                       setInputs((prev) => {
                         const current = (prev.notes || '').trim()
                         if (!current) return { ...prev, notes: item }
-                        if (current.toLowerCase().includes(item.toLowerCase())) return prev
+                        const currentNormalized = normalizeNoteText(current)
+                        const itemNormalized = normalizeNoteText(item)
+                        if (currentNormalized.includes(itemNormalized)) return prev
                         return { ...prev, notes: `${current}; ${item}` }
                       })
                     }
