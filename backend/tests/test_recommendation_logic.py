@@ -156,6 +156,44 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertFalse(self.rule_engine._is_compatible(pesto, user))
         self.assertTrue(self.rule_engine._is_compatible(somon, user))
 
+    def test_fish_allergy_blocks_shellfish_and_seafood_category(self):
+        user = make_user(allergies="peste")
+        homar = make_food(id=80, name="Homar fiert", category="Proteine/Fructe de mare")
+        somon = make_food(id=81, name="Somon", category="pește & fructe de mare")
+        pui = make_food(id=82, name="Pui la grătar", category="carne")
+        self.assertFalse(self.rule_engine._is_compatible(homar, user))
+        self.assertFalse(self.rule_engine._is_compatible(somon, user))
+        self.assertTrue(self.rule_engine._is_compatible(pui, user))
+
+    def test_egg_allergy_blocks_cobb_and_picatta_names(self):
+        user = make_user(allergies="oua")
+        cobb = make_food(id=90, name="Salată Cobb", category="mese/proteine")
+        piccata = make_food(id=91, name="Pui Piccata", category="mese/carne")
+        linte = make_food(id=92, name="Linte fiartă", category="leguminoase")
+        self.assertFalse(self.rule_engine._is_compatible(cobb, user))
+        self.assertFalse(self.rule_engine._is_compatible(piccata, user))
+        self.assertTrue(self.rule_engine._is_compatible(linte, user))
+
+    def test_iron_explanation_uses_hemoglobin_when_ferritin_missing(self):
+        from services.scoped_rules import ScopedRulesEngine, ScopedRule, NutrientType, ScopeType
+
+        eng = ScopedRulesEngine()
+        rule = ScopedRule(
+            nutrient=NutrientType.IRON,
+            scope=ScopeType.DIET_OMNIVORE,
+            weight=1.0,
+            recommended_foods=["carne roșie", "ficat"],
+            explanation_template="Pentru că ai dietă omnivoră și este indicat aport suplimentar de fier pe baza analizelor disponibile, recomandăm {foods}.",
+            clinical_threshold=30.0,
+        )
+        labs = LabResultItem(id=1, user_id=1, hemoglobin=11.2, ferritin=None)
+        user = make_user()
+        food = make_food(name="Carne", category="carne", iron=3.0)
+        text = eng._generate_explanation(rule, food, 3.0, 5.0, labs, user)
+        self.assertIn("hemoglobin", text.lower())
+        self.assertIn("feritin", text.lower())
+        self.assertNotIn("feritină < 30", text.lower())
+
 
 if __name__ == "__main__":
     unittest.main()
