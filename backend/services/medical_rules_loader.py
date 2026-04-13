@@ -5,7 +5,7 @@ import json
 import re
 import unicodedata
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 def normalize_clinical_text(value: str) -> str:
@@ -40,6 +40,13 @@ ALLERGY_TOKEN_ALIASES: Dict[str, str] = {
     "tree nuts": "nuci",
     "treenuts": "nuci",
 }
+
+
+def normalize_diet_type(value: Optional[str]) -> str:
+    """Valoare dietă din UI/DB: vegan, Vegan, OMNIVORE -> lowercase consistent."""
+    if value is None or not str(value).strip():
+        return "omnivore"
+    return str(value).strip().lower()
 
 
 def resolve_allergy_token(normalized_user_allergy: str) -> str:

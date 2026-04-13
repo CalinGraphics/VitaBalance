@@ -156,6 +156,26 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertFalse(self.rule_engine._is_compatible(pesto, user))
         self.assertTrue(self.rule_engine._is_compatible(somon, user))
 
+    def test_vegan_blocks_fructe_de_mare_even_if_peste_not_in_category_string(self):
+        user = make_user(diet_type="vegan")
+        creveti = make_food(
+            id=100,
+            name="Creveți în sos",
+            category="Mese/Fructe de mare",
+            iron=1.0,
+        )
+        self.assertFalse(self.rule_engine._is_compatible(creveti, user))
+
+    def test_vegan_diet_type_case_insensitive(self):
+        user = make_user(diet_type="Vegan")
+        homar = make_food(id=101, name="Homar", category="Proteine/Fructe de mare")
+        self.assertFalse(self.rule_engine._is_compatible(homar, user))
+
+    def test_organic_vegetables_not_blocked_for_vegan(self):
+        user = make_user(diet_type="vegan")
+        leg = make_food(id=102, name="Salată verde", category="legume organice")
+        self.assertTrue(self.rule_engine._is_compatible(leg, user))
+
     def test_fish_allergy_blocks_shellfish_and_seafood_category(self):
         user = make_user(allergies="peste")
         homar = make_food(id=80, name="Homar fiert", category="Proteine/Fructe de mare")
