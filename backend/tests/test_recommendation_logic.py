@@ -165,6 +165,22 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertFalse(self.rule_engine._is_compatible(somon, user))
         self.assertTrue(self.rule_engine._is_compatible(pui, user))
 
+    def test_fish_allergy_blocks_shrimp_name_with_diacritics(self):
+        """Keyword „crevet” trebuie să se potrivească cu „Creveți” (text normalizat)."""
+        user = make_user(allergies="peste")
+        creveti = make_food(
+            id=83,
+            name="Creveți la tigaie",
+            category="garnituri",
+            iron=1.5,
+        )
+        self.assertFalse(self.rule_engine._is_compatible(creveti, user))
+
+    def test_english_fish_allergy_alias_maps_to_seafood_rules(self):
+        user = make_user(allergies="fish")
+        creveti = make_food(id=84, name="Shrimp bowl", category="mese", iron=0.5)
+        self.assertFalse(self.rule_engine._is_compatible(creveti, user))
+
     def test_egg_allergy_blocks_cobb_and_picatta_names(self):
         user = make_user(allergies="oua")
         cobb = make_food(id=90, name="Salată Cobb", category="mese/proteine")

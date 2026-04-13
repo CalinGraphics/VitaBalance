@@ -14,6 +14,39 @@ def normalize_clinical_text(value: str) -> str:
     return re.sub(r"\s+", " ", folded).strip()
 
 
+# Aliasuri frecvente (EN / alternative) → token normalizat al unei chei din maparea de alergii.
+ALLERGY_TOKEN_ALIASES: Dict[str, str] = {
+    "fish": "peste",
+    "seafood": "peste",
+    "shellfish": "crustacee",
+    "shrimp": "crustacee",
+    "prawn": "crustacee",
+    "langoustine": "crustacee",
+    "lobster": "crustacee",
+    "crab": "crustacee",
+    "peanut": "arahide",
+    "peanuts": "arahide",
+    "milk": "lactoza",
+    "dairy": "lactate",
+    "lactose": "lactoza",
+    "casein": "lactate",
+    "egg": "oua",
+    "eggs": "oua",
+    "wheat": "gluten",
+    "celiac": "gluten",
+    "coeliac": "gluten",
+    "soy": "soia",
+    "soya": "soia",
+    "tree nuts": "nuci",
+    "treenuts": "nuci",
+}
+
+
+def resolve_allergy_token(normalized_user_allergy: str) -> str:
+    """Mapări comune (ex. fish → peste) după normalizare clinică."""
+    return ALLERGY_TOKEN_ALIASES.get(normalized_user_allergy, normalized_user_allergy)
+
+
 def load_medical_rules_config() -> Dict[str, Any]:
     cfg_path = Path(__file__).resolve().parents[1] / "config" / "medical_rules.json"
     if not cfg_path.exists():

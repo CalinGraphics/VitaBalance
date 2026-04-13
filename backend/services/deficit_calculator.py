@@ -2,6 +2,7 @@ from typing import Dict, Optional
 import re
 import unicodedata
 from domain.models import UserProfile, LabResultItem
+from services.medical_rules_loader import normalize_clinical_text
 
 
 class DeficitCalculator:
@@ -80,6 +81,55 @@ class DeficitCalculator:
             'other': {'all': 3000}
         }
     }
+
+    def _normalized_sex(self, user: UserProfile) -> str:
+        """M / F / other — tolerează m/f, male/female, femeie/bărbat din UI sau DB."""
+        raw = normalize_clinical_text(user.sex or "")
+        if not raw or raw == "other":
+            return "other"
+        if raw in ("m", "male", "man"):
+            return "M"
+        if raw in ("f", "female", "woman"):
+            return "F"
+        if raw.startswith("fem") or raw.startswith("femin"):
+            return "F"
+        if "barbat" in raw or raw.startswith("mascul"):
+            return "M"
+        if len(raw) == 1 and raw in "mf":
+            return raw.upper()
+        return "other"
+
+    def _normalized_activity(self, user: UserProfile) -> str:
+        raw = (user.activity_level or "moderate").strip().lower()
+        aliases = {
+            "low": "sedentary",
+            "lightly_active": "moderate",
+            "light": "moderate",
+            "medium": "moderate",
+            "high": "active",
+            "very active": "very_active",
+            "extreme": "very_active",
+        }
+        a = aliases.get(raw, raw)
+        valid = {"sedentary", "moderate", "active", "very_active"}
+        return a if a in valid else "moderate"
+
+    def _normalized_diet(self, user: UserProfile) -> str:
+        d = (user.diet_type or "omnivore").strip().lower()
+        valid = {"omnivore", "vegetarian", "vegan", "pescatarian"}
+        return d if d in valid else "omnivore"
+
+    def _user_likely_pregnant(self, user: UserProfile) -> bool:
+        blob = normalize_clinical_text(
+            f"{user.medical_conditions or ''} {getattr(user, 'bio', None) or ''}"
+        )
+        if not blob:
+            return False
+        markers = (
+            "sarcina", "sarcinii", "gravid", "gravida", "pregnant", "pregnancy",
+            "insarcinata", "însărcinată",
+        )
+        return any(m in blob for m in markers)
     
     def get_age_group(self, age: int) -> str:
         """Determină grupa de vârstă"""
@@ -101,23 +151,37 @@ class DeficitCalculator:
             return 0
         
         table = self.RDI_TABLES[nutrient]
-        sex = user.sex if user.sex in table else 'other'
+        sex = self._normalized_sex(user)
+        if sex not in table:
+            sex = "other"
         age_group = self.get_age_group(user.age)
+        weight = user.weight if user.weight and user.weight > 0 else 70.0
         
         if nutrient == 'protein':
-            # Pentru proteine, RDI este în g/kg corp
-            activity = user.activity_level if user.activity_level in table[sex] else 'moderate'
+            activity = self._normalized_activity(user)
+            if activity not in table[sex]:
+                activity = "moderate"
             rdi_per_kg = table[sex][activity]
-            return rdi_per_kg * user.weight
-        else:
-            # Pentru alți nutrienți, verifică grupa de vârstă
-            if 'all' in table[sex]:
-                return table[sex]['all']
-            elif age_group in table[sex]:
-                return table[sex][age_group]
-            else:
-                # Fallback la prima valoare disponibilă
-                return list(table[sex].values())[0]
+            return rdi_per_kg * weight
+
+        if nutrient == "vitamin_d":
+            vd_key = "70+" if (user.age or 0) >= 70 else "18-70"
+            branch = table[sex]
+            return branch.get(vd_key, list(branch.values())[0])
+
+        if nutrient == "folate" and self._user_likely_pregnant(user) and sex == "F":
+            branch = table[sex]
+            if "pregnancy" in branch:
+                return float(branch["pregnancy"])
+
+        if nutrient == "iron" and self._user_likely_pregnant(user) and sex == "F":
+            return 27.0
+
+        if 'all' in table[sex]:
+            return table[sex]['all']
+        if age_group in table[sex]:
+            return table[sex][age_group]
+        return list(table[sex].values())[0]
     
     def estimate_current_intake(self, nutrient: str, user: UserProfile) -> float:
         estimates = {
@@ -202,7 +266,7 @@ class DeficitCalculator:
         }
         
         if nutrient in estimates:
-            diet = user.diet_type if user.diet_type in estimates[nutrient] else 'omnivore'
+            diet = self._normalized_diet(user)
             return estimates[nutrient][diet]
         return 0
     
@@ -418,13 +482,13 @@ class DeficitCalculator:
         Fallback pentru fier când ferritina nu este disponibilă:
         estimează severitatea pe baza hemoglobinei.
         """
-        sex = (user.sex or "").upper()
+        sex = self._normalized_sex(user)
         if sex == "M":
-            threshold = 13.5  # g/dL
+            threshold = 13.5  # g/dL — prag orientativ adult
         elif sex == "F":
-            threshold = 12.0  # g/dL
+            threshold = 12.0  # g/dL — prag orientativ adult (non-gravidă; sarcina modifică interpretarea clinică)
         else:
-            threshold = 12.5  # g/dL
+            threshold = 12.5  # g/dL — medie conservatoare dacă sexul e neclar
 
         if hemoglobin < threshold:
             deficit_ratio = (threshold - hemoglobin) / threshold
