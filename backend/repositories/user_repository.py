@@ -46,7 +46,6 @@ class UserRepository:
         row = {
             "email": email,
             "name": name,
-            "full_name": full_name or name,
             "age": age,
             "sex": sex,
             "weight": weight,

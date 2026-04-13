@@ -1,9 +1,10 @@
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 from enum import Enum
 import re
 from domain.models import UserProfile, FoodItem, LabResultItem
+from services.medical_rules_loader import load_medical_rules_config, normalize_clinical_text
 
 
 class NutrientType(str, Enum):
@@ -77,6 +78,7 @@ class ScopedRuleResult:
 class ScopedRulesEngine:
     def __init__(self):
         self.rules = self._initialize_rules()
+        self.medical_rules_config: Dict[str, Any] = load_medical_rules_config()
     
     def _initialize_rules(self) -> Dict[NutrientType, List[ScopedRule]]:
         rules = {}
@@ -648,9 +650,17 @@ class ScopedRulesEngine:
         if not medical_conditions:
             return {'forbidden_categories': [], 'forbidden_keywords': []}
         
-        conditions_lower = medical_conditions.lower()
+        conditions_lower = normalize_clinical_text(medical_conditions)
         forbidden_categories = []
         forbidden_keywords = []
+
+        for rule in self.medical_rules_config.get("condition_food_rules", []):
+            condition_patterns = [normalize_clinical_text(x) for x in rule.get("condition_patterns", [])]
+            if any(p and p in conditions_lower for p in condition_patterns):
+                for raw_kw in rule.get("avoid_keywords", []):
+                    kn = normalize_clinical_text(raw_kw)
+                    if kn and kn not in forbidden_keywords:
+                        forbidden_keywords.append(kn)
         
         category_patterns = {
             'legume': [
@@ -710,7 +720,6 @@ class ScopedRulesEngine:
             if any(pattern in conditions_lower for pattern in patterns):
                 forbidden_categories.append(category)
         
-        import re
         general_patterns = [
             r'nu\s+(?:mănânc|mananc|pot\s+mânca|pot\s+mananca)\s+([a-zăâîșț]+)',
             r'fără\s+([a-zăâîșț]+)',
@@ -778,8 +787,8 @@ class ScopedRulesEngine:
         
         if user.allergies:
             user_allergies = [a.strip().lower() for a in user.allergies.split(',')]
-            food_name_lower = food.name.lower() if food.name else ''
-            food_category_lower = food.category.lower() if food.category else ''
+            food_name_lower = normalize_clinical_text(food.name or '')
+            food_category_lower = normalize_clinical_text(food.category or '')
             
             allergy_mappings = {
                 'lactoza': {
@@ -813,13 +822,21 @@ class ScopedRulesEngine:
                 },
                 'nuci': {
                     'categories': [],
-                    'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
-                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+                    'keywords': [
+                        'nuci', 'nuca', 'alune', 'migdale', 'fistic',
+                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
+                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
+                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
+                    ]
                 },
                 'nucă': {
                     'categories': [],
-                    'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
-                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+                    'keywords': [
+                        'nuci', 'nuca', 'alune', 'migdale', 'fistic',
+                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
+                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
+                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
+                    ]
                 },
                 'semințe': {
                     'categories': [],
@@ -902,9 +919,9 @@ class ScopedRulesEngine:
                     return False
         
         if user.medical_conditions:
-            conditions_lower = user.medical_conditions.lower()
-            food_name_lower = food.name.lower() if food.name else ''
-            food_category_lower = food.category.lower() if food.category else ''
+            conditions_lower = normalize_clinical_text(user.medical_conditions)
+            food_name_lower = normalize_clinical_text(food.name or '')
+            food_category_lower = normalize_clinical_text(food.category or '')
             
             restrictions = self._parse_food_restrictions(user.medical_conditions)
             
@@ -932,8 +949,26 @@ class ScopedRulesEngine:
                             return False
             
             for keyword in restrictions['forbidden_keywords']:
-                if keyword in food_name_lower or keyword in food_category_lower:
+                kw = normalize_clinical_text(keyword)
+                if not kw:
+                    continue
+                if re.search(rf"\b{re.escape(kw)}\b", food_name_lower) or re.search(
+                    rf"\b{re.escape(kw)}\b", food_category_lower
+                ):
                     return False
+                if kw in food_name_lower or kw in food_category_lower:
+                    return False
+
+            for rule in self.medical_rules_config.get("condition_trigger_rules", []):
+                condition_patterns = [normalize_clinical_text(x) for x in rule.get("condition_patterns", [])]
+                avoid_keywords = [normalize_clinical_text(x) for x in rule.get("avoid_keywords", [])]
+                if not any(p and p in conditions_lower for p in condition_patterns):
+                    continue
+                for kw in avoid_keywords:
+                    if not kw:
+                        continue
+                    if kw in food_name_lower or kw in food_category_lower:
+                        return False
             
             seed_restrictions = [
                 'nu am voie seminte', 'nu am voie semințe', 'fără seminte', 'fără semințe',
@@ -945,10 +980,10 @@ class ScopedRulesEngine:
                            'semințe de chia', 'semințe de dovleac', 'semințe de susan',
                            'semințe de floarea-soarelui', 'seminte de floarea-soarelui']
             
-            if any(restriction in conditions_lower for restriction in seed_restrictions):
+            if any(normalize_clinical_text(r) in conditions_lower for r in seed_restrictions):
                 if 'semințe' in food_category_lower or 'seminte' in food_category_lower:
                     return False
-                if any(keyword in food_name_lower for keyword in seed_keywords):
+                if any(normalize_clinical_text(k) in food_name_lower for k in seed_keywords):
                     return False
             
             nuts_restrictions = [
@@ -956,11 +991,19 @@ class ScopedRulesEngine:
                 'no nuts', 'no nuts allowed', 'fara nuci', 'fara nucă',
                 'interzis nuci', 'interzis nucă', 'evit nuci', 'evit nucă'
             ]
-            nuts_keywords = ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic',
-                           'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+            nuts_keywords = [
+                'nuci', 'nuca', 'alune', 'migdale', 'fistic',
+                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
+                'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
+                'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
+            ]
             
-            if any(restriction in conditions_lower for restriction in nuts_restrictions):
-                if any(keyword in food_name_lower or keyword in food_category_lower for keyword in nuts_keywords):
+            if any(normalize_clinical_text(r) in conditions_lower for r in nuts_restrictions):
+                if any(
+                    normalize_clinical_text(k) in food_name_lower
+                    or normalize_clinical_text(k) in food_category_lower
+                    for k in nuts_keywords
+                ):
                     return False
             
             dairy_restrictions = [
@@ -972,8 +1015,12 @@ class ScopedRulesEngine:
                             'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan',
                             'cheddar', 'feta', 'brie', 'camembert', 'dairy']
             
-            if any(restriction in conditions_lower for restriction in dairy_restrictions):
-                if any(keyword in food_name_lower or keyword in food_category_lower for keyword in dairy_keywords):
+            if any(normalize_clinical_text(r) in conditions_lower for r in dairy_restrictions):
+                if any(
+                    normalize_clinical_text(k) in food_name_lower
+                    or normalize_clinical_text(k) in food_category_lower
+                    for k in dairy_keywords
+                ):
                     return False
             
             gluten_restrictions = [
@@ -983,8 +1030,35 @@ class ScopedRulesEngine:
             gluten_keywords = ['gluten', 'grâu', 'grau', 'făină', 'faina', 'pâine', 'paine',
                              'paste', 'spaghete', 'macaroane', 'wheat', 'barley', 'rye']
             
-            if any(restriction in conditions_lower for restriction in gluten_restrictions):
-                if any(keyword in food_name_lower or keyword in food_category_lower for keyword in gluten_keywords):
+            if any(normalize_clinical_text(r) in conditions_lower for r in gluten_restrictions):
+                if any(
+                    normalize_clinical_text(k) in food_name_lower
+                    or normalize_clinical_text(k) in food_category_lower
+                    for k in gluten_keywords
+                ):
+                    return False
+
+        lipids = normalize_clinical_text(user.medical_conditions or "")
+        if lipids:
+            markers = (
+                "colesterol ridicat",
+                "colesterol marit",
+                "hipercolesterolemie",
+                "dislipidemie",
+                "dislipidemia",
+                "colesterol mare",
+                "ldl marit",
+                "trigliceride mari",
+                "trigliceride",
+                "boli cardiovasculare",
+                "risc cardiovascular",
+                "ateroscleroza",
+                "cord ischemic",
+            )
+            if any(m in lipids for m in markers):
+                chol = float(food.cholesterol or 0)
+                fatv = float(food.fat or 0)
+                if chol >= 95 or (fatv >= 24 and chol >= 40):
                     return False
         
         return True
