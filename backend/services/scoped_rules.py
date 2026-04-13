@@ -90,7 +90,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.DIET_VEGAN,
                 weight=1.0,
                 recommended_foods=['linte', 'năut', 'spanac'],
-                explanation_template="Pentru că ești vegan și ai deficit de fier (feritină < 30 ng/mL), recomandăm {foods} + vitamina C pentru absorbție mai bună.",
+                explanation_template="Pentru că ești vegan și este indicat aport suplimentar de fier pe baza analizelor disponibile, recomandăm {foods} + vitamina C pentru absorbție mai bună.",
                 clinical_threshold=30.0
             ),
             ScopedRule(
@@ -98,7 +98,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.DIET_OMNIVORE,
                 weight=1.0,
                 recommended_foods=['carne roșie', 'ficat'],
-                explanation_template="Pentru că ai dietă omnivoră și deficit de fier (feritină < 30 ng/mL), recomandăm {foods}.",
+                explanation_template="Pentru că ai dietă omnivoră și este indicat aport suplimentar de fier pe baza analizelor disponibile, recomandăm {foods}.",
                 clinical_threshold=30.0
             ),
             ScopedRule(
@@ -118,7 +118,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.LOW_SUN_EXPOSURE,
                 weight=1.0,
                 recommended_foods=['expunere solară', 'alimente fortificate'],
-                explanation_template="Pentru că ai expunere solară redusă și deficit de vitamina D (25(OH)D < 20 ng/mL), recomandăm expunere solară + alimente fortificate.",
+                explanation_template="Pentru că ai expunere solară redusă și este indicat aport de vitamina D pe baza contextului clinic, recomandăm expunere solară + alimente fortificate.",
                 clinical_threshold=20.0
             ),
             ScopedRule(
@@ -126,7 +126,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.DIET_VEGAN,
                 weight=1.0,
                 recommended_foods=['ciuperci UV', 'lapte vegetal fortificat'],
-                explanation_template="Pentru că ești vegan și ai deficit de vitamina D (25(OH)D < 20 ng/mL), recomandăm {foods}.",
+                explanation_template="Pentru că ești vegan și este indicat aport de vitamina D pe baza analizelor disponibile, recomandăm {foods}.",
                 clinical_threshold=20.0
             ),
             ScopedRule(
@@ -134,7 +134,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.HIGH_BMI,
                 weight=0.6,
                 recommended_foods=['aport crescut de vitamina D'],
-                explanation_template="Pentru că ai IMC crescut și deficit de vitamina D, recomandăm aport crescut de vitamina D.",
+                explanation_template="Pentru că ai IMC crescut și este indicat aport de vitamina D conform analizelor disponibile, recomandăm aport crescut de vitamina D.",
                 clinical_threshold=20.0
             ),
         ]
@@ -146,7 +146,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.DIET_VEGAN,
                 weight=1.0,
                 recommended_foods=['alimente fortificate', 'drojdie inactivă'],
-                explanation_template="Pentru că ești vegan și ai deficit de vitamina B12 (B12 < 200 pg/mL), recomandăm {foods}.",
+                explanation_template="Pentru că ești vegan și este indicat aport de vitamina B12 pe baza analizelor disponibile, recomandăm {foods}.",
                 clinical_threshold=200.0
             ),
             ScopedRule(
@@ -154,7 +154,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.ELDERLY,
                 weight=0.8,
                 recommended_foods=['suplimentare recomandată'],
-                explanation_template="Pentru că ești în vârstă și ai deficit de vitamina B12, recomandăm suplimentare.",
+                explanation_template="Pentru că ești în vârstă și este indicat aport de vitamina B12 conform contextului, recomandăm suplimentare.",
                 clinical_threshold=200.0
             ),
             ScopedRule(
@@ -162,7 +162,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.MALABSORPTION,
                 weight=0.8,
                 recommended_foods=['suplimentare recomandată'],
-                explanation_template="Pentru că ai malabsorbție și deficit de vitamina B12, recomandăm suplimentare.",
+                explanation_template="Pentru că ai malabsorbție și este indicat aport de vitamina B12 conform contextului, recomandăm suplimentare.",
                 clinical_threshold=200.0
             ),
             ScopedRule(
@@ -170,7 +170,7 @@ class ScopedRulesEngine:
                 scope=ScopeType.DIET_OMNIVORE,
                 weight=0.6,
                 recommended_foods=['carne', 'pește', 'lactate'],
-                explanation_template="Pentru că ai dietă omnivoră și deficit de vitamina B12, recomandăm {foods}.",
+                explanation_template="Pentru că ai dietă omnivoră și este indicat aport de vitamina B12 pe baza analizelor disponibile, recomandăm {foods}.",
                 clinical_threshold=200.0
             ),
         ]
@@ -490,7 +490,7 @@ class ScopedRulesEngine:
             
             base_score = min(10.0, (nutrient_value / max(1, deficit)) * 10)
             weighted_score = base_score * rule.weight
-            explanation = self._generate_explanation(rule, food, nutrient_value, deficit, lab_results)
+            explanation = self._generate_explanation(rule, food, nutrient_value, deficit, lab_results, user)
             
             matching_rules.append(ScopedRuleResult(
                 rule=rule,
@@ -543,23 +543,43 @@ class ScopedRulesEngine:
         food: FoodItem,
         nutrient_value: float,
         deficit: float,
-        lab_results: Optional[LabResultItem] = None
+        lab_results: Optional[LabResultItem] = None,
+        user: Optional[UserProfile] = None,
     ) -> str:
-        """Generează explicația pentru regulă"""
+        """Generează explicația pentru regulă; nu afirma praguri de laborator dacă valoarea lipsește."""
         context_label = self._get_scope_label(rule.scope)
         biomarker_text = ""
-        
+
         if lab_results and rule.clinical_threshold is not None:
             biomarker_value = self._get_biomarker_value(lab_results, rule.nutrient)
-            if biomarker_value is not None:
-                if rule.nutrient == NutrientType.IRON:
-                    biomarker_text = f"feritina ta este scăzută (< {rule.clinical_threshold} ng/mL)"
-                elif rule.nutrient == NutrientType.CALCIUM:
+
+            if rule.nutrient == NutrientType.IRON:
+                ferr = getattr(lab_results, "ferritin", None)
+                hb = getattr(lab_results, "hemoglobin", None)
+                if ferr is not None and ferr < rule.clinical_threshold:
+                    biomarker_text = (
+                        f"feritina din analize este {ferr:.1f} ng/mL (sub {rule.clinical_threshold:g} ng/mL)"
+                    )
+                elif ferr is None and hb is not None:
+                    biomarker_text = (
+                        f"hemoglobina măsurată este {hb:.1f} g/dL; feritina nu este disponibilă în buletin — "
+                        "necesarul de fier este estimat din hemoglobină"
+                    )
+            elif rule.nutrient == NutrientType.VITAMIN_D:
+                if biomarker_value is not None and biomarker_value < rule.clinical_threshold:
+                    biomarker_text = (
+                        f"vitamina D din analize este {biomarker_value:.1f} ng/mL "
+                        f"(sub {rule.clinical_threshold:g} ng/mL)"
+                    )
+            elif rule.nutrient == NutrientType.VITAMIN_B12:
+                if biomarker_value is not None and biomarker_value < rule.clinical_threshold:
+                    biomarker_text = (
+                        f"vitamina B12 din analize este {biomarker_value:.1f} pg/mL "
+                        f"(sub {rule.clinical_threshold:g} pg/mL)"
+                    )
+            elif biomarker_value is not None:
+                if rule.nutrient == NutrientType.CALCIUM:
                     biomarker_text = f"nivelul tău de calciu este scăzut (< {rule.clinical_threshold} mg/dL)"
-                elif rule.nutrient == NutrientType.VITAMIN_D:
-                    biomarker_text = f"nivelul tău de vitamina D este scăzut (< {rule.clinical_threshold} ng/mL)"
-                elif rule.nutrient == NutrientType.VITAMIN_B12:
-                    biomarker_text = f"nivelul tău de vitamina B12 este scăzut (< {rule.clinical_threshold} pg/mL)"
                 elif rule.nutrient == NutrientType.MAGNESIUM:
                     biomarker_text = f"nivelul tău de magneziu este scăzut (< {rule.clinical_threshold} mg/dL)"
                 elif rule.nutrient == NutrientType.ZINC:
@@ -572,19 +592,53 @@ class ScopedRulesEngine:
                     biomarker_text = f"nivelul tău de iod este scăzut (< {rule.clinical_threshold} μg/L)"
                 elif rule.nutrient == NutrientType.POTASSIUM:
                     biomarker_text = f"nivelul tău de potasiu este scăzut (< {rule.clinical_threshold} mmol/L)"
-        
-        foods_str = ', '.join(rule.recommended_foods) if rule.recommended_foods else food.name
-        
-        if biomarker_text:
+
+        rec_foods = self._recommended_foods_safe_for_user(rule.recommended_foods, user)
+        foods_str = ", ".join(rec_foods) if rec_foods else food.name
+
+        tpl = rule.explanation_template
+        has_foods_placeholder = "{foods}" in tpl
+        if biomarker_text and (rule.recommended_foods or has_foods_placeholder):
             explanation = f"Pentru că {context_label.lower()} și {biomarker_text}, recomandăm {foods_str}."
+        elif biomarker_text:
+            explanation = f"{tpl.format(foods=foods_str)} ({biomarker_text})."
         else:
-            explanation = rule.explanation_template.format(foods=foods_str)
-        
+            explanation = tpl.format(foods=foods_str)
+
         if nutrient_value > 0:
             explanation += f" {food.name} conține {nutrient_value:.1f} {self._get_nutrient_unit(rule.nutrient)} per 100g."
-        
+
         return explanation
-    
+
+    def _recommended_foods_safe_for_user(
+        self, recommended: Optional[List[str]], user: Optional[UserProfile]
+    ) -> List[str]:
+        """Elimină din lista afișată surse tipice interzise de alergiile declarate (ex. pește, ouă)."""
+        if not recommended:
+            return []
+        if not user or not user.allergies:
+            return list(recommended)
+        parts = [
+            normalize_clinical_text(p.strip())
+            for p in re.split(r"[,;]", user.allergies)
+            if p.strip()
+        ]
+        fish_al = any(p == "peste" or p.startswith("peste") for p in parts)
+        egg_al = any(p in ("oua", "ou", "oue", "eggs", "egg") for p in parts)
+        out: List[str] = []
+        for item in recommended:
+            low = normalize_clinical_text(item)
+            skip = False
+            if fish_al:
+                if any(x in low for x in ("peste", "pesc", "fish", "fructe de mare")):
+                    skip = True
+            if egg_al:
+                if any(x in low for x in ("oua", "ou", "egg", "galbenus")):
+                    skip = True
+            if not skip:
+                out.append(item)
+        return out if out else list(recommended)
+
     def _get_biomarker_value(self, lab_results: Optional[LabResultItem], nutrient: NutrientType) -> Optional[float]:
         """Extrage valoarea biomarkerului pentru nutrient"""
         if lab_results is None:
@@ -852,25 +906,43 @@ class ScopedRulesEngine:
                 # Ouă
                 'ouă': {
                     'categories': [],
-                    'keywords': ['ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus']
+                    'keywords': [
+                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
+                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
+                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
+                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
+                    ]
                 },
                 'oua': {
                     'categories': [],
-                    'keywords': ['ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus']
+                    'keywords': [
+                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
+                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
+                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
+                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
+                    ]
                 },
                 'soia': {
                     'categories': ['legume'],
                     'keywords': ['soia', 'soy', 'tofu', 'tempeh', 'miso', 'sos de soia']
                 },
                 'peste': {
-                    'categories': ['peste'],
-                    'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
-                                'crap', 'șalău', 'salau', 'fish', 'seafood']
+                    'categories': ['peste', 'fructe de mare'],
+                    'keywords': [
+                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
+                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
+                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
+                        'anchois', 'sushi', 'sashimi',
+                    ]
                 },
                 'pește': {
-                    'categories': ['peste'],
-                    'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
-                                'crap', 'șalău', 'salau',                     'fish', 'seafood']
+                    'categories': ['peste', 'fructe de mare'],
+                    'keywords': [
+                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
+                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
+                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
+                        'anchois', 'sushi', 'sashimi',
+                    ]
                 },
                 'crustacee': {
                     'categories': [],
@@ -902,11 +974,15 @@ class ScopedRulesEngine:
                         break
                 
                 if allergy_info:
-                    if allergy_info['categories'] and any(cat in food_category_lower for cat in allergy_info['categories']):
+                    if allergy_info['categories'] and any(
+                        normalize_clinical_text(cat) in food_category_lower
+                        for cat in allergy_info['categories']
+                    ):
                         return False
-                    
+
                     for keyword in allergy_info['keywords']:
-                        if keyword in food_name_lower or keyword in food_category_lower:
+                        kw = normalize_clinical_text(keyword)
+                        if kw and (kw in food_name_lower or kw in food_category_lower):
                             return False
                 
                 if food.allergens:
@@ -934,7 +1010,10 @@ class ScopedRulesEngine:
                     'fructe': ['fructe', 'fructa', 'fruit', 'fruits'],
                     'cereale': ['cereale', 'cereala', 'grain', 'grains', 'cereal'],
                     'carne': ['carne', 'meat', 'pui', 'porc', 'vita', 'miel'],
-                    'peste': ['peste', 'pește', 'pescăruș', 'fish', 'seafood'],
+                    'peste': [
+                        'peste', 'pește', 'pescarus', 'fish', 'seafood', 'fructe de mare',
+                        'homar', 'lobster', 'crevet', 'crab', 'midie', 'scoici', 'calamar', 'sepie',
+                    ],
                     'lactate': ['lactate', 'lapte', 'dairy', 'milk'],
                     'semințe': ['semințe', 'seminte', 'seeds'],
                     'nuci': ['nuci', 'nucă', 'nuts'],

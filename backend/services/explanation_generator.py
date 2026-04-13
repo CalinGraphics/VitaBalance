@@ -1,6 +1,8 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
+import re
 import unicodedata
 from domain.models import FoodItem, UserProfile
+from services.medical_rules_loader import normalize_clinical_text
 
 
 class ExplanationGenerator:
@@ -86,10 +88,10 @@ class ExplanationGenerator:
         else:
             reasons.append("Recomandare bazată pe profilul tău și modelul estimativ de necesar nutrițional.")
         
-        tips = self._generate_tips_from_rules(matched_rules, food)
+        tips = self._generate_tips_from_rules(matched_rules, food, user)
         if not tips:
             tips = ["Poți integra acest aliment în mesele zilnice pentru un echilibru nutrițional mai bun."]
-        alternatives = self._generate_alternatives(food)
+        alternatives = self._generate_alternatives(food, user)
         
         return {
             'text': main_text,
@@ -166,7 +168,7 @@ class ExplanationGenerator:
         if food.category == 'legume':
             alternatives.append("Dacă nu-ți place, încearcă alte legume verzi: linte, fasole, mazăre")
         elif food.category == 'carne':
-            alternatives.append("Alternative: ficat de vită, carne de porc, pește")
+            alternatives.append(self._meat_alternatives_line(user))
         
         return {
             'text': main_text,
@@ -228,7 +230,9 @@ class ExplanationGenerator:
         relevance.sort(key=lambda x: x[2], reverse=True)
         return [(nutrient, value) for nutrient, value, _ in relevance[:3]]
     
-    def _generate_tips_from_rules(self, matched_rules: List[str], food: FoodItem) -> List[str]:
+    def _generate_tips_from_rules(
+        self, matched_rules: List[str], food: FoodItem, user: Optional[UserProfile] = None
+    ) -> List[str]:
         """Generează sfaturi bazate pe regulile care s-au potrivit și pe aliment"""
         tips = []
         
@@ -242,18 +246,60 @@ class ExplanationGenerator:
             tips.append("Expunerea la soare (10-15 min zilnic) ajută la sinteza vitaminei D.")
         
         if food.magnesium and food.magnesium > 50:
-            tips.append("Magneziul se absoarbe mai bine cu vitamina D; poți combina cu ou sau pește.")
+            tips.append(self._magnesium_combo_tip(user))
         
         return tips
-    
-    def _generate_alternatives(self, food: FoodItem) -> List[str]:
+
+    def _allergy_fish_egg(self, user: Optional[UserProfile]) -> Tuple[bool, bool]:
+        if not user or not user.allergies:
+            return False, False
+        parts = [
+            normalize_clinical_text(p.strip())
+            for p in re.split(r"[,;]", user.allergies)
+            if p.strip()
+        ]
+        fish = any(p == "peste" or p.startswith("peste") for p in parts)
+        egg = any(p in ("oua", "ou", "oue", "eggs", "egg") for p in parts)
+        return fish, egg
+
+    def _magnesium_combo_tip(self, user: Optional[UserProfile]) -> str:
+        fish, egg = self._allergy_fish_egg(user)
+        if fish and egg:
+            return (
+                "Magneziul se absoarbe mai bine cu vitamina D; poți combina cu surse vegetale "
+                "sau lactate, conform toleranței tale."
+            )
+        if fish:
+            return (
+                "Magneziul se absoarbe mai bine cu vitamina D; poți combina cu ouă sau surse vegetale bogate în magneziu."
+            )
+        if egg:
+            return (
+                "Magneziul se absoarbe mai bine cu vitamina D; poți combina cu pește sau surse vegetale bogate în magneziu."
+            )
+        return (
+            "Magneziul se absoarbe mai bine cu vitamina D; poți combina cu ou sau pește, dacă ți se potrivesc."
+        )
+
+    def _meat_alternatives_line(self, user: Optional[UserProfile]) -> str:
+        fish, egg = self._allergy_fish_egg(user)
+        base = "Alternative: ficat de vită, carne de porc"
+        if not fish and not egg:
+            return f"{base}, pește"
+        if fish and not egg:
+            return f"{base}, ouă (dacă sunt tolerate)"
+        if egg and not fish:
+            return f"{base}, pește (dacă este tolerat)"
+        return f"{base}, leguminoase sau tofu (dacă ți se potrivesc)"
+
+    def _generate_alternatives(self, food: FoodItem, user: Optional[UserProfile] = None) -> List[str]:
         """Generează alternative similare pentru aliment"""
         alternatives = []
         
         if food.category == 'legume':
             alternatives.append("Dacă nu-ți place, încearcă alte legume verzi: linte, fasole, mazăre")
         elif food.category == 'carne':
-            alternatives.append("Alternative: ficat de vită, carne de porc, pește")
+            alternatives.append(self._meat_alternatives_line(user))
         elif food.category == 'lactate':
             alternatives.append("Alternative: iaurt, brânză, lapte")
         

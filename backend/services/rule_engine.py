@@ -1025,25 +1025,43 @@ class NutritionalRuleEngine:
                 },
                 'ouă': {
                     'categories': [],
-                    'keywords': ['ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus']
+                    'keywords': [
+                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
+                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
+                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
+                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
+                    ]
                 },
                 'oua': {
                     'categories': [],
-                    'keywords': ['ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus']
+                    'keywords': [
+                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
+                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
+                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
+                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
+                    ]
                 },
                 'soia': {
                     'categories': ['legume'],
                     'keywords': ['soia', 'soy', 'tofu', 'tempeh', 'miso', 'sos de soia']
                 },
                 'peste': {
-                    'categories': ['peste'],
-                    'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
-                                'crap', 'șalău', 'salau', 'fish', 'seafood']
+                    'categories': ['peste', 'fructe de mare'],
+                    'keywords': [
+                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
+                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
+                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
+                        'anchois', 'sushi', 'sashimi',
+                    ]
                 },
                 'pește': {
-                    'categories': ['peste'],
-                    'keywords': ['peste', 'pește', 'pescăruș', 'somon', 'ton', 'sardine', 'macrou', 
-                                'crap', 'șalău', 'salau',                     'fish', 'seafood']
+                    'categories': ['peste', 'fructe de mare'],
+                    'keywords': [
+                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
+                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
+                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
+                        'anchois', 'sushi', 'sashimi',
+                    ]
                 },
                 'crustacee': {
                     'categories': [],
@@ -1075,11 +1093,15 @@ class NutritionalRuleEngine:
                         break
                 
                 if allergy_info:
-                    if allergy_info['categories'] and any(cat in food_category_lower for cat in allergy_info['categories']):
+                    if allergy_info['categories'] and any(
+                        self._normalize_text(cat) in food_category_lower
+                        for cat in allergy_info['categories']
+                    ):
                         return False
-                    
+
                     for keyword in allergy_info['keywords']:
-                        if keyword in food_name_lower or keyword in food_category_lower:
+                        kw = self._normalize_text(keyword)
+                        if kw and (kw in food_name_lower or kw in food_category_lower):
                             return False
                 
                 if food.allergens:
@@ -1120,7 +1142,10 @@ class NutritionalRuleEngine:
                     'porc': ['porc', 'porcine', 'pork', 'bacon', 'șuncă', 'sunca', 'ceafă', 'ceafa', 'muschi', 'cârnați', 'carnati'],
                     'vita': ['vita', 'vită', 'vaca', 'vacă', 'beef', 'carne de vita', 'carne de vită'],
                     'miel': ['miel', 'miel de', 'lamb', 'oaie', 'mouton'],
-                    'peste': ['peste', 'pește', 'pescăruș', 'fish', 'seafood'],
+                    'peste': [
+                        'peste', 'pește', 'pescarus', 'fish', 'seafood', 'fructe de mare',
+                        'homar', 'lobster', 'crevet', 'crab', 'midie', 'scoici', 'calamar', 'sepie',
+                    ],
                     'lactate': ['lactate', 'lapte', 'dairy', 'milk'],
                     'semințe': ['semințe', 'seminte', 'seeds'],
                     'nuci': ['nuci', 'nucă', 'nuts'],
