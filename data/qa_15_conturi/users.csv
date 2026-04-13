@@ -1,0 +1,16 @@
+email,password_hash,name,age,sex,weight,height,activity_level,diet_type,allergies,medical_conditions
+test1@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Andrei Popescu,34,M,79,182,moderate,omnivore,"nuci, arahide",colesterol_ridicat
+test2@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Maria Ionescu,29,F,56,162,moderate,omnivore,oua,anemie
+test3@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Radu Dumitrescu,42,M,84,178,sedentary,omnivore,peste,
+test4@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Elena Vasilescu,27,F,53,164,active,vegan,soia,"deficienta_b12, deficienta_vitamin_d"
+test5@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Victoria Munteanu,69,F,71,158,sedentary,omnivore,,"osteoporoza, deficienta_vitamin_d"
+test6@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Cristian Moldovan,26,M,90,188,very_active,omnivore,crustacee,obezitate
+test7@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Ana Stancu,36,F,64,168,moderate,pescatarian,sesam,tiroida
+test8@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Mihai Radu,46,M,86,176,moderate,omnivore,lactoza,
+test9@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Gabriela Stan,31,F,59,166,moderate,omnivore,gluten,celiachie
+test10@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Florin Georgescu,53,M,98,174,sedentary,omnivore,mustar,"hipertensiune, reflux"
+test11@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Doina Constantinescu,57,F,78,160,sedentary,omnivore,arahide,diabet
+test12@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Vasile Toma,61,M,81,170,sedentary,omnivore,,insuficienta_renala
+test13@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Laura Enache,39,F,63,165,moderate,omnivore,peste,reflux
+test14@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Paul Simion,48,M,88,180,moderate,omnivore,"nuci, sesam",deficienta_vitamin_d
+test15@vitabalance.ro,$2b$12$blqkfMN72vpPKRKB0THjCO5V4qrX7qwC9.HMzsga8bk7FNcOYHJ/W,Roxana Petrescu,23,F,52,163,active,vegetarian,oua,anemie

@@ -104,8 +104,7 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
         if verify_password(password, user['password_hash']):
             return {
                 "email": user.get('email'),
-                "fullName": user.get('full_name') or user.get('name', ''),
-                # Coloana `bio` a fost eliminată din tabelul `users` – folosim fallback gol.
+                "fullName": user.get('name') or user.get('full_name', ''),
                 "bio": user.get('bio', '') or "",
             }
         
@@ -153,9 +152,8 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         new_user_data = {
             "email": email.strip(),
             "password_hash": password_hash,
-            "full_name": fullName.strip(),
-            "name": fullName.strip(),  # Păstrăm și name pentru compatibilitate
-            # Coloana `bio` a fost ștearsă din Supabase – nu o mai trimitem.
+            "name": fullName.strip(),
+            # `full_name` și `bio` nu mai există în tabelul `users` din Supabase.
         }
         
         try:
@@ -172,7 +170,7 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         
         created_user = response.data[0]
         email_val = created_user.get('email') or email.strip()
-        full_name_val = created_user.get('full_name') or created_user.get('name') or fullName.strip()
+        full_name_val = created_user.get('name') or created_user.get('full_name') or fullName.strip()
         bio_val = (bio.strip() if bio else "") or ""
         return {
             "email": email_val,
@@ -268,14 +266,13 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
             supabase: Client = get_supabase_client()
             supabase.table("users").insert({
                 "email": email,
-                "full_name": full_name_from_token or email.split("@")[0],
                 "name": full_name_from_token or email.split("@")[0],
             }).execute()
             user_profile = repo.get_by_email(email)
         except Exception as e:
             print("Eroare la crearea user la verify_magic_link:", e)
             user_profile = None
-    full_name = (user_profile.full_name or user_profile.name or full_name_from_token or "") if user_profile else full_name_from_token
+    full_name = (user_profile.name or user_profile.full_name or full_name_from_token or "") if user_profile else full_name_from_token
     bio = (user_profile.bio or "") if user_profile else ""
     access_token = create_access_token({"sub": email, "email": email})
     try:

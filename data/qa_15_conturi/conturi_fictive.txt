@@ -1,0 +1,45 @@
+VitaBalance – 15 conturi fictive (Romania)
+============================================
+Autentificare: test1@vitabalance.ro … test15@vitabalance.ro
+Parola (toate): VitaTest15!
+
+Stergere: delete_15_qa_accounts.sql | Inserare: seed_15_qa_accounts.sql
+
+CODURI DIN APLICATIE (obligatoriu pentru UI + backend)
+-------------------------------------------------------
+Alergii (allergies.ts, valori separate prin virgula): lactoza, gluten, nuci, oua, soia, peste, crustacee, arahide, sesam, mustar
+
+Conditii medicale (medicalConditions.ts): diabet, hipertensiune, anemie, osteoporoza, tiroida, celiachie, boli_cardiovasculare, insuficienta_renala, reflux, iritații_intestinale, deficienta_vitamin_d, deficienta_b12, obezitate, colesterol_ridicat, gout
+(In seed SQL, Laura foloseste doar „reflux” ca text ASCII; in aplicatie poti adauga si „iritații_intestinale” din selector.)
+
+CUM IA APLICATIA IN CALCUL DATELE (scurt)
+-----------------------------------------
+1) Profil: GET/POST profil medical salveaza allergies si medical_conditions in tabelul users (backend/main.py + UserRepository.upsert).
+
+2) Analize: ultimul set lab_results pentru user_id → DeficitCalculator.calculate_deficits (praguri clinice + observatii pentru nutrienți preferati daca lipseste panel-ul).
+
+3) Recomandari: RecommenderService.generate_recommendations imbina user.medical_conditions cu lab_results.notes in profilul „efectiv” inainte de reguli, astfel restrictiile din observatie (ex. Laura) intra in acelasi lant ca textul medical din profil.
+
+4) Filtrare alimente: NutritionalRuleEngine._is_compatible (rule_engine.py) foloseste diet_type, allergies (mapare cuvinte/categorii) si restrictiile parse din conditii + config/medical_rules.json.
+
+5) Scor + explicatii: reguli scoped + ExplanationGenerator; feedback optional.
+
+Nr | Cont      | Alergii (app)     | Conditii (coduri app)              | Ce verifici
+---|-----------|-------------------|------------------------------------|------------------------------------------
+ 1 | test1@... | nuci, arahide     | colesterol_ridicat                 | Fara preparate cu nuci/alune/arahide; regim cardiovascular.
+ 2 | test2@... | oua               | anemie                             | Fier din analize + fara oua in nume.
+ 3 | test3@... | peste             | (fara)                             | Alergie peste + Hb scazut (fier din Hb).
+ 4 | test4@... | soia              | deficienta_b12, deficienta_vitamin_d | Vegan fara soia/tofu; B12 jos in lab.
+ 5 | test5@... | (fara)            | osteoporoza, deficienta_vitamin_d | D + calciu sub prag; seniora.
+ 6 | test6@... | crustacee         | obezitate                          | Fara creveti etc.; proteine serice jos.
+ 7 | test7@... | sesam             | tiroida                            | Fara tahini/susan; zinc jos; pescatarian.
+ 8 | test8@... | lactoza           | (fara)                             | Lactoza + calciu jos → surse fara lactate.
+ 9 | test9@... | gluten            | celiachie                          | Fara gluten in nume/categorie.
+10 | test10@..| mustar            | hipertensiune, reflux              | medical_rules: sare, picant, etc.
+11 | test11@..| arahide           | diabet                             | Evitare dulciuri/zahar in denumiri.
+12 | test12@..| (fara)            | insuficienta_renala                | Renal: spanac, ceai, sare in keywords.
+13 | test13@..| peste             | reflux                             | Alergie peste + text restrictii in NOTES analiza (imbinat la recomandari).
+14 | test14@..| nuci, sesam       | deficienta_vitamin_d               | Fara nuci/susan; doar text+cod fara cifre lab → prioritati din observatie.
+15 | test15@..| oua               | anemie                             | Vegetarian + oua interzise + fier din lab.
+
+Unitati laborator in backend: vezi comentariu anterior in versiunea fisierului sau DeficitCalculator (praguri).
