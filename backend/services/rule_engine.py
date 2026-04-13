@@ -7,6 +7,7 @@ from enum import Enum
 from services.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
+    normalize_diet_type,
     resolve_allergy_token,
 )
 from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
@@ -959,17 +960,35 @@ class NutritionalRuleEngine:
     
     def _is_compatible(self, food: FoodItem, user: UserProfile) -> bool:
         """Verifică dacă alimentul este compatibil cu profilul utilizatorului"""
-        if user.diet_type == 'vegetarian' or user.diet_type == 'vegan':
-            meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel', 'pește', 'peste']
-            if any(cat in food.category.lower() for cat in meat_categories):
+        diet = normalize_diet_type(user.diet_type)
+        cat_norm = self._normalize_text(food.category or "")
+        name_norm = self._normalize_text(food.name or "")
+
+        if diet in ("vegetarian", "vegan"):
+            animal_markers = (
+                "carne", "pui", "porc", "vita", "miel", "peste", "fructe de mare",
+                "vanat", "ficat",
+            )
+            if any(m in cat_norm for m in animal_markers):
                 return False
-        
-        if user.diet_type == 'vegan':
-            dairy_categories = ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt']
-            if any(cat in food.category.lower() for cat in dairy_categories):
+            seafood_name_markers = (
+                "crevet", "scoic", "midie", "calamar", "sepie", "homar", "lobster",
+                "shrimp", "prawn", "somon", "sardine", "macrou", "hering", "anchois",
+                "icre", "peste la", "peste ", " peste", "pescarus", "fructe de mare",
+                "scallop", "sushi", "sashimi", "file de ton", "ton rosu", "ton roșu",
+            )
+            if any(m in name_norm for m in seafood_name_markers):
                 return False
-        
-        if user.diet_type == 'pescatarian':
+
+        if diet == "vegan":
+            dairy_egg_honey = (
+                "lactate", "lapte", "branza", "branzeturi", "iaurt", "smantana", "unt",
+                "oua", "miere",
+            )
+            if any(m in cat_norm for m in dairy_egg_honey):
+                return False
+
+        if diet == "pescatarian":
             meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel']
             if any(cat in food.category.lower() for cat in meat_categories):
                 return False
