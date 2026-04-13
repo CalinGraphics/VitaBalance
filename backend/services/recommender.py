@@ -4,6 +4,7 @@ import unicodedata
 from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
 from services.deficit_calculator import DeficitCalculator
+from services.medical_rules_loader import normalize_diet_type
 
 class RecommenderService:
     
@@ -316,7 +317,7 @@ class RecommenderService:
 
     def _category_preference_factor(self, category: str, user: UserProfile) -> float:
         cat = self._normalize_category(category)
-        diet = (user.diet_type or "").lower()
+        diet = normalize_diet_type(user.diet_type)
         if diet == "omnivore":
             if cat in {"carne", "peste & fructe de mare", "oua"}:
                 return 1.12
@@ -346,7 +347,7 @@ class RecommenderService:
                 break
 
         # Pentru omnivori, asigură cel puțin 2 recomandări din surse animale dacă sunt disponibile.
-        if (user.diet_type or "").lower() == "omnivore":
+        if normalize_diet_type(user.diet_type) == "omnivore":
             animal_categories = {"carne", "peste & fructe de mare", "oua"}
             selected_ids = {x.get("food_id") for x in selected}
             animal_selected = 0

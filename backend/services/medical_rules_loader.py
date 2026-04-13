@@ -37,6 +37,7 @@ ALLERGY_TOKEN_ALIASES: Dict[str, str] = {
     "coeliac": "gluten",
     "soy": "soia",
     "soya": "soia",
+    "soja": "soia",
     "tree nuts": "nuci",
     "treenuts": "nuci",
 }
