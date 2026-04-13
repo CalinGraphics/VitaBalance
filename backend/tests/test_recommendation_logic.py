@@ -166,6 +166,20 @@ class RecommendationLogicTests(unittest.TestCase):
         )
         self.assertFalse(self.rule_engine._is_compatible(creveti, user))
 
+    def test_soy_allergy_allows_lentils_blocks_tofu(self):
+        user = make_user(allergies="soia")
+        linte = make_food(id=103, name="Linte roșie fiartă", category="leguminoase", iron=3.0)
+        tofu = make_food(id=104, name="Tofu natur", category="proteine vegetale", iron=2.0)
+        self.assertTrue(self.rule_engine._is_compatible(linte, user))
+        self.assertFalse(self.rule_engine._is_compatible(tofu, user))
+
+    def test_egg_allergy_does_not_false_positive_on_noua(self):
+        user = make_user(allergies="oua")
+        salata = make_food(id=105, name="Salată verde nouă", category="salate", iron=0.5)
+        oua = make_food(id=106, name="Ou fiert", category="oua", iron=1.0)
+        self.assertTrue(self.rule_engine._is_compatible(salata, user))
+        self.assertFalse(self.rule_engine._is_compatible(oua, user))
+
     def test_vegan_diet_type_case_insensitive(self):
         user = make_user(diet_type="Vegan")
         homar = make_food(id=101, name="Homar", category="Proteine/Fructe de mare")

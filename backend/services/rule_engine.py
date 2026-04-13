@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from domain.models import FoodItem, UserProfile, LabResultItem
 from enum import Enum
+from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm
 from services.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
@@ -989,8 +990,8 @@ class NutritionalRuleEngine:
                 return False
 
         if diet == "pescatarian":
-            meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel']
-            if any(cat in food.category.lower() for cat in meat_categories):
+            land_meat = ("carne", "pui", "porc", "vita", "miel", "vanat")
+            if any(m in cat_norm for m in land_meat):
                 return False
         
         if user.allergies:
@@ -1001,116 +1002,7 @@ class NutritionalRuleEngine:
             ]
             food_name_norm = self._normalize_text(food.name or "")
             food_category_norm = self._normalize_text(food.category or "")
-            
-            allergy_mappings = {
-                'lactoza': {
-                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
-                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
-                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
-                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
-                },
-                'lactoză': {
-                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
-                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
-                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
-                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
-                },
-                'lactate': {
-                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
-                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
-                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
-                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
-                },
-                # Gluten
-                'gluten': {
-                    'categories': ['cereale', 'paini', 'paste', 'faina'],
-                    'keywords': ['gluten', 'grâu', 'grau', 'grău', 'făină', 'faina', 
-                                'pâine', 'paine', 'pâini', 'paste', 'spaghete', 'macaroane', 
-                                'tortilla', 'cereale', 'wheat', 'barley', 'rye', 'seitan', 
-                                'ovăz', 'orz', 'secară', 'malț']
-                },
-                'nuci': {
-                    'categories': [],
-                    'keywords': [
-                        'nuci', 'nuca', 'nucă', 'alune', 'migdale', 'fistic',
-                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
-                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
-                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
-                    ]
-                },
-                'nucă': {
-                    'categories': [],
-                    'keywords': [
-                        'nuci', 'nuca', 'nucă', 'alune', 'migdale', 'fistic',
-                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
-                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
-                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
-                    ]
-                },
-                'ouă': {
-                    'categories': [],
-                    'keywords': [
-                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
-                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
-                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
-                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
-                    ]
-                },
-                'oua': {
-                    'categories': [],
-                    'keywords': [
-                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
-                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
-                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
-                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
-                    ]
-                },
-                'soia': {
-                    'categories': ['legume'],
-                    'keywords': ['soia', 'soy', 'tofu', 'tempeh', 'miso', 'sos de soia']
-                },
-                'peste': {
-                    'categories': ['peste', 'fructe de mare'],
-                    'keywords': [
-                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
-                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
-                        'shrimp', 'prawn', 'prawns',
-                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
-                        'anchois', 'sushi', 'sashimi',
-                    ]
-                },
-                'pește': {
-                    'categories': ['peste', 'fructe de mare'],
-                    'keywords': [
-                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
-                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
-                        'shrimp', 'prawn', 'prawns',
-                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
-                        'anchois', 'sushi', 'sashimi',
-                    ]
-                },
-                'crustacee': {
-                    'categories': [],
-                    'keywords': ['crustacee', 'creveți', 'creveti', 'crab', 'homar', 'langustă', 
-                                'langusta', 'shrimp', 'lobster', 'crab']
-                },
-                'arahide': {
-                    'categories': [],
-                    'keywords': ['arahide', 'alune de pământ', 'alune de pamant', 'peanut', 'peanuts']
-                },
-                'sesam': {
-                    'categories': [],
-                    'keywords': ['sesam', 'susan', 'sezam', 'semințe de susan', 'seminte de susan', 
-                                'sesame', 'tahini', 'halva', 'halvă', 'susan']
-                },
-                'mustar': {
-                    'categories': [],
-                    'keywords': ['mustar', 'muștar', 'mustard', 'condimente cu mustar']
-                }
-            }
+            allergy_mappings = ALLERGY_MAPPINGS
             
             for user_allergy in user_allergies:
                 user_allergy_clean = user_allergy.strip().lower()
@@ -1144,7 +1036,7 @@ class NutritionalRuleEngine:
 
                     for keyword in allergy_info['keywords']:
                         kw = self._normalize_text(keyword)
-                        if kw and (kw in food_name_norm or kw in food_category_norm):
+                        if allergy_keyword_matches_norm(kw, food_name_norm, food_category_norm):
                             return False
                 
                 if food.allergens:
@@ -1164,7 +1056,8 @@ class NutritionalRuleEngine:
                         ):
                             return False
                 
-                if len(user_allergy_norm) >= 3 and (
+                # Minim 5 caractere: „oua” apare în „noua” (fals pozitiv la substring).
+                if len(user_allergy_norm) >= 5 and (
                     user_allergy_norm in food_name_norm or user_allergy_norm in food_category_norm
                 ):
                     return False

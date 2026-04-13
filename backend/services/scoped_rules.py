@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 import re
 from domain.models import UserProfile, FoodItem, LabResultItem
+from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm
 from services.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
@@ -629,17 +630,38 @@ class ScopedRulesEngine:
             for p in re.split(r"[,;]", user.allergies)
             if p.strip()
         ]
-        fish_al = any(p == "peste" or p.startswith("peste") for p in parts)
-        egg_al = any(p in ("oua", "ou", "oue", "eggs", "egg") for p in parts)
+        resolved = {resolve_allergy_token(p) for p in parts} | set(parts)
+        fish_al = "peste" in resolved or "crustacee" in resolved
+        egg_al = "oua" in resolved
+        soy_al = "soia" in resolved
+        nut_al = "nuci" in resolved or "arahide" in resolved
+        gluten_al = "gluten" in resolved
+        dairy_al = "lactoza" in resolved or "lactate" in resolved
+        seed_al = "seminte" in resolved or "semințe" in resolved
         out: List[str] = []
         for item in recommended:
             low = normalize_clinical_text(item)
             skip = False
             if fish_al:
-                if any(x in low for x in ("peste", "pesc", "fish", "fructe de mare")):
+                if any(x in low for x in ("peste", "pesc", "fish", "fructe de mare", "crevet", "scoic")):
                     skip = True
             if egg_al:
-                if any(x in low for x in ("oua", "ou", "egg", "galbenus")):
+                if any(x in low for x in ("oua", "ou ", " ou", "egg", "galbenus", "maionez")):
+                    skip = True
+            if soy_al:
+                if any(x in low for x in ("soia", "soy", "tofu", "tempeh", "miso", "edamame", "tamari", "lecitina", "lecithin")):
+                    skip = True
+            if nut_al:
+                if any(x in low for x in ("nuca", "nuci", "alune", "migdale", "fistic", "caju", "pesto", "arahide", "peanut", "nuts")):
+                    skip = True
+            if gluten_al:
+                if any(x in low for x in ("grau", "faina", "paine", "paste", "seitan", "gluten", "ovaz")):
+                    skip = True
+            if dairy_al:
+                if any(x in low for x in ("lapte", "lactate", "branza", "iaurt", "unt", "zer")):
+                    skip = True
+            if seed_al:
+                if any(x in low for x in ("seminte", "semințe", "chia", "flax", "susan", "sesam")):
                     skip = True
             if not skip:
                 out.append(item)
@@ -859,8 +881,8 @@ class ScopedRulesEngine:
                 return False
 
         if diet == "pescatarian":
-            meat_categories = ['carne', 'pui', 'porc', 'vita', 'miel']
-            if any(cat in food.category.lower() for cat in meat_categories):
+            land_meat = ("carne", "pui", "porc", "vita", "miel", "vanat")
+            if any(m in cat_norm for m in land_meat):
                 return False
         
         if user.allergies:
@@ -871,128 +893,7 @@ class ScopedRulesEngine:
             ]
             food_name_lower = normalize_clinical_text(food.name or '')
             food_category_lower = normalize_clinical_text(food.category or '')
-            
-            allergy_mappings = {
-                'lactoza': {
-                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
-                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
-                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
-                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
-                },
-                'lactoză': {
-                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
-                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
-                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
-                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
-                },
-                'lactate': {
-                    'categories': ['lactate', 'lapte', 'branza', 'branzeturi'],
-                    'keywords': ['lactate', 'lapte', 'branza', 'brânză', 'branzeturi', 'brânzeturi', 
-                                'iaurt', 'smantana', 'smântână', 'unt', 'telemea', 
-                                'cascaval', 'cașcaval', 'ricotta', 'mozzarella', 'gorgonzola', 
-                                'parmezan', 'cheddar', 'feta', 'brie', 'camembert', 'dairy', 'lactos']
-                },
-                # Gluten
-                'gluten': {
-                    'categories': ['cereale', 'paini', 'paste', 'faina'],
-                    'keywords': ['gluten', 'grâu', 'grau', 'grău', 'făină', 'faina', 'făină', 
-                                'pâine', 'paine', 'pâini', 'paste', 'spaghete', 'macaroane', 
-                                'tortilla', 'cereale', 'wheat', 'barley', 'rye', 'seitan', 
-                                'ovăz', 'orz', 'secară', 'malț']
-                },
-                'nuci': {
-                    'categories': [],
-                    'keywords': [
-                        'nuci', 'nuca', 'alune', 'migdale', 'fistic',
-                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
-                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
-                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
-                    ]
-                },
-                'nucă': {
-                    'categories': [],
-                    'keywords': [
-                        'nuci', 'nuca', 'alune', 'migdale', 'fistic',
-                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
-                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
-                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
-                    ]
-                },
-                'semințe': {
-                    'categories': [],
-                    'keywords': ['semințe', 'seminte', 'semințe de', 'seminte de', 'chia', 'flax',
-                                'in', 'sunflower', 'pumpkin', 'sesame', 'sezam', 'semințe de in',
-                                'semințe de chia', 'semințe de dovleac', 'semințe de susan']
-                },
-                'seminte': {
-                    'categories': [],
-                    'keywords': ['semințe', 'seminte', 'semințe de', 'seminte de', 'chia', 'flax',
-                                'in', 'sunflower', 'pumpkin', 'sesame', 'sezam']
-                },
-                # Ouă
-                'ouă': {
-                    'categories': [],
-                    'keywords': [
-                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
-                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
-                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
-                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
-                    ]
-                },
-                'oua': {
-                    'categories': [],
-                    'keywords': [
-                        'ouă', 'oua', 'ou', 'egg', 'eggs', 'albus', 'galbenus',
-                        'cobb', 'piccata', 'picatta', 'maionez', 'majonez', 'mayonnaise',
-                        'carbonara', 'hollandaise', 'tiramisu', 'custard', 'flan', 'papanasi',
-                        'clatite', 'clătite', 'briosa', 'brioșa', 'pancakes', 'waffle', 'waffles',
-                    ]
-                },
-                'soia': {
-                    'categories': ['legume'],
-                    'keywords': ['soia', 'soy', 'tofu', 'tempeh', 'miso', 'sos de soia']
-                },
-                'peste': {
-                    'categories': ['peste', 'fructe de mare'],
-                    'keywords': [
-                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
-                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
-                        'shrimp', 'prawn', 'prawns',
-                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
-                        'anchois', 'sushi', 'sashimi',
-                    ]
-                },
-                'pește': {
-                    'categories': ['peste', 'fructe de mare'],
-                    'keywords': [
-                        'peste', 'pește', 'pescarus', 'somon', 'ton', 'sardine', 'macrou',
-                        'crap', 'salau', 'fish', 'seafood', 'homar', 'lobster', 'crevet', 'crab',
-                        'shrimp', 'prawn', 'prawns',
-                        'midie', 'midii', 'scoici', 'scallop', 'calamar', 'sepie', 'icre', 'hering',
-                        'anchois', 'sushi', 'sashimi',
-                    ]
-                },
-                'crustacee': {
-                    'categories': [],
-                    'keywords': ['crustacee', 'creveți', 'creveti', 'crab', 'homar', 'langustă', 
-                                'langusta', 'shrimp', 'lobster', 'crab']
-                },
-                'arahide': {
-                    'categories': [],
-                    'keywords': ['arahide', 'alune de pământ', 'alune de pamant', 'peanut', 'peanuts']
-                },
-                'sesam': {
-                    'categories': [],
-                    'keywords': ['sesam', 'susan', 'sezam', 'semințe de susan', 'seminte de susan', 
-                                'sesame', 'tahini', 'halva', 'halvă', 'susan']
-                },
-                'mustar': {
-                    'categories': [],
-                    'keywords': ['mustar', 'muștar', 'mustard', 'condimente cu mustar']
-                }
-            }
+            allergy_mappings = ALLERGY_MAPPINGS
             
             for user_allergy in user_allergies:
                 user_allergy_clean = user_allergy.strip().lower()
@@ -1026,7 +927,7 @@ class ScopedRulesEngine:
 
                     for keyword in allergy_info['keywords']:
                         kw = normalize_clinical_text(keyword)
-                        if kw and (kw in food_name_lower or kw in food_category_lower):
+                        if allergy_keyword_matches_norm(kw, food_name_lower, food_category_lower):
                             return False
                 
                 if food.allergens:
@@ -1046,7 +947,7 @@ class ScopedRulesEngine:
                         ):
                             return False
                 
-                if len(user_allergy_norm) >= 3 and (
+                if len(user_allergy_norm) >= 5 and (
                     user_allergy_norm in food_name_lower or user_allergy_norm in food_category_lower
                 ):
                     return False
