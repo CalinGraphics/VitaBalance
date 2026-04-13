@@ -138,6 +138,24 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertFalse(self.rule_engine._is_compatible(spicy, user))
         self.assertTrue(self.rule_engine._is_compatible(neutral, user))
 
+    def test_high_cholesterol_blocks_fried_and_rich_cheese(self):
+        user = make_user(medical_conditions="colesterol_ridicat")
+        fries = make_food(id=60, name="Cartofi Prajiți garnitură", category="legume")
+        brie = make_food(id=61, name="Brânză Brie", category="lactate")
+        cucumber = make_food(id=62, name="Castravete proaspăt", category="legume")
+        self.assertFalse(self.rule_engine._is_compatible(fries, user))
+        self.assertFalse(self.rule_engine._is_compatible(brie, user))
+        self.assertTrue(self.rule_engine._is_compatible(cucumber, user))
+
+    def test_tree_nut_allergy_blocks_ambiguous_nut_dishes(self):
+        user = make_user(allergies="nuci", medical_conditions="")
+        kibbeh = make_food(id=70, name="Kibbeh prăjit", category="carne")
+        pesto = make_food(id=71, name="Pesto verde", category="condimente & mirodenii")
+        somon = make_food(id=72, name="Somon la grătar", category="pește & fructe de mare")
+        self.assertFalse(self.rule_engine._is_compatible(kibbeh, user))
+        self.assertFalse(self.rule_engine._is_compatible(pesto, user))
+        self.assertTrue(self.rule_engine._is_compatible(somon, user))
+
 
 if __name__ == "__main__":
     unittest.main()
