@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import replace
 import unicodedata
 from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
@@ -74,10 +74,32 @@ class RecommenderService:
         # 2) Dacă nu există deficite sau regulile sunt prea restrictive și nu întorc nimic,
         # generează un fallback pe baza profilului utilizatorului (dietă, alergii, condiții medicale)
         if not recommendations:
-            return self._generate_fallback_recommendations(user=effective_user, foods=foods)
+            fb = self._generate_fallback_recommendations(user=effective_user, foods=foods)
+            return self._filter_compatible_recommendations(effective_user, foods, fb)
 
         recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
-        return self._rebalance_by_category(user=effective_user, foods=foods, recommendations=recommendations)
+        balanced = self._rebalance_by_category(
+            user=effective_user, foods=foods, recommendations=recommendations
+        )
+        return self._filter_compatible_recommendations(effective_user, foods, balanced)
+
+    def _filter_compatible_recommendations(
+        self,
+        user: UserProfile,
+        foods: List[FoodItem],
+        recommendations: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Ultimă verificare: niciun aliment incompatibil cu profilul nu rămâne în listă."""
+        by_id = {f.id: f for f in foods}
+        out: List[Dict[str, Any]] = []
+        for rec in recommendations:
+            fid = rec.get("food_id")
+            food = by_id.get(fid) if fid is not None else None
+            if food is None:
+                continue
+            if self.rule_engine._is_compatible(food, user):  # type: ignore[attr-defined]
+                out.append(rec)
+        return out
     
     def _apply_feedback_adjustments(
         self,
