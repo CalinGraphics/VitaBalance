@@ -1,12 +1,10 @@
 
 from typing import List, Dict, Optional, Tuple
 import re
-import unicodedata
-import json
-from pathlib import Path
 from dataclasses import dataclass
 from domain.models import FoodItem, UserProfile, LabResultItem
 from enum import Enum
+from services.medical_rules_loader import load_medical_rules_config, normalize_clinical_text
 from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
 
 
@@ -72,25 +70,31 @@ class NutritionalRuleEngine:
 
     def _normalize_text(self, value: str) -> str:
         """Normalizează textul pentru matching robust (diacritice, underscore, spații)."""
-        raw = (value or "").strip().lower().replace("_", " ").replace("-", " ")
-        folded = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
-        return re.sub(r"\s+", " ", folded).strip()
+        return normalize_clinical_text(value)
 
     def _load_medical_rules_config(self) -> Dict:
         """Încarcă reguli medicale externe (fără hardcodare în cod)."""
-        cfg_path = Path(__file__).resolve().parents[1] / "config" / "medical_rules.json"
-        if not cfg_path.exists():
-            return {"condition_food_rules": [], "condition_trigger_rules": []}
-        try:
-            with cfg_path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-            if not isinstance(data, dict):
-                return {"condition_food_rules": [], "condition_trigger_rules": []}
-            data.setdefault("condition_food_rules", [])
-            data.setdefault("condition_trigger_rules", [])
-            return data
-        except Exception:
-            return {"condition_food_rules": [], "condition_trigger_rules": []}
+        return load_medical_rules_config()
+
+    def _user_has_hyperlipidemia_profile(self, conditions_norm: str) -> bool:
+        if not conditions_norm:
+            return False
+        markers = (
+            "colesterol ridicat",
+            "colesterol marit",
+            "hipercolesterolemie",
+            "dislipidemie",
+            "dislipidemia",
+            "colesterol mare",
+            "ldl marit",
+            "trigliceride mari",
+            "trigliceride",
+            "boli cardiovasculare",
+            "risc cardiovascular",
+            "ateroscleroza",
+            "cord ischemic",
+        )
+        return any(m in conditions_norm for m in markers)
 
     def _portion_for_food(self, food: FoodItem, user: UserProfile) -> int:
         cat = self._normalize_text(food.category or "")
@@ -1003,13 +1007,21 @@ class NutritionalRuleEngine:
                 },
                 'nuci': {
                     'categories': [],
-                    'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
-                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+                    'keywords': [
+                        'nuci', 'nuca', 'nucă', 'alune', 'migdale', 'fistic',
+                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
+                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
+                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
+                    ]
                 },
                 'nucă': {
                     'categories': [],
-                    'keywords': ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic', 
-                                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+                    'keywords': [
+                        'nuci', 'nuca', 'nucă', 'alune', 'migdale', 'fistic',
+                        'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
+                        'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
+                        'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
+                    ]
                 },
                 'ouă': {
                     'categories': [],
@@ -1161,10 +1173,10 @@ class NutritionalRuleEngine:
                            'semințe de chia', 'semințe de dovleac', 'semințe de susan',
                            'semințe de floarea-soarelui', 'seminte de floarea-soarelui']
             
-            if any(restriction in conditions_lower for restriction in seed_restrictions):
+            if any(self._normalize_text(r) in conditions_lower for r in seed_restrictions):
                 if 'semințe' in food_category_lower or 'seminte' in food_category_lower:
                     return False
-                if any(keyword in food_name_lower for keyword in seed_keywords):
+                if any(self._normalize_text(k) in food_name_lower for k in seed_keywords):
                     return False
             
             nuts_restrictions = [
@@ -1172,11 +1184,15 @@ class NutritionalRuleEngine:
                 'no nuts', 'no nuts allowed', 'fara nuci', 'fara nucă',
                 'interzis nuci', 'interzis nucă', 'evit nuci', 'evit nucă'
             ]
-            nuts_keywords = ['nuci', 'nucă', 'nuca', 'nuc', 'alune', 'migdale', 'fistic',
-                           'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut']
+            nuts_keywords = [
+                'nuci', 'nuca', 'alune', 'migdale', 'fistic',
+                'caju', 'macadamia', 'pecan', 'nuts', 'almond', 'walnut', 'hazelnut',
+                'pignoli', 'pinoli', 'nuci de pin', 'nuca de pin',
+                'pesto', 'kibbeh', 'baklava', 'nougat', 'gianduja', 'marzipan', 'martipan',
+            ]
             
-            if any(restriction in conditions_lower for restriction in nuts_restrictions):
-                if any(keyword in food_name_lower or keyword in food_category_lower for keyword in nuts_keywords):
+            if any(self._normalize_text(r) in conditions_lower for r in nuts_restrictions):
+                if any(self._normalize_text(k) in food_name_lower or self._normalize_text(k) in food_category_lower for k in nuts_keywords):
                     return False
             
             dairy_restrictions = [
@@ -1188,10 +1204,17 @@ class NutritionalRuleEngine:
                             'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan',
                             'cheddar', 'feta', 'brie', 'camembert', 'dairy']
             
-            if any(restriction in conditions_lower for restriction in dairy_restrictions):
-                if any(keyword in food_name_lower or keyword in food_category_lower for keyword in dairy_keywords):
+            if any(self._normalize_text(r) in conditions_lower for r in dairy_restrictions):
+                if any(self._normalize_text(k) in food_name_lower or self._normalize_text(k) in food_category_lower for k in dairy_keywords):
                     return False
         
+        lipids = self._normalize_text(user.medical_conditions or "")
+        if self._user_has_hyperlipidemia_profile(lipids):
+            chol = float(food.cholesterol or 0)
+            fatv = float(food.fat or 0)
+            if chol >= 95 or (fatv >= 24 and chol >= 40):
+                return False
+
         return True
     
     def _calculate_coverage(
