@@ -355,6 +355,7 @@ class RecommenderService:
         food_by_id = {f.id: f for f in foods}
         selected: List[Dict] = []
         per_category_counts: Dict[str, int] = {}
+        name_family_counts: Dict[str, int] = {}
         for item in recommendations:
             food_obj = food_by_id.get(item.get("food_id"))
             category_key = self._normalize_category(food_obj.category if food_obj else "")
@@ -362,8 +363,15 @@ class RecommenderService:
             current = per_category_counts.get(category_key, 0)
             if current >= max_per_category:
                 continue
+            family_key = self._name_family_key(food_obj.name if food_obj else "")
+            if family_key:
+                fam_count = name_family_counts.get(family_key, 0)
+                if fam_count >= 1:
+                    continue
             selected.append(item)
             per_category_counts[category_key] = current + 1
+            if family_key:
+                name_family_counts[family_key] = name_family_counts.get(family_key, 0) + 1
             if len(selected) >= 20:
                 break
 
@@ -394,3 +402,11 @@ class RecommenderService:
 
         selected.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
         return selected[:20]
+
+    def _name_family_key(self, food_name: str) -> str:
+        name = self._normalize_category(food_name or "")
+        if "cartofi prajiti" in name:
+            return "cartofi_prajiti"
+        if "supa" in name and "conserva" in name:
+            return "supa_conserva"
+        return ""
