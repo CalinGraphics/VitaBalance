@@ -1,5 +1,5 @@
 
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
 import re

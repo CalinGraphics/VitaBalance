@@ -1,5 +1,5 @@
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 import re
 from dataclasses import dataclass
 from domain.models import FoodItem, UserProfile, LabResultItem
