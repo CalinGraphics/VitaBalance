@@ -9,6 +9,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from domain.models import FoodItem, LabResultItem, UserProfile
 from services.deficit_calculator import DeficitCalculator
+from services.explanation_generator import ExplanationGenerator
 from services.recommender import RecommenderService
 from services.rule_engine import NutritionalRuleEngine
 
@@ -190,6 +191,11 @@ class RecommendationLogicTests(unittest.TestCase):
         leg = make_food(id=102, name="Salată verde", category="legume organice")
         self.assertTrue(self.rule_engine._is_compatible(leg, user))
 
+    def test_vegan_blocks_caprese_by_name_even_if_category_is_legume(self):
+        user = make_user(diet_type="vegan")
+        caprese = make_food(id=107, name="Salata Caprese", category="Mese/Legume")
+        self.assertFalse(self.rule_engine._is_compatible(caprese, user))
+
     def test_fish_allergy_blocks_shellfish_and_seafood_category(self):
         user = make_user(allergies="peste")
         homar = make_food(id=80, name="Homar fiert", category="Proteine/Fructe de mare")
@@ -243,6 +249,24 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertIn("hemoglobin", text.lower())
         self.assertIn("feritin", text.lower())
         self.assertNotIn("feritină < 30", text.lower())
+
+    def test_fallback_reason_with_lab_data_does_not_claim_no_deficits(self):
+        gen = ExplanationGenerator()
+        user = make_user(diet_type="vegan")
+        food = make_food(id=108, name="Fasole neagră", category="leguminoase")
+        out = gen.generate_explanation(
+            food=food,
+            user=user,
+            deficits={"vitamin_b12": 2.0},
+            score=3.2,
+            coverage=24.0,
+            explanations=["Recomandare de completare."],
+            matched_rules=["fallback_profile_based"],
+            has_lab_data=True,
+        )
+        reason_blob = " ".join(out.get("reasons") or []).lower()
+        self.assertIn("deficitele identificate", reason_blob)
+        self.assertNotIn("nu se evidențiază deficite active", reason_blob)
 
 
 if __name__ == "__main__":
