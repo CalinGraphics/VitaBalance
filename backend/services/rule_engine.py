@@ -988,6 +988,13 @@ class NutritionalRuleEngine:
             )
             if any(m in cat_norm for m in dairy_egg_honey):
                 return False
+            dairy_egg_honey_name_markers = (
+                "mozzarella", "telemea", "ricotta", "camembert", "brie", "cheddar",
+                "parmezan", "parmesan", "feta", "caprese", "halloumi", "iaurt", "lapte",
+                "ou ", "oua", "egg", "eggs", "honey", "miere",
+            )
+            if any(m in name_norm for m in dairy_egg_honey_name_markers):
+                return False
 
         if diet == "pescatarian":
             land_meat = ("carne", "pui", "porc", "vita", "miel", "vanat")

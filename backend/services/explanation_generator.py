@@ -76,8 +76,8 @@ class ExplanationGenerator:
         if is_fallback_profile_based:
             if has_lab_data:
                 reasons.append(
-                    "Recomandare de profil și analize: nu se evidențiază deficite active, "
-                    "dar alimentul susține menținerea unui aport nutrițional echilibrat."
+                    "Recomandare de profil și analize: aliment compatibil ales pentru completarea "
+                    "planului nutrițional; prioritizează în continuare aportul pentru deficitele identificate."
                 )
             else:
                 reasons.append(
