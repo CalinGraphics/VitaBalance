@@ -46,6 +46,9 @@ class RecommenderService:
             if k in self.nutrients and v > 0
         }
         focus_deficits = self._build_focus_deficits(filtered_deficits, effective_user)
+        required_focus_nutrients = self._clinical_required_focus_nutrients(
+            effective_user, focus_deficits
+        )
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
@@ -71,6 +74,7 @@ class RecommenderService:
                         deficits=focus_deficits,
                         nutrients_covered=recommendation.nutrients_covered,
                         user=effective_user,
+                        required_nutrients=required_focus_nutrients,
                     )
                     adjusted_score *= self._active_deficit_quality_factor(
                         food_category=food.category,
@@ -224,6 +228,18 @@ class RecommenderService:
 
         return focus
 
+    def _clinical_required_focus_nutrients(
+        self, user: UserProfile, deficits: Dict[str, float]
+    ) -> set[str]:
+        med = normalize_clinical_text(user.medical_conditions or "")
+        required: set[str] = set()
+        if any(x in med for x in ("osteoporo", "osteopen")):
+            if deficits.get("calcium", 0) > 0:
+                required.add("calcium")
+            if deficits.get("vitamin_d", 0) > 0:
+                required.add("vitamin_d")
+        return required
+
     def _filter_compatible_recommendations(
         self,
         user: UserProfile,
@@ -367,6 +383,9 @@ class RecommenderService:
                 deficits={k: 1.0 for k in active_targets},
                 nutrients_covered=covered_nutrients,
                 user=user,
+                required_nutrients=self._clinical_required_focus_nutrients(
+                    user, {k: 1.0 for k in active_targets}
+                ),
             )
 
             avg_coverage = total_coverage / len(covered_nutrients)
@@ -475,6 +494,8 @@ class RecommenderService:
         if not has_active_deficits:
             return 1.0
         cat = self._normalize_category(food_category)
+        if "procesat" in cat or "prajit" in cat or "prăjit" in cat:
+            return 0.05
         if "condiment" in cat or "sos" in cat:
             return 0.08
         if "desert" in cat:
@@ -486,6 +507,7 @@ class RecommenderService:
         deficits: Dict[str, float],
         nutrients_covered: List[str],
         user: UserProfile,
+        required_nutrients: Optional[set[str]] = None,
     ) -> float:
         if not deficits:
             return 1.0
@@ -502,6 +524,15 @@ class RecommenderService:
         diet = normalize_diet_type(user.diet_type)
         if diet == "vegan" and ("vitamin_b12" in covered or "vitamin_d" in covered):
             mult += 0.70
+        req = set(required_nutrients or set())
+        if req:
+            covered_req = req.intersection(covered)
+            if len(covered_req) == 0:
+                mult *= 0.30
+            elif len(covered_req) < len(req):
+                mult *= 0.75
+            else:
+                mult *= 1.20
         return min(mult, 3.0)
 
     def _max_items_per_category(self, category_key: str, has_active_deficits: bool = False) -> int:
