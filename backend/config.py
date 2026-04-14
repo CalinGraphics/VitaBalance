@@ -42,8 +42,10 @@ class Settings(BaseSettings):
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
 
     # Food intelligence API (OpenFoodFacts) – opțional, pentru reducerea hardcodării la alergeni ascunși
-    openfoodfacts_enabled: bool = os.getenv("OPENFOODFACTS_ENABLED", "true").lower() in ("1", "true", "yes")
-    openfoodfacts_timeout_seconds: float = float(os.getenv("OPENFOODFACTS_TIMEOUT_SECONDS", "1.2"))
+    # IMPORTANT: disabled by default pentru a evita latențe mari pe request path (502/timeouts).
+    # Se activează explicit prin env când există un pipeline de pre-validare și buget de latență.
+    openfoodfacts_enabled: bool = os.getenv("OPENFOODFACTS_ENABLED", "false").lower() in ("1", "true", "yes")
+    openfoodfacts_timeout_seconds: float = float(os.getenv("OPENFOODFACTS_TIMEOUT_SECONDS", "0.35"))
     
     # Configurație Pydantic v2
     model_config = SettingsConfigDict(
