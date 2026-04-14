@@ -508,7 +508,8 @@ async def get_recommendations(
 
     lab_results = lab_repo.get_latest_by_user_id(request.user_id)
     user_feedbacks = feedback_repo.get_by_user_id(request.user_id)
-    feedback_counts_by_food = feedback_repo.get_counts_by_food_id()
+    # Calculăm feedback counts doar pentru alimentele returnate, la final.
+    feedback_counts_by_food: Dict[int, Dict[str, int]] = {}
     user_feedback_by_rec = {fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None}
 
     # Build feedback_by_food without N+1 calls to Supabase:
@@ -624,8 +625,6 @@ async def get_recommendations(
                     "portion_suggested": expl["portion"],
                     "coverage_percentage": rec_list[0]["coverage"],
                 }])
-        # Reîncarcă counts după insert (noua rec nu e încă în counts)
-        feedback_counts_by_food = feedback_repo.get_counts_by_food_id()
         existing_recs = rec_repo.get_by_user_id(request.user_id, limit=20)
         food_by_id = {f.id: f for f in foods}
         explanation_gen = ExplanationGenerator()
@@ -833,6 +832,16 @@ async def get_recommendations(
             continue
         seen_food_ids.add(fid)
         unique_recommendations.append(rec)
+
+    # Fetch feedback counts doar pentru food_ids din răspuns (max 20), evitând query-uri globale costisitoare.
+    response_food_ids = [int(rec["food_id"]) for rec in unique_recommendations if rec.get("food_id") is not None]
+    if response_food_ids:
+        feedback_counts_by_food = feedback_repo.get_counts_by_food_ids(response_food_ids)
+        for rec in unique_recommendations:
+            fid = rec.get("food_id")
+            if fid is None:
+                continue
+            rec["feedback"] = feedback_counts_by_food.get(int(fid), {"likes": 0, "dislikes": 0})
 
     return unique_recommendations
 
