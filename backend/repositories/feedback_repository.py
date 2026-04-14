@@ -146,6 +146,60 @@ class FeedbackRepository:
                 counts[fid]["dislikes"] += 1
         return counts
 
+    def get_counts_by_food_ids(self, food_ids: List[int]) -> Dict[int, Dict[str, int]]:
+        """
+        Variantă eficientă: calculează likes/dislikes doar pentru un subset de food_id.
+        Evită scanarea întregului istoric de feedback la fiecare request.
+        """
+        wanted = {int(x) for x in (food_ids or []) if x is not None}
+        if not wanted:
+            return {}
+
+        rec_resp = (
+            self._client.table("recommendations")
+            .select("id, food_id")
+            .in_("food_id", list(wanted))
+            .execute()
+        )
+        if not rec_resp.data:
+            return {fid: {"likes": 0, "dislikes": 0} for fid in wanted}
+
+        rec_to_food: Dict[int, int] = {}
+        for r in rec_resp.data:
+            rid = r.get("id")
+            fid = r.get("food_id")
+            if rid is None or fid is None:
+                continue
+            rec_to_food[int(rid)] = int(fid)
+
+        if not rec_to_food:
+            return {fid: {"likes": 0, "dislikes": 0} for fid in wanted}
+
+        fb_resp = (
+            self._client.table(self.TABLE)
+            .select("recommendation_id, rating")
+            .in_("recommendation_id", list(rec_to_food.keys()))
+            .execute()
+        )
+
+        counts: Dict[int, Dict[str, int]] = {fid: {"likes": 0, "dislikes": 0} for fid in wanted}
+        if not fb_resp.data:
+            return counts
+
+        for row in fb_resp.data:
+            rec_id = row.get("recommendation_id")
+            rating = row.get("rating", 0)
+            if rec_id is None:
+                continue
+            fid = rec_to_food.get(int(rec_id))
+            if fid is None:
+                continue
+            if isinstance(rating, (int, float)) and rating >= 4:
+                counts[fid]["likes"] += 1
+            elif isinstance(rating, (int, float)) and rating <= 2:
+                counts[fid]["dislikes"] += 1
+        return counts
+
     def create(
         self,
         user_id: int,
