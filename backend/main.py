@@ -511,17 +511,21 @@ async def get_recommendations(
     feedback_counts_by_food = feedback_repo.get_counts_by_food_id()
     user_feedback_by_rec = {fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None}
 
+    # Build feedback_by_food without N+1 calls to Supabase:
+    # fetch recommendations once, then map in-memory.
     feedback_by_food: dict = {}
-    for fb in user_feedbacks:
-        if fb.recommendation_id is None:
-            continue
+    if user_feedbacks:
         recs = rec_repo.get_by_user_id(request.user_id, limit=1000)
-        for r in recs:
-            if r.id == fb.recommendation_id:
-                if r.food_id not in feedback_by_food:
-                    feedback_by_food[r.food_id] = []
-                feedback_by_food[r.food_id].append(fb)
-                break
+        rec_by_id = {r.id: r for r in recs}
+        for fb in user_feedbacks:
+            if fb.recommendation_id is None:
+                continue
+            rec = rec_by_id.get(fb.recommendation_id)
+            if not rec:
+                continue
+            if rec.food_id not in feedback_by_food:
+                feedback_by_food[rec.food_id] = []
+            feedback_by_food[rec.food_id].append(fb)
 
     existing = rec_repo.get_first_by_user_id(request.user_id)
     should_generate = force_regenerate or (existing is None)
