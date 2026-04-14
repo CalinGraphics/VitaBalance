@@ -214,6 +214,11 @@ class RecommendationLogicTests(unittest.TestCase):
         caprese = make_food(id=107, name="Salata Caprese", category="Mese/Legume")
         self.assertFalse(self.rule_engine._is_compatible(caprese, user))
 
+    def test_vegan_blocks_whey_named_products(self):
+        user = make_user(diet_type="vegan")
+        whey = make_food(id=1087, name="Shake de Proteine din Zer", category="Suplimente")
+        self.assertFalse(self.rule_engine._is_compatible(whey, user))
+
     def test_fish_allergy_blocks_shellfish_and_seafood_category(self):
         user = make_user(allergies="peste")
         homar = make_food(id=80, name="Homar fiert", category="Proteine/Fructe de mare")
@@ -329,6 +334,43 @@ class RecommendationLogicTests(unittest.TestCase):
         )
         self.assertTrue(recs)
         self.assertEqual(recs[0]["food_id"], 120)
+
+    def test_active_deficits_filter_out_condiments_and_desserts_in_fallback(self):
+        user = make_user(diet_type="vegan")
+        deficits = {"vitamin_d": 10.0, "vitamin_b12": 8.0}
+        cond = make_food(
+            id=130,
+            name="Piper Negru",
+            category="Condimente",
+            vitamin_d=25.0,
+            vitamin_b12=10.0,
+        )
+        dessert = make_food(
+            id=131,
+            name="Marshmallow",
+            category="Deserturi",
+            vitamin_d=20.0,
+            vitamin_b12=7.0,
+        )
+        useful = make_food(
+            id=132,
+            name="Ciuperci UV",
+            category="Legume",
+            vitamin_d=18.0,
+            vitamin_b12=0.0,
+        )
+        recs = self.recommender.generate_recommendations(
+            user=user,
+            deficits=deficits,
+            foods=[cond, dessert, useful],
+            lab_results=None,
+            user_feedbacks=[],
+            feedback_by_food={},
+        )
+        ids = [r["food_id"] for r in recs]
+        self.assertIn(132, ids)
+        self.assertNotIn(130, ids)
+        self.assertNotIn(131, ids)
 
 
 if __name__ == "__main__":

@@ -50,6 +50,7 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
             "mozzarella", "telemea", "ricotta", "camembert", "brie", "cheddar",
             "parmezan", "parmesan", "feta", "caprese", "halloumi", "iaurt", "lapte",
             "ou ", "oua", "egg", "eggs", "honey", "miere",
+            "zer", "whey", "casein", "cazeina", "kefir", "chefir",
         )
         if any(m in name_norm for m in dairy_egg_honey_name_markers):
             return False
