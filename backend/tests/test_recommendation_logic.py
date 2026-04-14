@@ -552,6 +552,51 @@ class RecommendationLogicTests(unittest.TestCase):
         )
         self.assertEqual(cap, 0)
 
+    def test_fallback_only_flow_rebalances_and_filters_processed_when_deficits_active(self):
+        user = make_user(
+            diet_type="omnivore",
+            medical_conditions="osteoporoza si deficit vitamina D",
+        )
+        deficits = {"calcium": 8.0, "vitamin_d": 6.0}
+        foods = [
+            make_food(id=600, name="Cartofi Prajiti", category="Legume/Procesate", calcium=80.0),
+            make_food(id=601, name="Somon la Cuptor", category="Peste & Fructe de Mare", vitamin_d=10.0),
+        ]
+        fallback_recs = [
+            {
+                "food_id": 600,
+                "score": 80.0,
+                "coverage": 50.0,
+                "explanations": ["x"],
+                "matched_rules": ["fallback_profile_based"],
+                "nutrients_covered": ["calcium"],
+                "is_secondary_fill": False,
+            },
+            {
+                "food_id": 601,
+                "score": 40.0,
+                "coverage": 20.0,
+                "explanations": ["x"],
+                "matched_rules": ["fallback_profile_based"],
+                "nutrients_covered": ["vitamin_d"],
+                "is_secondary_fill": False,
+            },
+        ]
+        with patch.object(self.recommender.rule_engine, "evaluate_food", return_value=None), patch.object(
+            self.recommender, "_generate_fallback_recommendations", return_value=fallback_recs
+        ):
+            recs = self.recommender.generate_recommendations(
+                user=user,
+                deficits=deficits,
+                foods=foods,
+                lab_results=None,
+                user_feedbacks=[],
+                feedback_by_food={},
+            )
+        ids = [r["food_id"] for r in recs]
+        self.assertIn(601, ids)
+        self.assertNotIn(600, ids)
+
 
 if __name__ == "__main__":
     unittest.main()
