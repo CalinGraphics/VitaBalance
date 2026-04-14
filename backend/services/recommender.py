@@ -4,7 +4,7 @@ import unicodedata
 from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
 from services.deficit_calculator import DeficitCalculator
-from services.medical_rules_loader import normalize_diet_type
+from services.medical_rules_loader import normalize_clinical_text, normalize_diet_type
 
 class RecommenderService:
     # Dacă regulile pe deficite lasă prea puține variante (ex. vegan + alergii stricte),
@@ -45,10 +45,11 @@ class RecommenderService:
             k: v for k, v in deficits.items()
             if k in self.nutrients and v > 0
         }
+        focus_deficits = self._build_focus_deficits(filtered_deficits, effective_user)
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
-        has_active_deficits = bool(filtered_deficits)
+        has_active_deficits = bool(focus_deficits)
         if filtered_deficits:
             for food in foods:
                 recommendation = self.rule_engine.evaluate_food(
@@ -67,7 +68,7 @@ class RecommenderService:
                         feedback_by_food=feedback_by_food
                     )
                     adjusted_score *= self._deficit_priority_multiplier(
-                        deficits=filtered_deficits,
+                        deficits=focus_deficits,
                         nutrients_covered=recommendation.nutrients_covered,
                         user=effective_user,
                     )
@@ -91,7 +92,7 @@ class RecommenderService:
             fb = self._generate_fallback_recommendations(
                 user=effective_user,
                 foods=foods,
-                target_nutrients=list(filtered_deficits.keys()) if filtered_deficits else None,
+                target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
             )
             return self._filter_compatible_recommendations(effective_user, foods, fb)
 
@@ -108,7 +109,7 @@ class RecommenderService:
             fb = self._generate_fallback_recommendations(
                 user=effective_user,
                 foods=foods,
-                target_nutrients=list(filtered_deficits.keys()) if filtered_deficits else None,
+                target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
             )
             fb_ok = self._filter_compatible_recommendations(effective_user, foods, fb)
             seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
@@ -128,6 +129,43 @@ class RecommenderService:
             final = self._filter_compatible_recommendations(effective_user, foods, balanced2)
 
         return final
+
+    def _build_focus_deficits(self, deficits: Dict[str, float], user: UserProfile) -> Dict[str, float]:
+        if not deficits:
+            return {}
+
+        # Păstrăm focusul pe deficitele dominante, ca să nu diluăm scorul pe mulți nutrienți minori.
+        sorted_deficits = sorted(deficits.items(), key=lambda x: x[1], reverse=True)
+        focus: Dict[str, float] = {k: v for k, v in sorted_deficits[:4]}
+
+        max_def = max(deficits.values()) if deficits else 0.0
+        min_boost_value = max(0.0, max_def * 0.65)
+        diet = normalize_diet_type(user.diet_type)
+
+        # În practică, la vegan, B12 și D trebuie menținute prioritar dacă există semnal de deficit.
+        if diet == "vegan":
+            for critical in ("vitamin_b12", "vitamin_d"):
+                val = deficits.get(critical, 0.0)
+                if val > 0:
+                    focus[critical] = max(focus.get(critical, 0.0), max(val, min_boost_value))
+
+        # Respectăm și semnalele explicite din observații/condiții.
+        clinical_text = normalize_clinical_text(user.medical_conditions or "")
+        text_map = (
+            ("vitamina b12", "vitamin_b12"),
+            ("b12", "vitamin_b12"),
+            ("vitamina d", "vitamin_d"),
+            ("25 oh d", "vitamin_d"),
+            ("anemie", "iron"),
+            ("fier", "iron"),
+            ("magneziu", "magnesium"),
+            ("calciu", "calcium"),
+        )
+        for marker, nutrient in text_map:
+            if marker in clinical_text and deficits.get(nutrient, 0) > 0:
+                focus[nutrient] = max(focus.get(nutrient, 0.0), deficits[nutrient])
+
+        return focus
 
     def _filter_compatible_recommendations(
         self,
@@ -401,12 +439,12 @@ class RecommenderService:
         mult = 1.0
         for idx, (nutrient, _) in enumerate(prioritized):
             if nutrient in covered:
-                mult += (0.32 - (0.08 * idx))
+                mult += (0.45 - (0.10 * idx))
 
         diet = normalize_diet_type(user.diet_type)
         if diet == "vegan" and ("vitamin_b12" in covered or "vitamin_d" in covered):
-            mult += 0.45
-        return min(mult, 2.2)
+            mult += 0.70
+        return min(mult, 3.0)
 
     def _max_items_per_category(self, category_key: str, has_active_deficits: bool = False) -> int:
         if has_active_deficits and ("condiment" in category_key or "desert" in category_key):
