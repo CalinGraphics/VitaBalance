@@ -512,6 +512,23 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertTrue(recs)
         self.assertEqual(recs[0]["food_id"], 300)
 
+    def test_clinical_required_focus_nutrients_for_osteoporosis(self):
+        user = make_user(
+            diet_type="omnivore",
+            medical_conditions="osteoporoza postmenopauza cu deficit vitamina D",
+        )
+        deficits = {"calcium": 8.0, "vitamin_d": 6.0, "vitamin_c": 3.0}
+        focus = self.recommender._build_focus_deficits(deficits, user)
+        required = self.recommender._clinical_required_focus_nutrients(user, focus)
+        self.assertIn("calcium", required)
+        self.assertIn("vitamin_d", required)
+
+    def test_active_deficits_heavily_penalize_processed_or_fried_categories(self):
+        penalty = self.recommender._active_deficit_quality_factor(
+            "Alimente Procesate / Prajite", has_active_deficits=True
+        )
+        self.assertLessEqual(penalty, 0.05)
+
 
 if __name__ == "__main__":
     unittest.main()
