@@ -9,6 +9,7 @@ from services.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
     normalize_diet_type,
+    resolve_allergy_token,
 )
 
 
