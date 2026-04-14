@@ -174,6 +174,11 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertTrue(self.rule_engine._is_compatible(linte, user))
         self.assertFalse(self.rule_engine._is_compatible(tofu, user))
 
+    def test_soy_allergy_blocks_processed_conserve_risk(self):
+        user = make_user(allergies="soia")
+        supa = make_food(id=109, name="Supa de legume la conserva", category="mese/legume")
+        self.assertFalse(self.rule_engine._is_compatible(supa, user))
+
     def test_egg_allergy_does_not_false_positive_on_noua(self):
         user = make_user(allergies="oua")
         salata = make_food(id=105, name="Salată verde nouă", category="salate", iron=0.5)
@@ -267,6 +272,24 @@ class RecommendationLogicTests(unittest.TestCase):
         reason_blob = " ".join(out.get("reasons") or []).lower()
         self.assertIn("deficitele identificate", reason_blob)
         self.assertNotIn("nu se evidențiază deficite active", reason_blob)
+
+    def test_vegan_b12_generates_fortified_and_supplement_tip(self):
+        gen = ExplanationGenerator()
+        user = make_user(diet_type="vegan", medical_conditions="deficienta vitamina b12")
+        food = make_food(id=110, name="Fasole", category="leguminoase")
+        out = gen.generate_explanation(
+            food=food,
+            user=user,
+            deficits={"vitamin_b12": 2.0},
+            score=2.8,
+            coverage=20.0,
+            explanations=["Este indicat aport de vitamina B12."],
+            matched_rules=["generic_vitamin_b12"],
+            has_lab_data=True,
+        )
+        tips = " ".join(out.get("tips") or []).lower()
+        self.assertIn("fortificate", tips)
+        self.assertIn("supliment", tips)
 
 
 if __name__ == "__main__":

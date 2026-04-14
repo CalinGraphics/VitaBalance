@@ -958,6 +958,22 @@ class ScopedRulesEngine:
                     user_allergy_norm in food_name_lower or user_allergy_norm in food_category_lower
                 ):
                     return False
+            has_soy_allergy = any(
+                resolve_allergy_token(normalize_clinical_text(x.strip())) == "soia"
+                for x in user_allergies
+                if x.strip()
+            )
+            if has_soy_allergy:
+                combined_norm = f"{food_name_lower} {food_category_lower}"
+                soy_free_markers = ("fara soia", "fără soia", "soy free", "soy-free")
+                hidden_soy_risk_markers = (
+                    "conserva", "la conserva", "procesat", "procesate",
+                    "prajit", "prăjit", "garnitura", "garnitur", "sos",
+                    "supa crema", "supa", "guacamole",
+                )
+                if any(m in combined_norm for m in hidden_soy_risk_markers):
+                    if not any(m in combined_norm for m in soy_free_markers):
+                        return False
         
         if user.medical_conditions:
             conditions_lower = normalize_clinical_text(user.medical_conditions)

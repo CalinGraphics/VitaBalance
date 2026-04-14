@@ -89,6 +89,9 @@ class ExplanationGenerator:
             reasons.append("Recomandare bazată pe profilul tău și modelul estimativ de necesar nutrițional.")
         
         tips = self._generate_tips_from_rules(matched_rules, food, user)
+        tips.extend(self._clinical_priority_tips(user, main_text))
+        # dedupe, păstrează ordinea
+        tips = list(dict.fromkeys(tips))
         if not tips:
             tips = ["Poți integra acest aliment în mesele zilnice pentru un echilibru nutrițional mai bun."]
         alternatives = self._generate_alternatives(food, user)
@@ -100,6 +103,26 @@ class ExplanationGenerator:
             'tips': tips,
             'alternatives': alternatives if alternatives else None
         }
+
+    def _clinical_priority_tips(self, user: Optional[UserProfile], main_text: str) -> List[str]:
+        if not user:
+            return []
+        diet = normalize_clinical_text(user.diet_type or "")
+        med = normalize_clinical_text(user.medical_conditions or "")
+        blob = f"{normalize_clinical_text(main_text or '')} {med}"
+        out: List[str] = []
+        if diet == "vegan":
+            if "b12" in blob or "vitamina b12" in blob:
+                out.append(
+                    "Pentru B12 la dietă vegană, prioritizează alimente fortificate (fără soia, dacă e cazul) "
+                    "și discută suplimentarea cu medicul curant."
+                )
+            if "vitamina d" in blob or "vitamin d" in blob:
+                out.append(
+                    "Pentru vitamina D, include surse fortificate și expunere solară controlată; "
+                    "la nevoie, urmează recomandarea medicală pentru suplimentare."
+                )
+        return out
     
     def _generate_traditional_explanation(
         self,
