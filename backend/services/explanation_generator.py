@@ -168,10 +168,10 @@ class ExplanationGenerator:
                     f"O porție de {portion}g acoperă {coverage_pct:.1f}% din deficitul tău de {nutrient_ro}"
                 )
         
-        if user.diet_type in ['vegetarian', 'vegan']:
-            reasons.append("Compatibil cu regim vegetarian")
-        elif user.diet_type == 'vegan':
+        if user.diet_type == 'vegan':
             reasons.append("Compatibil cu regim vegan")
+        elif user.diet_type == 'vegetarian':
+            reasons.append("Compatibil cu regim vegetarian")
         
         if user.medical_conditions:
             conditions = [c.strip().lower() for c in user.medical_conditions.split(',')]

@@ -1080,19 +1080,14 @@ class NutritionalRuleEngine:
                 combined_norm = f"{food_name_norm} {food_category_norm}"
                 soy_free_markers = ("fara soia", "fără soia", "soy free", "soy-free")
                 hidden_soy_risk_markers = (
-                    "conserva", "la conserva", "la conserva", "procesat", "procesate",
+                    "conserva", "la conserva", "procesat", "procesate",
                     "prajit", "prăjit", "garnitura", "garnitur", "sos",
                     "supa crema", "supa", "guacamole",
                 )
                 if any(m in combined_norm for m in hidden_soy_risk_markers):
-                    if any(m in combined_norm for m in soy_free_markers):
-                        pass
-                    else:
+                    if not any(m in combined_norm for m in soy_free_markers):
                         api_verdict = assess_hidden_soy_risk_from_api(food.name or "", food.category or "")
-                        if api_verdict is False:
-                            # API indică explicit soy-free -> nu blocăm.
-                            pass
-                        else:
+                        if api_verdict is not False:
                             # True sau None => păstrăm blocarea conservatoare.
                             return False
         
