@@ -2,6 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -402,6 +403,54 @@ class RecommendationLogicTests(unittest.TestCase):
         focus = self.recommender._build_focus_deficits(deficits, user)
         self.assertIn("vitamin_b12", focus)
         self.assertIn("vitamin_d", focus)
+
+    def test_rule_engine_receives_focus_deficits_not_full_deficit_map(self):
+        user = make_user(diet_type="vegan")
+        food = make_food(
+            id=140,
+            name="Ciuperci UV",
+            category="Legume",
+            vitamin_d=12.0,
+            vitamin_b12=0.0,
+            vitamin_c=1.0,
+            iodine=1.0,
+        )
+        deficits = {
+            "iodine": 18.0,
+            "vitamin_c": 16.0,
+            "zinc": 14.0,
+            "folate": 13.0,
+            "vitamin_b12": 2.0,
+            "vitamin_d": 1.5,
+        }
+        captured = {}
+
+        def _fake_eval(food, user, deficits, lab_results=None):
+            captured["deficits"] = dict(deficits)
+            return SimpleNamespace(
+                food_id=food.id,
+                score=10.0,
+                coverage=10.0,
+                explanations=["ok"],
+                matched_rules=["x"],
+                nutrients_covered=["vitamin_d"],
+            )
+
+        with patch.object(self.recommender.rule_engine, "evaluate_food", side_effect=_fake_eval):
+            self.recommender.generate_recommendations(
+                user=user,
+                deficits=deficits,
+                foods=[food],
+                lab_results=None,
+                user_feedbacks=[],
+                feedback_by_food={},
+            )
+
+        self.assertIn("deficits", captured)
+        self.assertIn("vitamin_b12", captured["deficits"])
+        self.assertIn("vitamin_d", captured["deficits"])
+        self.assertNotIn("iodine", captured["deficits"])
+        self.assertNotIn("vitamin_c", captured["deficits"])
 
 
 if __name__ == "__main__":
