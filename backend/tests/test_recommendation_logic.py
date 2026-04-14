@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -178,6 +179,18 @@ class RecommendationLogicTests(unittest.TestCase):
         user = make_user(allergies="soia")
         supa = make_food(id=109, name="Supa de legume la conserva", category="mese/legume")
         self.assertFalse(self.rule_engine._is_compatible(supa, user))
+
+    def test_soy_allergy_processed_item_allowed_when_api_marks_soy_free(self):
+        user = make_user(allergies="soia")
+        supa = make_food(id=111, name="Supa crema bio", category="mese/procesate")
+        with patch("services.rule_engine.assess_hidden_soy_risk_from_api", return_value=False):
+            self.assertTrue(self.rule_engine._is_compatible(supa, user))
+
+    def test_soy_allergy_processed_item_blocked_when_api_reports_soy(self):
+        user = make_user(allergies="soia")
+        supa = make_food(id=112, name="Supa crema instant", category="mese/procesate")
+        with patch("services.rule_engine.assess_hidden_soy_risk_from_api", return_value=True):
+            self.assertFalse(self.rule_engine._is_compatible(supa, user))
 
     def test_egg_allergy_does_not_false_positive_on_noua(self):
         user = make_user(allergies="oua")
