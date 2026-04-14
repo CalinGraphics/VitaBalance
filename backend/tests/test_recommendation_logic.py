@@ -482,6 +482,36 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertGreaterEqual(len(recs), 2)
         self.assertEqual(fb_mock.call_count, 2)
 
+    def test_primary_items_rank_above_secondary_fill(self):
+        user = make_user(diet_type="vegan")
+        deficits = {"vitamin_b12": 8.0, "vitamin_d": 6.0}
+        foods = [make_food(id=300, name="Primary", category="Legume", vitamin_b12=0.3)]
+
+        with patch.object(self.recommender.rule_engine, "evaluate_food", return_value=SimpleNamespace(
+            food_id=300,
+            score=2.0,
+            coverage=2.0,
+            explanations=["primary"],
+            matched_rules=["x"],
+            nutrients_covered=["vitamin_b12"],
+        )), patch.object(self.recommender, "_rebalance_by_category", side_effect=lambda **kwargs: kwargs["recommendations"]), \
+             patch.object(self.recommender, "_filter_compatible_recommendations", side_effect=lambda user, foods, recs: recs), \
+             patch.object(self.recommender, "_generate_fallback_recommendations", side_effect=[
+                 [],
+                 [{"food_id": 301, "score": 100.0, "coverage": 100.0, "explanations": ["secondary"], "matched_rules": ["fallback_profile_based"], "nutrients_covered": ["vitamin_c"]}],
+             ]):
+            recs = self.recommender.generate_recommendations(
+                user=user,
+                deficits=deficits,
+                foods=foods,
+                lab_results=None,
+                user_feedbacks=[],
+                feedback_by_food={},
+            )
+
+        self.assertTrue(recs)
+        self.assertEqual(recs[0]["food_id"], 300)
+
 
 if __name__ == "__main__":
     unittest.main()
