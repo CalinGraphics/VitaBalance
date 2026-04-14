@@ -83,7 +83,8 @@ class RecommenderService:
                         'coverage': recommendation.coverage,
                         'explanations': recommendation.explanations,
                         'matched_rules': recommendation.matched_rules,
-                        'nutrients_covered': recommendation.nutrients_covered
+                        'nutrients_covered': recommendation.nutrients_covered,
+                        'is_secondary_fill': False,
                     })
 
         # 2) Dacă nu există deficite sau regulile sunt prea restrictive și nu întorc nimic,
@@ -149,6 +150,7 @@ class RecommenderService:
                     "score": float(r.get("score", 0.0)) * 0.18,
                     "coverage": float(r.get("coverage", 0.0)) * 0.18,
                     "matched_rules": list(r.get("matched_rules") or []) + ["secondary_fill"],
+                    "is_secondary_fill": True,
                 }
                 seen.add(fid)
                 final.append(r)
@@ -164,6 +166,14 @@ class RecommenderService:
             )
             final = self._filter_compatible_recommendations(effective_user, foods, balanced3)
 
+        # Prioritizare finală stabilă: recomandările pe deficitul principal înaintea celor de completare.
+        final.sort(
+            key=lambda x: (
+                1 if x.get("is_secondary_fill") else 0,
+                -(x.get("coverage") or 0.0),
+                -(x.get("score") or 0.0),
+            )
+        )
         return final
 
     def _build_focus_deficits(self, deficits: Dict[str, float], user: UserProfile) -> Dict[str, float]:
@@ -397,6 +407,7 @@ class RecommenderService:
                     'explanations': [explanation],
                     'matched_rules': ['fallback_profile_based'],
                     'nutrients_covered': covered_nutrients,
+                    'is_secondary_fill': False,
                 },
             ))
 
