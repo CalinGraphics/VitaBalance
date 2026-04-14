@@ -148,8 +148,8 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         height: user.height,
       })
     } else {
-      // Altfel, doar încarcă recomandările existente
-      fetchRecommendations(false)
+      // Evităm rezultate stale: regenerăm explicit la încărcarea ecranului de recomandări.
+      fetchRecommendations(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id, user.diet_type, user.activity_level, user.allergies, user.medical_conditions, user.age, user.sex, user.weight, user.height])
@@ -352,7 +352,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                 if (Array.isArray(data) && data.length > 0) {
                   setRecommendations(data)
                 } else {
-                  await fetchRecommendations(false)
+                  await fetchRecommendations(true)
                 }
               }}
             />
@@ -385,7 +385,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                     if (Array.isArray(data) && data.length > 0) {
                       setRecommendations(data)
                     } else {
-                      await fetchRecommendations(false)
+                      await fetchRecommendations(true)
                     }
                   }}
                 />
