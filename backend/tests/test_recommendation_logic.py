@@ -372,6 +372,37 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertNotIn(130, ids)
         self.assertNotIn(131, ids)
 
+    def test_focus_deficits_keep_critical_b12_d_for_vegan(self):
+        user = make_user(diet_type="vegan")
+        deficits = {
+            "iodine": 15.0,
+            "vitamin_c": 13.0,
+            "zinc": 11.0,
+            "folate": 10.0,
+            "vitamin_b12": 3.0,
+            "vitamin_d": 2.0,
+        }
+        focus = self.recommender._build_focus_deficits(deficits, user)
+        self.assertIn("vitamin_b12", focus)
+        self.assertIn("vitamin_d", focus)
+
+    def test_focus_deficits_use_clinical_markers_from_medical_conditions(self):
+        user = make_user(
+            diet_type="omnivore",
+            medical_conditions="deficienta vitamina D si vitamina B12",
+        )
+        deficits = {
+            "iodine": 12.0,
+            "vitamin_c": 11.0,
+            "zinc": 10.0,
+            "folate": 9.0,
+            "vitamin_b12": 1.5,
+            "vitamin_d": 1.0,
+        }
+        focus = self.recommender._build_focus_deficits(deficits, user)
+        self.assertIn("vitamin_b12", focus)
+        self.assertIn("vitamin_d", focus)
+
 
 if __name__ == "__main__":
     unittest.main()
