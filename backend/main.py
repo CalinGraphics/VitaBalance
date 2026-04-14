@@ -5,7 +5,7 @@ Data: Supabase only. Auth: JWT middleware (to be added). No SQLite.
 from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 import uvicorn
 import inspect
@@ -168,6 +168,18 @@ class VerifyMagicLinkResponse(BaseModel):
     bio: str
     access_token: str
     token_type: str = "bearer"
+
+
+class RecommendationAuditResponse(BaseModel):
+    user_id: int
+    has_lab_data: bool
+    active_deficits: Dict[str, float]
+    recommendation_count: int
+    top_recommendation_food_ids: List[int]
+    top_recommendation_names: List[str]
+    covered_deficit_nutrients: List[str]
+    missing_deficit_nutrients: List[str]
+    warnings: List[str]
 
 
 @app.post("/api/auth/request-magic-link", response_model=MagicLinkResponse)
@@ -819,6 +831,101 @@ async def get_recommendations(
         unique_recommendations.append(rec)
 
     return unique_recommendations
+
+
+@app.get("/api/recommendations/audit/{user_id}", response_model=RecommendationAuditResponse)
+async def audit_recommendations_quality(
+    user_id: int,
+    top_n: int = Query(20, ge=1, le=50),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Audit intern: verifică dacă top recomandări acoperă deficitele active.
+    """
+    _ensure_user_resource(current_user, user_id)
+    user_repo = UserRepository()
+    food_repo = FoodRepository()
+    lab_repo = LabResultRepository()
+
+    user = user_repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
+
+    foods = food_repo.get_all()
+    if not foods:
+        return RecommendationAuditResponse(
+            user_id=user_id,
+            has_lab_data=False,
+            active_deficits={},
+            recommendation_count=0,
+            top_recommendation_food_ids=[],
+            top_recommendation_names=[],
+            covered_deficit_nutrients=[],
+            missing_deficit_nutrients=[],
+            warnings=["Nu există alimente în catalog."],
+        )
+
+    lab_results = lab_repo.get_latest_by_user_id(user_id)
+    has_lab_data = False
+    if lab_results is not None:
+        for key in [
+            "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
+            "protein", "zinc", "folate", "vitamin_a", "iodine", "vitamin_k", "potassium"
+        ]:
+            if getattr(lab_results, key, None) is not None:
+                has_lab_data = True
+                break
+
+    calculator = DeficitCalculator()
+    deficits = calculator.calculate_deficits(user, lab_results)
+    active_deficits = {k: float(v) for k, v in deficits.items() if v and v > 0}
+
+    recommender = RecommenderService()
+    rec_list = recommender.generate_recommendations(
+        user=user,
+        deficits=deficits,
+        foods=foods,
+        lab_results=lab_results,
+        user_feedbacks=[],
+        feedback_by_food={},
+    )
+    top = rec_list[:top_n]
+    food_by_id = {f.id: f for f in foods}
+    top_ids: List[int] = [int(x["food_id"]) for x in top if x.get("food_id") is not None]
+    top_names: List[str] = [food_by_id[i].name for i in top_ids if i in food_by_id]
+
+    covered = set()
+    for item in top:
+        for n in item.get("nutrients_covered", []) or []:
+            if n in active_deficits:
+                covered.add(n)
+    missing = [n for n in active_deficits.keys() if n not in covered]
+
+    warnings: List[str] = []
+    if active_deficits and not top:
+        warnings.append("Există deficite active, dar nu s-au generat recomandări.")
+    if missing:
+        warnings.append("Deficite active neacoperite în top: " + ", ".join(sorted(missing)))
+    if "vitamin_b12" in active_deficits and (user.diet_type or "").strip().lower() == "vegan":
+        b12_in_top = any("vitamin_b12" in (x.get("nutrients_covered") or []) for x in top)
+        if not b12_in_top:
+            warnings.append("Profil vegan cu deficit B12: topul nu include suficient suport pentru B12.")
+    if "vitamin_d" in active_deficits:
+        d_in_top = any("vitamin_d" in (x.get("nutrients_covered") or []) for x in top)
+        if not d_in_top:
+            warnings.append("Deficit vitamina D activ: topul nu include suficient suport pentru vitamina D.")
+
+    return RecommendationAuditResponse(
+        user_id=user_id,
+        has_lab_data=has_lab_data,
+        active_deficits=active_deficits,
+        recommendation_count=len(top),
+        top_recommendation_food_ids=top_ids,
+        top_recommendation_names=top_names,
+        covered_deficit_nutrients=sorted(list(covered)),
+        missing_deficit_nutrients=sorted(missing),
+        warnings=warnings,
+    )
 
 
 @app.delete("/api/recommendations/{user_id}")

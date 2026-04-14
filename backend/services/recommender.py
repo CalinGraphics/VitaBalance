@@ -78,7 +78,11 @@ class RecommenderService:
         # 2) Dacă nu există deficite sau regulile sunt prea restrictive și nu întorc nimic,
         # generează un fallback pe baza profilului utilizatorului (dietă, alergii, condiții medicale)
         if not recommendations:
-            fb = self._generate_fallback_recommendations(user=effective_user, foods=foods)
+            fb = self._generate_fallback_recommendations(
+                user=effective_user,
+                foods=foods,
+                target_nutrients=list(filtered_deficits.keys()) if filtered_deficits else None,
+            )
             return self._filter_compatible_recommendations(effective_user, foods, fb)
 
         recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
@@ -88,7 +92,11 @@ class RecommenderService:
         final = self._filter_compatible_recommendations(effective_user, foods, balanced)
 
         if len(final) < self.MIN_RECOMMENDATIONS_TARGET:
-            fb = self._generate_fallback_recommendations(user=effective_user, foods=foods)
+            fb = self._generate_fallback_recommendations(
+                user=effective_user,
+                foods=foods,
+                target_nutrients=list(filtered_deficits.keys()) if filtered_deficits else None,
+            )
             fb_ok = self._filter_compatible_recommendations(effective_user, foods, fb)
             seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
             for r in fb_ok:
@@ -157,6 +165,7 @@ class RecommenderService:
         self,
         user: UserProfile,
         foods: List[FoodItem],
+        target_nutrients: Optional[List[str]] = None,
     ) -> List[Dict]:
         """
         Fallback atunci când nu avem deficite clare sau regulile nu produc recomandări:
@@ -165,7 +174,9 @@ class RecommenderService:
         """
         calc = DeficitCalculator()
         # RDI generic pentru utilizator, folosit ca referință de „cât de util” este un aliment
-        rdi_map: Dict[str, float] = {n: calc.get_rdi(n, user) for n in self.nutrients}
+        active_targets = [n for n in (target_nutrients or []) if n in self.nutrients]
+        nutrient_pool = active_targets if active_targets else list(self.nutrients)
+        rdi_map: Dict[str, float] = {n: calc.get_rdi(n, user) for n in nutrient_pool}
 
         fallback_recommendations: List[Tuple[float, Dict]] = []
 
@@ -211,6 +222,8 @@ class RecommenderService:
             nutrient_coverages: List[Tuple[str, float, float]] = []
 
             for nutrient, value_per_100g in nutrient_values.items():
+                if nutrient not in nutrient_pool:
+                    continue
                 if value_per_100g <= 0:
                     continue
                 rdi = rdi_map.get(nutrient) or 0
@@ -317,6 +330,9 @@ class RecommenderService:
 
     def _category_quality_factor(self, category: str) -> float:
         cat = self._normalize_category(category)
+        # Penalizăm explicit categoriile procesate/fried pentru a evita top-uri suboptimale clinic.
+        if "procesat" in cat or "prăjit" in cat or "prajit" in cat:
+            return 0.38
         penalties = {
             "condimente & mirodenii": 0.30,
             "dulciuri": 0.45,
