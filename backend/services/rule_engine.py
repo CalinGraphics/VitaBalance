@@ -4,13 +4,10 @@ import re
 from dataclasses import dataclass
 from domain.models import FoodItem, UserProfile, LabResultItem
 from enum import Enum
-from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm
-from services.food_intelligence_api import assess_hidden_soy_risk_from_api
+from services.compatibility_core import is_compatible_diet_and_allergies
 from services.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
-    normalize_diet_type,
-    resolve_allergy_token,
 )
 from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
 
@@ -962,134 +959,8 @@ class NutritionalRuleEngine:
     
     def _is_compatible(self, food: FoodItem, user: UserProfile) -> bool:
         """Verifică dacă alimentul este compatibil cu profilul utilizatorului"""
-        diet = normalize_diet_type(user.diet_type)
-        cat_norm = self._normalize_text(food.category or "")
-        name_norm = self._normalize_text(food.name or "")
-
-        if diet in ("vegetarian", "vegan"):
-            animal_markers = (
-                "carne", "pui", "porc", "vita", "miel", "peste", "fructe de mare",
-                "vanat", "ficat",
-            )
-            if any(m in cat_norm for m in animal_markers):
-                return False
-            seafood_name_markers = (
-                "crevet", "scoic", "midie", "calamar", "sepie", "homar", "lobster",
-                "shrimp", "prawn", "somon", "sardine", "macrou", "hering", "anchois",
-                "icre", "peste la", "peste ", " peste", "pescarus", "fructe de mare",
-                "scallop", "sushi", "sashimi", "file de ton", "ton rosu", "ton roșu",
-            )
-            if any(m in name_norm for m in seafood_name_markers):
-                return False
-
-        if diet == "vegan":
-            dairy_egg_honey = (
-                "lactate", "lapte", "branza", "branzeturi", "iaurt", "smantana", "unt",
-                "oua", "miere",
-            )
-            if any(m in cat_norm for m in dairy_egg_honey):
-                return False
-            dairy_egg_honey_name_markers = (
-                "mozzarella", "telemea", "ricotta", "camembert", "brie", "cheddar",
-                "parmezan", "parmesan", "feta", "caprese", "halloumi", "iaurt", "lapte",
-                "ou ", "oua", "egg", "eggs", "honey", "miere",
-            )
-            if any(m in name_norm for m in dairy_egg_honey_name_markers):
-                return False
-
-        if diet == "pescatarian":
-            land_meat = ("carne", "pui", "porc", "vita", "miel", "vanat")
-            if any(m in cat_norm for m in land_meat):
-                return False
-        
-        if user.allergies:
-            user_allergies = [
-                a.strip().lower()
-                for a in re.split(r"[,;]+", user.allergies)
-                if a.strip()
-            ]
-            food_name_norm = self._normalize_text(food.name or "")
-            food_category_norm = self._normalize_text(food.category or "")
-            allergy_mappings = ALLERGY_MAPPINGS
-            
-            for user_allergy in user_allergies:
-                user_allergy_clean = user_allergy.strip().lower()
-                user_allergy_norm = self._normalize_text(user_allergy_clean)
-                lookup_norm = resolve_allergy_token(user_allergy_norm)
-                
-                allergy_info = None
-                for allergy_key, mapping in allergy_mappings.items():
-                    key_norm = self._normalize_text(allergy_key)
-                    if (
-                        allergy_key == user_allergy_clean
-                        or key_norm == user_allergy_norm
-                        or key_norm == lookup_norm
-                        or user_allergy_clean in allergy_key
-                        or allergy_key in user_allergy_clean
-                    ):
-                        allergy_info = mapping
-                        break
-                    if len(user_allergy_norm) >= 3 and (
-                        user_allergy_norm in key_norm or key_norm in user_allergy_norm
-                    ):
-                        allergy_info = mapping
-                        break
-                
-                if allergy_info:
-                    if allergy_info['categories'] and any(
-                        self._normalize_text(cat) in food_category_norm
-                        for cat in allergy_info['categories']
-                    ):
-                        return False
-
-                    for keyword in allergy_info['keywords']:
-                        kw = self._normalize_text(keyword)
-                        if allergy_keyword_matches_norm(kw, food_name_norm, food_category_norm):
-                            return False
-                
-                if food.allergens:
-                    food_allergens = [
-                        a.strip().lower()
-                        for a in re.split(r"[,;]+", food.allergens)
-                        if a.strip()
-                    ]
-                    for allergen in food_allergens:
-                        ag_norm = self._normalize_text(allergen)
-                        if user_allergy_clean in allergen or allergen in user_allergy_clean:
-                            return False
-                        if ag_norm == user_allergy_norm or ag_norm == lookup_norm:
-                            return False
-                        if len(user_allergy_norm) >= 3 and (
-                            user_allergy_norm in ag_norm or ag_norm in user_allergy_norm
-                        ):
-                            return False
-                
-                # Minim 5 caractere: „oua” apare în „noua” (fals pozitiv la substring).
-                if len(user_allergy_norm) >= 5 and (
-                    user_allergy_norm in food_name_norm or user_allergy_norm in food_category_norm
-                ):
-                    return False
-            # Caz conservator: alergie la soia + preparate procesate/ready-made au frecvent derivate din soia.
-            # Permitem doar dacă există o mențiune explicită "fara soia / soy-free".
-            has_soy_allergy = any(
-                resolve_allergy_token(self._normalize_text(x.strip())) == "soia"
-                for x in user_allergies
-                if x.strip()
-            )
-            if has_soy_allergy:
-                combined_norm = f"{food_name_norm} {food_category_norm}"
-                soy_free_markers = ("fara soia", "fără soia", "soy free", "soy-free")
-                hidden_soy_risk_markers = (
-                    "conserva", "la conserva", "procesat", "procesate",
-                    "prajit", "prăjit", "garnitura", "garnitur", "sos",
-                    "supa crema", "supa", "guacamole",
-                )
-                if any(m in combined_norm for m in hidden_soy_risk_markers):
-                    if not any(m in combined_norm for m in soy_free_markers):
-                        api_verdict = assess_hidden_soy_risk_from_api(food.name or "", food.category or "")
-                        if api_verdict is not False:
-                            # True sau None => păstrăm blocarea conservatoare.
-                            return False
+        if not is_compatible_diet_and_allergies(food, user):
+            return False
         
         if user.medical_conditions:
             conditions_lower = self._normalize_text(user.medical_conditions)
