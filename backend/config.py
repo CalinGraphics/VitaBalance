@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     
     # CORS Origins (poate fi string separată prin virgulă sau listă)
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+
+    # Food intelligence API (OpenFoodFacts) – opțional, pentru reducerea hardcodării la alergeni ascunși
+    openfoodfacts_enabled: bool = os.getenv("OPENFOODFACTS_ENABLED", "true").lower() in ("1", "true", "yes")
+    openfoodfacts_timeout_seconds: float = float(os.getenv("OPENFOODFACTS_TIMEOUT_SECONDS", "1.2"))
     
     # Configurație Pydantic v2
     model_config = SettingsConfigDict(

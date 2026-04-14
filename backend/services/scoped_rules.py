@@ -5,6 +5,7 @@ from enum import Enum
 import re
 from domain.models import UserProfile, FoodItem, LabResultItem
 from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm
+from services.food_intelligence_api import assess_hidden_soy_risk_from_api
 from services.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
@@ -972,8 +973,14 @@ class ScopedRulesEngine:
                     "supa crema", "supa", "guacamole",
                 )
                 if any(m in combined_norm for m in hidden_soy_risk_markers):
-                    if not any(m in combined_norm for m in soy_free_markers):
-                        return False
+                    if any(m in combined_norm for m in soy_free_markers):
+                        pass
+                    else:
+                        api_verdict = assess_hidden_soy_risk_from_api(food.name or "", food.category or "")
+                        if api_verdict is False:
+                            pass
+                        else:
+                            return False
         
         if user.medical_conditions:
             conditions_lower = normalize_clinical_text(user.medical_conditions)
