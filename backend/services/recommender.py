@@ -48,6 +48,7 @@ class RecommenderService:
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
+        has_active_deficits = bool(filtered_deficits)
         if filtered_deficits:
             for food in foods:
                 recommendation = self.rule_engine.evaluate_food(
@@ -64,6 +65,15 @@ class RecommenderService:
                         user=user,
                         user_feedbacks=user_feedbacks,
                         feedback_by_food=feedback_by_food
+                    )
+                    adjusted_score *= self._deficit_priority_multiplier(
+                        deficits=filtered_deficits,
+                        nutrients_covered=recommendation.nutrients_covered,
+                        user=effective_user,
+                    )
+                    adjusted_score *= self._active_deficit_quality_factor(
+                        food_category=food.category,
+                        has_active_deficits=has_active_deficits,
                     )
 
                     recommendations.append({
@@ -87,7 +97,10 @@ class RecommenderService:
 
         recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
         balanced = self._rebalance_by_category(
-            user=effective_user, foods=foods, recommendations=recommendations
+            user=effective_user,
+            foods=foods,
+            recommendations=recommendations,
+            has_active_deficits=has_active_deficits,
         )
         final = self._filter_compatible_recommendations(effective_user, foods, balanced)
 
@@ -107,7 +120,10 @@ class RecommenderService:
                 final.append(r)
             final.sort(key=lambda x: (x["coverage"], x["score"]), reverse=True)
             balanced2 = self._rebalance_by_category(
-                user=effective_user, foods=foods, recommendations=final
+                user=effective_user,
+                foods=foods,
+                recommendations=final,
+                has_active_deficits=has_active_deficits,
             )
             final = self._filter_compatible_recommendations(effective_user, foods, balanced2)
 
@@ -244,10 +260,19 @@ class RecommenderService:
             # Penalizare pentru categorii mai puțin utile în recomandări principale
             # (ex: condimente/dulciuri/ultra-procesate), chiar dacă pe hârtie au micronutrienți.
             quality_factor = self._category_quality_factor(food.category)
+            quality_factor *= self._active_deficit_quality_factor(
+                food_category=food.category,
+                has_active_deficits=bool(active_targets),
+            )
             total_score *= quality_factor
             total_coverage *= quality_factor
             total_score *= self._category_preference_factor(food.category, user)
             total_coverage *= self._category_preference_factor(food.category, user)
+            total_score *= self._deficit_priority_multiplier(
+                deficits={k: 1.0 for k in active_targets},
+                nutrients_covered=covered_nutrients,
+                user=user,
+            )
 
             avg_coverage = total_coverage / len(covered_nutrients)
 
@@ -295,7 +320,12 @@ class RecommenderService:
 
         # Diversitate pe categorii: evită top-uri dominate de o singură categorie.
         sorted_items = [item for _, item in fallback_recommendations]
-        return self._rebalance_by_category(user=user, foods=foods, recommendations=sorted_items)
+        return self._rebalance_by_category(
+            user=user,
+            foods=foods,
+            recommendations=sorted_items,
+            has_active_deficits=bool(active_targets),
+        )
 
     def _normalize_category(self, category: str) -> str:
         raw = (category or "").strip().lower()
@@ -333,17 +363,54 @@ class RecommenderService:
         # Penalizăm explicit categoriile procesate/fried pentru a evita top-uri suboptimale clinic.
         if "procesat" in cat or "prăjit" in cat or "prajit" in cat:
             return 0.38
-        penalties = {
-            "condimente & mirodenii": 0.30,
-            "dulciuri": 0.45,
-            "snacks": 0.55,
-            "bauturi": 0.55,
-            "alte": 0.75,
-            "altele": 0.75,
-        }
-        return penalties.get(cat, 1.0)
+        if "condiment" in cat or "sos" in cat:
+            return 0.30
+        if "desert" in cat or "dulciuri" in cat:
+            return 0.45
+        if "gustari" in cat or "snacks" in cat:
+            return 0.55
+        if "bauturi" in cat:
+            return 0.55
+        if "alte" in cat or "altele" in cat:
+            return 0.75
+        return 1.0
 
-    def _max_items_per_category(self, category_key: str) -> int:
+    def _active_deficit_quality_factor(self, food_category: str, has_active_deficits: bool) -> float:
+        if not has_active_deficits:
+            return 1.0
+        cat = self._normalize_category(food_category)
+        if "condiment" in cat or "sos" in cat:
+            return 0.08
+        if "desert" in cat:
+            return 0.12
+        return 1.0
+
+    def _deficit_priority_multiplier(
+        self,
+        deficits: Dict[str, float],
+        nutrients_covered: List[str],
+        user: UserProfile,
+    ) -> float:
+        if not deficits:
+            return 1.0
+        covered = set(nutrients_covered or [])
+        if not covered:
+            return 1.0
+
+        prioritized = sorted(deficits.items(), key=lambda x: x[1], reverse=True)[:3]
+        mult = 1.0
+        for idx, (nutrient, _) in enumerate(prioritized):
+            if nutrient in covered:
+                mult += (0.32 - (0.08 * idx))
+
+        diet = normalize_diet_type(user.diet_type)
+        if diet == "vegan" and ("vitamin_b12" in covered or "vitamin_d" in covered):
+            mult += 0.45
+        return min(mult, 2.2)
+
+    def _max_items_per_category(self, category_key: str, has_active_deficits: bool = False) -> int:
+        if has_active_deficits and ("condiment" in category_key or "desert" in category_key):
+            return 0
         caps = {
             "condimente & mirodenii": 1,
             "dulciuri": 1,
@@ -367,7 +434,13 @@ class RecommenderService:
                 return 0.1
         return 1.0
 
-    def _rebalance_by_category(self, user: UserProfile, foods: List[FoodItem], recommendations: List[Dict]) -> List[Dict]:
+    def _rebalance_by_category(
+        self,
+        user: UserProfile,
+        foods: List[FoodItem],
+        recommendations: List[Dict],
+        has_active_deficits: bool = False,
+    ) -> List[Dict]:
         food_by_id = {f.id: f for f in foods}
         selected: List[Dict] = []
         per_category_counts: Dict[str, int] = {}
@@ -375,7 +448,9 @@ class RecommenderService:
         for item in recommendations:
             food_obj = food_by_id.get(item.get("food_id"))
             category_key = self._normalize_category(food_obj.category if food_obj else "")
-            max_per_category = self._max_items_per_category(category_key)
+            max_per_category = self._max_items_per_category(
+                category_key, has_active_deficits=has_active_deficits
+            )
             current = per_category_counts.get(category_key, 0)
             if current >= max_per_category:
                 continue
