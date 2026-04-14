@@ -50,12 +50,12 @@ class RecommenderService:
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
         has_active_deficits = bool(focus_deficits)
-        if filtered_deficits:
+        if focus_deficits:
             for food in foods:
                 recommendation = self.rule_engine.evaluate_food(
                     food=food,
                     user=effective_user,
-                    deficits=filtered_deficits,
+                    deficits=focus_deficits,
                     lab_results=lab_results
                 )
 
@@ -134,19 +134,21 @@ class RecommenderService:
         if not deficits:
             return {}
 
-        # Păstrăm focusul pe deficitele dominante, ca să nu diluăm scorul pe mulți nutrienți minori.
+        # Păstrăm focusul pe un set scurt de ținte, ca să nu diluăm scorul pe nutrienți secundari.
         sorted_deficits = sorted(deficits.items(), key=lambda x: x[1], reverse=True)
-        focus: Dict[str, float] = {k: v for k, v in sorted_deficits[:4]}
+        focus: Dict[str, float] = {}
 
         max_def = max(deficits.values()) if deficits else 0.0
-        min_boost_value = max(0.0, max_def * 0.65)
+        min_boost_value = max(0.0, max_def * 0.70)
         diet = normalize_diet_type(user.diet_type)
+        explicit_focus: set[str] = set()
 
         # În practică, la vegan, B12 și D trebuie menținute prioritar dacă există semnal de deficit.
         if diet == "vegan":
             for critical in ("vitamin_b12", "vitamin_d"):
                 val = deficits.get(critical, 0.0)
                 if val > 0:
+                    explicit_focus.add(critical)
                     focus[critical] = max(focus.get(critical, 0.0), max(val, min_boost_value))
 
         # Respectăm și semnalele explicite din observații/condiții.
@@ -163,7 +165,16 @@ class RecommenderService:
         )
         for marker, nutrient in text_map:
             if marker in clinical_text and deficits.get(nutrient, 0) > 0:
+                explicit_focus.add(nutrient)
                 focus[nutrient] = max(focus.get(nutrient, 0.0), deficits[nutrient])
+
+        # Dacă avem focus explicit din context clinic/profil, recomandăm strict pe aceste probleme.
+        if explicit_focus:
+            return focus
+
+        # Fallback general pentru utilizatori fără semnale clinice explicite.
+        for nutrient, value in sorted_deficits[:3]:
+            focus[nutrient] = value
 
         return focus
 
