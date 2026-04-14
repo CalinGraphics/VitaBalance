@@ -7,7 +7,10 @@ from services.deficit_calculator import DeficitCalculator
 from services.medical_rules_loader import normalize_diet_type
 
 class RecommenderService:
-    
+    # Dacă regulile pe deficite lasă prea puține variante (ex. vegan + alergii stricte),
+    # completăm din recomandări de profil compatibile, fără a dubla food_id.
+    MIN_RECOMMENDATIONS_TARGET = 10
+
     def __init__(self):
         self.rule_engine = NutritionalRuleEngine()
         self.nutrients = [
@@ -82,7 +85,25 @@ class RecommenderService:
         balanced = self._rebalance_by_category(
             user=effective_user, foods=foods, recommendations=recommendations
         )
-        return self._filter_compatible_recommendations(effective_user, foods, balanced)
+        final = self._filter_compatible_recommendations(effective_user, foods, balanced)
+
+        if len(final) < self.MIN_RECOMMENDATIONS_TARGET:
+            fb = self._generate_fallback_recommendations(user=effective_user, foods=foods)
+            fb_ok = self._filter_compatible_recommendations(effective_user, foods, fb)
+            seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
+            for r in fb_ok:
+                fid = r.get("food_id")
+                if fid is None or fid in seen:
+                    continue
+                seen.add(fid)
+                final.append(r)
+            final.sort(key=lambda x: (x["coverage"], x["score"]), reverse=True)
+            balanced2 = self._rebalance_by_category(
+                user=effective_user, foods=foods, recommendations=final
+            )
+            final = self._filter_compatible_recommendations(effective_user, foods, balanced2)
+
+        return final
 
     def _filter_compatible_recommendations(
         self,
