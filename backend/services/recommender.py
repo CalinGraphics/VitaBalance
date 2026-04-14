@@ -142,6 +142,14 @@ class RecommenderService:
                 fid = r.get("food_id")
                 if fid is None or fid in seen:
                     continue
+                # Recomandările secundare sunt doar de completare a listei;
+                # nu trebuie să depășească recomandările strict orientate pe deficitul principal.
+                r = {
+                    **r,
+                    "score": float(r.get("score", 0.0)) * 0.18,
+                    "coverage": float(r.get("coverage", 0.0)) * 0.18,
+                    "matched_rules": list(r.get("matched_rules") or []) + ["secondary_fill"],
+                }
                 seen.add(fid)
                 final.append(r)
                 if len(final) >= self.MIN_RECOMMENDATIONS_TARGET:
