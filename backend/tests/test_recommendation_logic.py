@@ -529,6 +529,29 @@ class RecommendationLogicTests(unittest.TestCase):
         )
         self.assertLessEqual(penalty, 0.05)
 
+    def test_promote_required_nutrient_items_keeps_required_in_top(self):
+        recs = [
+            {"food_id": 1, "nutrients_covered": ["calcium"]},
+            {"food_id": 2, "nutrients_covered": ["calcium"]},
+            {"food_id": 3, "nutrients_covered": ["calcium"]},
+            {"food_id": 4, "nutrients_covered": ["calcium"]},
+            {"food_id": 5, "nutrients_covered": ["vitamin_d"]},
+        ]
+        out = self.recommender._promote_required_nutrient_items(
+            recommendations=recs,
+            required_nutrients={"vitamin_d"},
+            top_k=3,
+            min_per_required=1,
+        )
+        top_ids = [r["food_id"] for r in out[:3]]
+        self.assertIn(5, top_ids)
+
+    def test_max_items_per_category_blocks_processed_when_deficits_active(self):
+        cap = self.recommender._max_items_per_category(
+            "legume/procesate", has_active_deficits=True
+        )
+        self.assertEqual(cap, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

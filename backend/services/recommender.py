@@ -174,9 +174,18 @@ class RecommenderService:
         final.sort(
             key=lambda x: (
                 1 if x.get("is_secondary_fill") else 0,
+                -self._required_nutrient_hits(
+                    rec=x, required_nutrients=required_focus_nutrients
+                ),
                 -(x.get("coverage") or 0.0),
                 -(x.get("score") or 0.0),
             )
+        )
+        final = self._promote_required_nutrient_items(
+            recommendations=final,
+            required_nutrients=required_focus_nutrients,
+            top_k=10,
+            min_per_required=1,
         )
         return final
 
@@ -239,6 +248,45 @@ class RecommenderService:
             if deficits.get("vitamin_d", 0) > 0:
                 required.add("vitamin_d")
         return required
+
+    def _required_nutrient_hits(self, rec: Dict[str, Any], required_nutrients: set[str]) -> int:
+        if not required_nutrients:
+            return 0
+        covered = set(rec.get("nutrients_covered") or [])
+        return len(required_nutrients.intersection(covered))
+
+    def _promote_required_nutrient_items(
+        self,
+        recommendations: List[Dict[str, Any]],
+        required_nutrients: set[str],
+        top_k: int = 10,
+        min_per_required: int = 1,
+    ) -> List[Dict[str, Any]]:
+        if not recommendations or not required_nutrients:
+            return recommendations
+        recs = list(recommendations)
+        top_k = max(1, min(top_k, len(recs)))
+        for nutrient in required_nutrients:
+            while True:
+                top_count = sum(
+                    1 for r in recs[:top_k] if nutrient in set(r.get("nutrients_covered") or [])
+                )
+                if top_count >= min_per_required:
+                    break
+                idx = next(
+                    (
+                        i
+                        for i, r in enumerate(recs[top_k:], start=top_k)
+                        if nutrient in set(r.get("nutrients_covered") or [])
+                    ),
+                    None,
+                )
+                if idx is None:
+                    break
+                promoted = recs.pop(idx)
+                insert_at = min(top_k - 1, len(recs))
+                recs.insert(insert_at, promoted)
+        return recs
 
     def _filter_compatible_recommendations(
         self,
@@ -536,7 +584,13 @@ class RecommenderService:
         return min(mult, 3.0)
 
     def _max_items_per_category(self, category_key: str, has_active_deficits: bool = False) -> int:
-        if has_active_deficits and ("condiment" in category_key or "desert" in category_key):
+        if has_active_deficits and (
+            "condiment" in category_key
+            or "desert" in category_key
+            or "procesat" in category_key
+            or "prajit" in category_key
+            or "prăjit" in category_key
+        ):
             return 0
         caps = {
             "condimente & mirodenii": 1,
