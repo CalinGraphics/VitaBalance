@@ -128,6 +128,34 @@ class RecommenderService:
             )
             final = self._filter_compatible_recommendations(effective_user, foods, balanced2)
 
+        # Dacă focusul clinic este foarte strict (ex. vegan + alergii + puține surse B12/D),
+        # completăm lista cu opțiuni secundare compatibile pentru a evita recomandări prea puține.
+        if len(final) < self.MIN_RECOMMENDATIONS_TARGET and filtered_deficits:
+            fb_secondary = self._generate_fallback_recommendations(
+                user=effective_user,
+                foods=foods,
+                target_nutrients=list(filtered_deficits.keys()),
+            )
+            fb_secondary_ok = self._filter_compatible_recommendations(effective_user, foods, fb_secondary)
+            seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
+            for r in fb_secondary_ok:
+                fid = r.get("food_id")
+                if fid is None or fid in seen:
+                    continue
+                seen.add(fid)
+                final.append(r)
+                if len(final) >= self.MIN_RECOMMENDATIONS_TARGET:
+                    break
+
+            final.sort(key=lambda x: (x["coverage"], x["score"]), reverse=True)
+            balanced3 = self._rebalance_by_category(
+                user=effective_user,
+                foods=foods,
+                recommendations=final,
+                has_active_deficits=True,
+            )
+            final = self._filter_compatible_recommendations(effective_user, foods, balanced3)
+
         return final
 
     def _build_focus_deficits(self, deficits: Dict[str, float], user: UserProfile) -> Dict[str, float]:

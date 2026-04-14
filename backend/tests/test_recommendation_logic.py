@@ -452,6 +452,36 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertNotIn("iodine", captured["deficits"])
         self.assertNotIn("vitamin_c", captured["deficits"])
 
+    def test_strict_focus_uses_secondary_fallback_when_too_few_results(self):
+        user = make_user(diet_type="vegan", allergies="soia")
+        deficits = {"vitamin_b12": 12.0, "vitamin_d": 10.0, "vitamin_c": 5.0, "iodine": 4.0}
+        foods = [make_food(id=201, name="Kimchi", category="Legume", vitamin_b12=0.2, vitamin_d=0.0)]
+
+        with patch.object(self.recommender.rule_engine, "evaluate_food", return_value=SimpleNamespace(
+            food_id=201,
+            score=5.0,
+            coverage=8.0,
+            explanations=["ok"],
+            matched_rules=["x"],
+            nutrients_covered=["vitamin_b12"],
+        )), patch.object(self.recommender, "_rebalance_by_category", side_effect=lambda **kwargs: kwargs["recommendations"]), \
+             patch.object(self.recommender, "_filter_compatible_recommendations", side_effect=lambda user, foods, recs: recs), \
+             patch.object(self.recommender, "_generate_fallback_recommendations", side_effect=[
+                 [],  # fallback strict pe focus
+                 [{"food_id": 202, "score": 1.0, "coverage": 1.0, "explanations": ["secondary"], "matched_rules": ["fallback_profile_based"], "nutrients_covered": ["vitamin_c"]}],
+             ]) as fb_mock:
+            recs = self.recommender.generate_recommendations(
+                user=user,
+                deficits=deficits,
+                foods=foods,
+                lab_results=None,
+                user_feedbacks=[],
+                feedback_by_food={},
+            )
+
+        self.assertGreaterEqual(len(recs), 2)
+        self.assertEqual(fb_mock.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
