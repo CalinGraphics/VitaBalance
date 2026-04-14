@@ -304,6 +304,32 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertIn("fortificate", tips)
         self.assertIn("supliment", tips)
 
+    def test_fallback_targets_active_deficit_nutrients_when_provided(self):
+        user = make_user(diet_type="vegan")
+        b12_food = make_food(
+            id=120,
+            name="Cereale fortificate B12",
+            category="cereale",
+            vitamin_b12=3.0,
+            vitamin_a=0.0,
+            vitamin_c=0.0,
+        )
+        a_food = make_food(
+            id=121,
+            name="Morcovi cruzi",
+            category="legume",
+            vitamin_b12=0.0,
+            vitamin_a=900.0,
+            vitamin_c=0.0,
+        )
+        recs = self.recommender._generate_fallback_recommendations(
+            user=user,
+            foods=[a_food, b12_food],
+            target_nutrients=["vitamin_b12"],
+        )
+        self.assertTrue(recs)
+        self.assertEqual(recs[0]["food_id"], 120)
+
 
 if __name__ == "__main__":
     unittest.main()
