@@ -973,13 +973,9 @@ class ScopedRulesEngine:
                     "supa crema", "supa", "guacamole",
                 )
                 if any(m in combined_norm for m in hidden_soy_risk_markers):
-                    if any(m in combined_norm for m in soy_free_markers):
-                        pass
-                    else:
+                    if not any(m in combined_norm for m in soy_free_markers):
                         api_verdict = assess_hidden_soy_risk_from_api(food.name or "", food.category or "")
-                        if api_verdict is False:
-                            pass
-                        else:
+                        if api_verdict is not False:
                             return False
         
         if user.medical_conditions:
