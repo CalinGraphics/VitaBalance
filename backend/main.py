@@ -27,7 +27,7 @@ from services.recommender import RecommenderService
 from services.deficit_calculator import DeficitCalculator
 from services.explanation_generator import ExplanationGenerator
 from services.auth import authenticate_user, create_user
-from domain.models import UserProfile, FoodItem
+from domain.models import UserProfile
 from repositories import (
     UserRepository,
     FoodRepository,
