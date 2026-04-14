@@ -99,7 +99,29 @@ class RecommenderService:
                 foods=foods,
                 target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
             )
-            return self._filter_compatible_recommendations(effective_user, foods, fb)
+            fb_ok = self._filter_compatible_recommendations(effective_user, foods, fb)
+            balanced_fb = self._rebalance_by_category(
+                user=effective_user,
+                foods=foods,
+                recommendations=fb_ok,
+                has_active_deficits=has_active_deficits,
+            )
+            balanced_fb.sort(
+                key=lambda x: (
+                    1 if x.get("is_secondary_fill") else 0,
+                    -self._required_nutrient_hits(
+                        rec=x, required_nutrients=required_focus_nutrients
+                    ),
+                    -(x.get("coverage") or 0.0),
+                    -(x.get("score") or 0.0),
+                )
+            )
+            return self._promote_required_nutrient_items(
+                recommendations=balanced_fb,
+                required_nutrients=required_focus_nutrients,
+                top_k=10,
+                min_per_required=1,
+            )
 
         recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
         balanced = self._rebalance_by_category(
@@ -374,6 +396,16 @@ class RecommenderService:
             # Respectă toate restricțiile: dacă alimentul nu e compatibil, îl sărim.
             if not self.rule_engine._is_compatible(food, user):  # type: ignore[attr-defined]
                 continue
+            if active_targets:
+                cat = self._normalize_category(food.category)
+                if (
+                    "procesat" in cat
+                    or "prajit" in cat
+                    or "prăjit" in cat
+                    or "condiment" in cat
+                    or "desert" in cat
+                ):
+                    continue
 
             nutrient_values = {
                 'iron': food.iron or 0,
