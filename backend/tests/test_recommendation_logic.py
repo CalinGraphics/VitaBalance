@@ -663,6 +663,16 @@ class RecommendationLogicTests(unittest.TestCase):
         with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=False):
             self.assertTrue(self.rule_engine._is_compatible(processed, user))
 
+    def test_compound_slash_allergy_lactose_lactate_blocks_milk_allergen_item(self):
+        user = make_user(diet_type="omnivore", allergies="lactoza / lactate")
+        lasagna = make_food(
+            id=832,
+            name="Lasagna cu Carne",
+            category="Mese/Paste",
+            allergens="gluten,lapte",
+        )
+        self.assertFalse(self.rule_engine._is_compatible(lasagna, user))
+
 
 if __name__ == "__main__":
     unittest.main()
