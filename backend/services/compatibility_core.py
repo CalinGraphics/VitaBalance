@@ -71,6 +71,25 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
     food_name_norm = name_norm
     food_category_norm = cat_norm
 
+    has_dairy_allergy = any(
+        resolve_allergy_token(normalize_clinical_text(x)) in {"lactoza", "lactate"}
+        for x in user_allergies
+    )
+    if has_dairy_allergy:
+        dairy_cat_markers = (
+            "lactate", "lapte", "branza", "branzeturi", "iaurt", "smantana", "unt",
+        )
+        if any(m in food_category_norm for m in dairy_cat_markers):
+            return False
+        dairy_name_markers = (
+            "mozzarella", "telemea", "ricotta", "camembert", "brie", "cheddar",
+            "parmezan", "parmesan", "feta", "caprese", "halloumi", "iaurt", "lapte",
+            "cascaval", "kefir", "chefir", "gorgonzola", "provolone", "cottage",
+            "branza", "brânză",
+        )
+        if any(m in food_name_norm for m in dairy_name_markers):
+            return False
+
     for user_allergy in user_allergies:
         user_allergy_clean = user_allergy.strip().lower()
         user_allergy_norm = normalize_clinical_text(user_allergy_clean)
