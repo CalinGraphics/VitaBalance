@@ -171,8 +171,12 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
             "desert", "patiserie", "biscuit", "briosa", "sandvis", "sandviș",
         )
         combined_norm = f"{food_name_norm} {food_category_norm}"
-        if any(m in combined_norm for m in hidden_risk_markers):
-            token = lookup_norm
+        token = lookup_norm
+        high_risk_meal_for_hidden_allergens = (
+            token in {"gluten", "lactoza", "lactate"}
+            and "mese" in food_category_norm
+        )
+        if any(m in combined_norm for m in hidden_risk_markers) or high_risk_meal_for_hidden_allergens:
             if token in {"lactoza", "lactate", "gluten", "sesam", "arahide", "nuci", "oua", "soia", "crustacee", "peste", "mustar"}:
                 if token == "soia":
                     # Soia are deja flux dedicat mai jos (păstrăm compatibilitatea existentă).
