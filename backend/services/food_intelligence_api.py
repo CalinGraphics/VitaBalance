@@ -135,7 +135,12 @@ def _fetch_openfoodfacts_verdict(food_name: str, timeout_seconds: float, allergy
         "mustar": ("en:mustard-free",),
     }.get(token, ())
     if any(m in labels_tags for m in free_markers):
-        return False
+        # Pentru soia păstrăm verdictul explicit "safe" (folosit deja în producție).
+        # Pentru ceilalți alergeni folosim strategie conservatoare: evităm false-safe
+        # din potriviri aproximative OFF și lăsăm decizia pe safety-first în caller.
+        if token == "soia":
+            return False
+        return None
     return None
 
 
