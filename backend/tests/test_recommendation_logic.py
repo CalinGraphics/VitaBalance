@@ -612,6 +612,15 @@ class RecommendationLogicTests(unittest.TestCase):
         top = recs[0]
         self.assertIn("protein", top.get("nutrients_covered", []))
 
+    def test_weight_management_penalizes_dense_meals_and_boosts_lean_proteins(self):
+        user = make_user(medical_conditions="obezitate / management greutate")
+        heavy = make_food(id=801, name="Paste Alfredo cu Pui", category="Mese/Paste", protein=30.0)
+        lean = make_food(id=802, name="Piept de Pui la Gratar", category="Proteine/Carne", protein=26.0)
+        heavy_factor = self.recommender._medical_goal_quality_factor(heavy, user)
+        lean_factor = self.recommender._medical_goal_quality_factor(lean, user)
+        self.assertLess(heavy_factor, 1.0)
+        self.assertGreater(lean_factor, 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

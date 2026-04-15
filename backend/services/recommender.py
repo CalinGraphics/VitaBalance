@@ -81,6 +81,10 @@ class RecommenderService:
                         food_category=food.category,
                         has_active_deficits=has_active_deficits,
                     )
+                    adjusted_score *= self._medical_goal_quality_factor(
+                        food=food,
+                        user=effective_user,
+                    )
 
                     recommendations.append({
                         'food_id': recommendation.food_id,
@@ -466,6 +470,8 @@ class RecommenderService:
             total_coverage *= quality_factor
             total_score *= self._category_preference_factor(food.category, user)
             total_coverage *= self._category_preference_factor(food.category, user)
+            total_score *= self._medical_goal_quality_factor(food, user)
+            total_coverage *= self._medical_goal_quality_factor(food, user)
             total_score *= self._deficit_priority_multiplier(
                 deficits={k: 1.0 for k in active_targets},
                 nutrients_covered=covered_nutrients,
@@ -588,6 +594,39 @@ class RecommenderService:
         if "desert" in cat:
             return 0.12
         return 1.0
+
+    def _medical_goal_quality_factor(self, food: FoodItem, user: UserProfile) -> float:
+        med = normalize_clinical_text(user.medical_conditions or "")
+        if not any(x in med for x in ("obez", "supraponder", "management greutat", "slab", "weight")):
+            return 1.0
+        name = normalize_clinical_text(food.name or "")
+        cat = self._normalize_category(food.category or "")
+        factor = 1.0
+        # Pentru control ponderal evităm preparate dense energetic și ultra-procesate.
+        if (
+            "prajit" in name
+            or "alfredo" in name
+            or "bolognese" in name
+            or "stroganoff" in name
+            or "t-bone" in name
+            or "osso buco" in name
+            or "paste" in cat
+            or "desert" in cat
+            or "procesat" in cat
+        ):
+            factor *= 0.40
+        # Boost pentru opțiuni slabe/echilibrate de proteină.
+        if (
+            "salata" in name
+            or "la gratar" in name
+            or "la cuptor" in name
+            or "piept de pui" in name
+            or "curcan" in name
+            or "iaurt" in name
+            or "somon" in name
+        ):
+            factor *= 1.15
+        return factor
 
     def _deficit_priority_multiplier(
         self,
