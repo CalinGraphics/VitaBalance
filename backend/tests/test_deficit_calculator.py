@@ -129,6 +129,24 @@ class DeficitCalculatorProfileTests(unittest.TestCase):
         deficits = self.calc.calculate_deficits(user, labs)
         self.assertEqual(deficits.get("iodine", 0), 0)
 
+    def test_potassium_mentioned_without_deficit_context_does_not_force_priority(self):
+        user = make_user(
+            sex="M",
+            diet_type="omnivore",
+            medical_conditions="boala cronica de rinichi; potasiu in limite stranse",
+        )
+        labs = LabResultItem(
+            id=14,
+            user_id=1,
+            potassium=4.2,
+            calcium=9.0,
+            magnesium=1.9,
+            vitamin_d=28.0,
+            ferritin=45.0,
+        )
+        deficits = self.calc.calculate_deficits(user, labs)
+        self.assertEqual(deficits.get("potassium", 0), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
