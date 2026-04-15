@@ -605,6 +605,12 @@ class RecommenderService:
         # Pentru control ponderal evităm preparate dense energetic și ultra-procesate.
         if (
             "prajit" in name
+            or "snitel" in name
+            or "milaneza" in name
+            or "antricot" in name
+            or "friptura de vita" in name
+            or "vitel" in name
+            or "porc" in name
             or "alfredo" in name
             or "bolognese" in name
             or "stroganoff" in name
@@ -624,6 +630,9 @@ class RecommenderService:
             or "curcan" in name
             or "iaurt" in name
             or "somon" in name
+            or "halibut" in name
+            or "tilapia" in name
+            or "peste" in name
         ):
             factor *= 1.15
         return factor
