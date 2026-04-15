@@ -396,15 +396,21 @@ class DeficitCalculator:
                 r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*b\s*12",
             ],
             'magnesium': [
-                r"\bmagneziu\b", r"\bmagnesium\b", r"\bhypomagnes", r"\bhipomagnez",
+                r"\bhypomagnes", r"\bhipomagnez",
+                r"\bmagneziu(?:l)?\s+(?:seric\s+)?(?:scazut|scazuta|redus|redusa|sub\s+prag)",
+                r"\bmagnesium\s+(?:low|below)",
                 r"(deficienta|deficit|lipsa)\s+de\s+magneziu",
             ],
             'calcium': [
-                r"\bcalciu\b", r"\bcalcium\b", r"\bhipocalc", r"\bosteopen", r"\bosteopor",
+                r"\bhipocalc", r"\bosteopen", r"\bosteopor",
+                r"\bcalciu(?:l)?\s+(?:ionic\s+)?(?:scazut|scazuta|redus|redusa|sub\s+prag)",
+                r"\bcalcium\s+(?:low|below)",
                 r"(deficienta|deficit|lipsa)\s+de\s+calciu",
             ],
             'zinc': [
-                r"\bzinc\b", r"\bzn\b", r"\bhipozinc",
+                r"\bzn\b", r"\bhipozinc",
+                r"\bzinc(?:ul)?\s+(?:seric\s+)?(?:scazut|scazuta|redus|redusa|sub\s+prag)",
+                r"\bzinc\s+(?:low|below)",
                 r"(deficienta|deficit|lipsa)\s+de\s+zinc",
             ],
             'folate': [
@@ -420,15 +426,20 @@ class DeficitCalculator:
                 r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*k",
             ],
             'iodine': [
-                r"\biod\b", r"\biodine\b",
+                r"\biod(?:ul)?\s+(?:scazut|scazuta|redus|redusa|sub\s+prag)",
+                r"\biodine\s+(?:low|below)",
                 r"(deficienta|deficit|lipsa)\s+de\s+iod",
             ],
             'potassium': [
-                r"\bpotasiu\b", r"\bpotassium\b", r"\bhipokaliem",
+                r"\bhipokaliem",
+                r"\bpotasiu(?:l)?\s+(?:seric\s+)?(?:scazut|scazuta|redus|redusa|sub\s+prag)",
+                r"\bpotassium\s+(?:low|below)",
                 r"(deficienta|deficit|lipsa)\s+de\s+potasiu",
             ],
             'protein': [
-                r"\bproteine?\b", r"\bhipoprotein", r"\bsarcopen",
+                r"\bhipoprotein", r"\bsarcopen",
+                r"\bproteine?\s+(?:serice\s+)?(?:scazute|scazuta|reduse|redusa|sub\s+prag)",
+                r"\bprotein(?:e)?\s+(?:low|below)",
                 r"(deficienta|deficit|lipsa)\s+de\s+proteine?",
             ],
             'vitamin_c': [

@@ -630,6 +630,29 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertLess(self.recommender._medical_goal_quality_factor(red_meat, user), 1.0)
         self.assertGreater(self.recommender._medical_goal_quality_factor(fish, user), 1.0)
 
+    def test_renal_guard_penalizes_high_potassium_options(self):
+        user = make_user(medical_conditions="insuficienta renala cronica")
+        high_k = make_food(id=806, name="Salata de Alge", category="Salate", potassium=620.0)
+        low_k = make_food(id=807, name="Castravete proaspat", category="Legume", potassium=110.0)
+        self.assertLess(
+            self.recommender._renal_potassium_safety_factor(high_k, user),
+            self.recommender._renal_potassium_safety_factor(low_k, user),
+        )
+
+    def test_renal_guard_reorders_fallback_away_from_very_high_potassium(self):
+        user = make_user(medical_conditions="boala cronica de rinichi stadiu stabil")
+        foods = [
+            make_food(id=808, name="Salata de Alge", category="Salate", potassium=700.0, vitamin_c=1.0),
+            make_food(id=809, name="Castravete", category="Legume", potassium=120.0, vitamin_c=10.0),
+        ]
+        recs = self.recommender._generate_fallback_recommendations(
+            user=user,
+            foods=foods,
+            target_nutrients=["potassium"],
+        )
+        self.assertTrue(recs)
+        self.assertEqual(recs[0]["food_id"], 809)
+
     def test_lactose_allergy_blocks_dairy_named_items_even_in_mixed_categories(self):
         user = make_user(diet_type="omnivore", allergies="lactoza")
         caprese = make_food(id=820, name="Salata Caprese", category="Mese/Legume", calcium=66.0)

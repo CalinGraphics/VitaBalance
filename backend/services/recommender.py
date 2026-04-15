@@ -51,6 +51,7 @@ class RecommenderService:
             effective_user, filtered_deficits
         )
         weight_goal_active = self._is_weight_management_goal(effective_user)
+        renal_guard_active = self._is_renal_guard_needed(effective_user)
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
@@ -87,6 +88,11 @@ class RecommenderService:
                         food=food,
                         user=effective_user,
                         weight_goal_active=weight_goal_active,
+                    )
+                    adjusted_score *= self._renal_potassium_safety_factor(
+                        food=food,
+                        user=effective_user,
+                        renal_guard_active=renal_guard_active,
                     )
 
                     recommendations.append({
@@ -389,6 +395,7 @@ class RecommenderService:
             user, {k: 1.0 for k in active_targets}
         ) if active_targets else set()
         weight_goal_active = self._is_weight_management_goal(user)
+        renal_guard_active = self._is_renal_guard_needed(user)
         rdi_map: Dict[str, float] = {n: calc.get_rdi(n, user) for n in nutrient_pool}
 
         fallback_recommendations: List[Tuple[float, Dict]] = []
@@ -483,6 +490,13 @@ class RecommenderService:
             )
             total_score *= medical_goal_factor
             total_coverage *= medical_goal_factor
+            renal_factor = self._renal_potassium_safety_factor(
+                food=food,
+                user=user,
+                renal_guard_active=renal_guard_active,
+            )
+            total_score *= renal_factor
+            total_coverage *= renal_factor
             total_score *= self._deficit_priority_multiplier(
                 deficits={k: 1.0 for k in active_targets},
                 nutrients_covered=covered_nutrients,
@@ -617,6 +631,54 @@ class RecommenderService:
     def _is_weight_management_goal(self, user: UserProfile) -> bool:
         med = normalize_clinical_text(user.medical_conditions or "")
         return any(x in med for x in ("obez", "supraponder", "management greutat", "slab", "weight"))
+
+    def _is_renal_guard_needed(self, user: UserProfile) -> bool:
+        med = normalize_clinical_text(user.medical_conditions or "")
+        return any(
+            x in med
+            for x in (
+                "insuficienta renal",
+                "boala cronica de rinichi",
+                "rinichi",
+                "nefropat",
+                "ckd",
+            )
+        )
+
+    def _renal_potassium_safety_factor(
+        self,
+        food: FoodItem,
+        user: UserProfile,
+        renal_guard_active: Optional[bool] = None,
+    ) -> float:
+        active = self._is_renal_guard_needed(user) if renal_guard_active is None else renal_guard_active
+        if not active:
+            return 1.0
+        potassium = float(getattr(food, "potassium", 0) or 0)
+        name = normalize_clinical_text(food.name or "")
+        cat = self._normalize_category(food.category or "")
+        high_risk_name_markers = (
+            "alge",
+            "banana",
+            "avocado",
+            "spanac",
+            "cartof",
+            "stafide",
+            "mango",
+            "portocal",
+            "suc de rosii",
+        )
+        if potassium >= 500:
+            return 0.22
+        if potassium >= 350:
+            return 0.45
+        if potassium >= 250:
+            return 0.72
+        if any(marker in name for marker in high_risk_name_markers):
+            return 0.72
+        if "supa" in cat or "bauturi" in cat:
+            return 0.85
+        return 1.0
 
     def _medical_goal_quality_factor(
         self,
