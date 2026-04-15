@@ -653,6 +653,40 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertTrue(recs)
         self.assertEqual(recs[0]["food_id"], 809)
 
+    def test_diabetes_guard_penalizes_high_free_sugar_beverage(self):
+        user = make_user(medical_conditions="diabet zaharat tip 2")
+        cola = make_food(
+            id=810,
+            name="Suc Cola",
+            category="Bauturi",
+            free_sugar=39.0,
+            carbs=39.0,
+            fiber=0.0,
+            calories=140.0,
+        )
+        whole = make_food(
+            id=811,
+            name="Fasole Neagra",
+            category="Leguminoase",
+            free_sugar=0.3,
+            carbs=20.0,
+            fiber=7.5,
+            calories=114.0,
+        )
+        self.assertLess(
+            self.recommender._metabolic_clinical_quality_factor(cola, user),
+            self.recommender._metabolic_clinical_quality_factor(whole, user),
+        )
+
+    def test_reflux_guard_penalizes_coffee_and_spicy_condiments(self):
+        user = make_user(medical_conditions="reflux gastroesofagian")
+        coffee = make_food(id=812, name="Cafea Neagra", category="Bauturi")
+        spicy = make_food(id=813, name="Sos Iute Tabasco", category="Condimente")
+        neutral = make_food(id=814, name="Castravete", category="Legume")
+        self.assertLess(self.recommender._metabolic_clinical_quality_factor(coffee, user), 1.0)
+        self.assertLess(self.recommender._metabolic_clinical_quality_factor(spicy, user), 1.0)
+        self.assertEqual(self.recommender._metabolic_clinical_quality_factor(neutral, user), 1.0)
+
     def test_lactose_allergy_blocks_dairy_named_items_even_in_mixed_categories(self):
         user = make_user(diet_type="omnivore", allergies="lactoza")
         caprese = make_food(id=820, name="Salata Caprese", category="Mese/Legume", calcium=66.0)
