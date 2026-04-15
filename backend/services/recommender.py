@@ -52,6 +52,8 @@ class RecommenderService:
         )
         weight_goal_active = self._is_weight_management_goal(effective_user)
         renal_guard_active = self._is_renal_guard_needed(effective_user)
+        diabetes_guard_active = self._is_diabetes_guard_needed(effective_user)
+        reflux_guard_active = self._is_reflux_guard_needed(effective_user)
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
@@ -93,6 +95,12 @@ class RecommenderService:
                         food=food,
                         user=effective_user,
                         renal_guard_active=renal_guard_active,
+                    )
+                    adjusted_score *= self._metabolic_clinical_quality_factor(
+                        food=food,
+                        user=effective_user,
+                        diabetes_guard_active=diabetes_guard_active,
+                        reflux_guard_active=reflux_guard_active,
                     )
 
                     recommendations.append({
@@ -396,6 +404,8 @@ class RecommenderService:
         ) if active_targets else set()
         weight_goal_active = self._is_weight_management_goal(user)
         renal_guard_active = self._is_renal_guard_needed(user)
+        diabetes_guard_active = self._is_diabetes_guard_needed(user)
+        reflux_guard_active = self._is_reflux_guard_needed(user)
         rdi_map: Dict[str, float] = {n: calc.get_rdi(n, user) for n in nutrient_pool}
 
         fallback_recommendations: List[Tuple[float, Dict]] = []
@@ -497,6 +507,14 @@ class RecommenderService:
             )
             total_score *= renal_factor
             total_coverage *= renal_factor
+            metabolic_factor = self._metabolic_clinical_quality_factor(
+                food=food,
+                user=user,
+                diabetes_guard_active=diabetes_guard_active,
+                reflux_guard_active=reflux_guard_active,
+            )
+            total_score *= metabolic_factor
+            total_coverage *= metabolic_factor
             total_score *= self._deficit_priority_multiplier(
                 deficits={k: 1.0 for k in active_targets},
                 nutrients_covered=covered_nutrients,
@@ -645,6 +663,23 @@ class RecommenderService:
             )
         )
 
+    def _is_diabetes_guard_needed(self, user: UserProfile) -> bool:
+        med = normalize_clinical_text(user.medical_conditions or "")
+        return any(
+            x in med
+            for x in (
+                "diabet",
+                "prediabet",
+                "hiperglicem",
+                "glicemie",
+                "rezistenta la insulina",
+            )
+        )
+
+    def _is_reflux_guard_needed(self, user: UserProfile) -> bool:
+        med = normalize_clinical_text(user.medical_conditions or "")
+        return any(x in med for x in ("reflux", "gerd", "gastrit", "ulcer", "arsuri gastric"))
+
     def _renal_potassium_safety_factor(
         self,
         food: FoodItem,
@@ -679,6 +714,77 @@ class RecommenderService:
         if "supa" in cat or "bauturi" in cat:
             return 0.85
         return 1.0
+
+    def _metabolic_clinical_quality_factor(
+        self,
+        food: FoodItem,
+        user: UserProfile,
+        diabetes_guard_active: Optional[bool] = None,
+        reflux_guard_active: Optional[bool] = None,
+    ) -> float:
+        diabetes_active = (
+            self._is_diabetes_guard_needed(user)
+            if diabetes_guard_active is None
+            else diabetes_guard_active
+        )
+        reflux_active = (
+            self._is_reflux_guard_needed(user)
+            if reflux_guard_active is None
+            else reflux_guard_active
+        )
+        if not diabetes_active and not reflux_active:
+            return 1.0
+        name = normalize_clinical_text(food.name or "")
+        cat = self._normalize_category(food.category or "")
+        free_sugar = float(getattr(food, "free_sugar", 0) or 0)
+        carbs = float(getattr(food, "carbs", 0) or 0)
+        fiber = float(getattr(food, "fiber", 0) or 0)
+        calories = float(getattr(food, "calories", 0) or 0)
+        factor = 1.0
+
+        if diabetes_active:
+            if free_sugar >= 20:
+                factor *= 0.18
+            elif free_sugar >= 12:
+                factor *= 0.45
+            elif free_sugar >= 8:
+                factor *= 0.70
+            if carbs >= 45 and fiber < 3:
+                factor *= 0.75
+            if "bauturi" in cat and free_sugar >= 8:
+                factor *= 0.60
+            if calories >= 450 and free_sugar >= 10:
+                factor *= 0.70
+
+        if reflux_active:
+            reflux_markers = (
+                "cafea",
+                "espresso",
+                "cola",
+                "alcool",
+                "vin",
+                "cocktail",
+                "picant",
+                "chili",
+                "tabasco",
+                "jalapeno",
+                "wasabi",
+                "otet",
+                "lamaie",
+                "citrice",
+                "rosii",
+                "tomat",
+                "prajit",
+                "fried",
+            )
+            if any(marker in name for marker in reflux_markers):
+                factor *= 0.35
+            if ("bauturi" in cat and ("cafea" in name or "cola" in name or "alcool" in name)):
+                factor *= 0.40
+            if "condiment" in cat and any(marker in name for marker in ("sos iute", "tabasco", "chutney", "wasabi")):
+                factor *= 0.35
+
+        return max(0.05, factor)
 
     def _medical_goal_quality_factor(
         self,
