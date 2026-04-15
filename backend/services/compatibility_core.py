@@ -4,7 +4,10 @@ import re
 
 from domain.models import FoodItem, UserProfile
 from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm
-from services.food_intelligence_api import assess_hidden_soy_risk_from_api
+from services.food_intelligence_api import (
+    assess_hidden_soy_risk_from_api,
+    assess_hidden_allergen_risk_from_api,
+)
 from services.medical_rules_loader import (
     normalize_clinical_text,
     normalize_diet_type,
@@ -146,6 +149,29 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
             user_allergy_norm in food_name_norm or user_allergy_norm in food_category_norm
         ):
             return False
+
+        # Verificare API pentru alergeni ascunși în alimente procesate / compuse.
+        hidden_risk_markers = (
+            "conserva", "la conserva", "procesat", "procesate",
+            "prajit", "prăjit", "garnitura", "garnitur", "sos",
+            "supa", "supa crema", "shake", "smoothie", "cocktail",
+            "desert", "patiserie", "biscuit", "briosa", "sandvis", "sandviș",
+        )
+        combined_norm = f"{food_name_norm} {food_category_norm}"
+        if any(m in combined_norm for m in hidden_risk_markers):
+            token = lookup_norm
+            if token in {"lactoza", "lactate", "gluten", "sesam", "arahide", "nuci", "oua", "soia", "crustacee", "peste", "mustar"}:
+                if token == "soia":
+                    # Soia are deja flux dedicat mai jos (păstrăm compatibilitatea existentă).
+                    continue
+                verdict = assess_hidden_allergen_risk_from_api(
+                    food_name=food.name or "",
+                    food_category=food.category or "",
+                    allergy_token=token,
+                )
+                # Strategie safety-first: dacă nu avem confirmare de siguranță, excludem.
+                if verdict is not False:
+                    return False
 
     has_soy_allergy = any(
         resolve_allergy_token(normalize_clinical_text(x.strip())) == "soia"
