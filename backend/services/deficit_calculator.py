@@ -420,7 +420,7 @@ class DeficitCalculator:
                 r"(deficienta|deficit|lipsa)\s+de\s+vit(?:amina)?\s*k",
             ],
             'iodine': [
-                r"\biod\b", r"\biodine\b", r"\btiroid",
+                r"\biod\b", r"\biodine\b",
                 r"(deficienta|deficit|lipsa)\s+de\s+iod",
             ],
             'potassium': [
