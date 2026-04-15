@@ -50,6 +50,7 @@ class RecommenderService:
         required_focus_nutrients = self._clinical_required_focus_nutrients(
             effective_user, filtered_deficits
         )
+        weight_goal_active = self._is_weight_management_goal(effective_user)
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
@@ -84,6 +85,7 @@ class RecommenderService:
                     adjusted_score *= self._medical_goal_quality_factor(
                         food=food,
                         user=effective_user,
+                        weight_goal_active=weight_goal_active,
                     )
 
                     recommendations.append({
@@ -382,6 +384,10 @@ class RecommenderService:
         # RDI generic pentru utilizator, folosit ca referință de „cât de util” este un aliment
         active_targets = [n for n in (target_nutrients or []) if n in self.nutrients]
         nutrient_pool = active_targets if active_targets else list(self.nutrients)
+        required_targets = self._clinical_required_focus_nutrients(
+            user, {k: 1.0 for k in active_targets}
+        ) if active_targets else set()
+        weight_goal_active = self._is_weight_management_goal(user)
         rdi_map: Dict[str, float] = {n: calc.get_rdi(n, user) for n in nutrient_pool}
 
         fallback_recommendations: List[Tuple[float, Dict]] = []
@@ -470,15 +476,16 @@ class RecommenderService:
             total_coverage *= quality_factor
             total_score *= self._category_preference_factor(food.category, user)
             total_coverage *= self._category_preference_factor(food.category, user)
-            total_score *= self._medical_goal_quality_factor(food, user)
-            total_coverage *= self._medical_goal_quality_factor(food, user)
+            medical_goal_factor = self._medical_goal_quality_factor(
+                food, user, weight_goal_active=weight_goal_active
+            )
+            total_score *= medical_goal_factor
+            total_coverage *= medical_goal_factor
             total_score *= self._deficit_priority_multiplier(
                 deficits={k: 1.0 for k in active_targets},
                 nutrients_covered=covered_nutrients,
                 user=user,
-                required_nutrients=self._clinical_required_focus_nutrients(
-                    user, {k: 1.0 for k in active_targets}
-                ),
+                required_nutrients=required_targets,
             )
 
             avg_coverage = total_coverage / len(covered_nutrients)
@@ -595,9 +602,18 @@ class RecommenderService:
             return 0.12
         return 1.0
 
-    def _medical_goal_quality_factor(self, food: FoodItem, user: UserProfile) -> float:
+    def _is_weight_management_goal(self, user: UserProfile) -> bool:
         med = normalize_clinical_text(user.medical_conditions or "")
-        if not any(x in med for x in ("obez", "supraponder", "management greutat", "slab", "weight")):
+        return any(x in med for x in ("obez", "supraponder", "management greutat", "slab", "weight"))
+
+    def _medical_goal_quality_factor(
+        self,
+        food: FoodItem,
+        user: UserProfile,
+        weight_goal_active: Optional[bool] = None,
+    ) -> float:
+        active = self._is_weight_management_goal(user) if weight_goal_active is None else weight_goal_active
+        if not active:
             return 1.0
         name = normalize_clinical_text(food.name or "")
         cat = self._normalize_category(food.category or "")
