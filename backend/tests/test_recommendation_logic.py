@@ -630,6 +630,27 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertLess(self.recommender._medical_goal_quality_factor(red_meat, user), 1.0)
         self.assertGreater(self.recommender._medical_goal_quality_factor(fish, user), 1.0)
 
+    def test_lactose_allergy_blocks_dairy_named_items_even_in_mixed_categories(self):
+        user = make_user(diet_type="omnivore", allergies="lactoza")
+        caprese = make_food(id=820, name="Salata Caprese", category="Mese/Legume", calcium=66.0)
+        fish = make_food(id=821, name="Somon la Cuptor", category="Peste & Fructe de Mare", calcium=59.0)
+        self.assertFalse(self.rule_engine._is_compatible(caprese, user))
+        self.assertTrue(self.rule_engine._is_compatible(fish, user))
+
+    def test_active_deficits_penalize_beverages_and_junk_name_markers(self):
+        by_cat = self.recommender._active_deficit_quality_factor(
+            food_category="Bauturi",
+            food_name="Apa minerala",
+            has_active_deficits=True,
+        )
+        by_name = self.recommender._active_deficit_quality_factor(
+            food_category="Legume",
+            food_name="Suc Cola",
+            has_active_deficits=True,
+        )
+        self.assertLessEqual(by_cat, 0.05)
+        self.assertLessEqual(by_name, 0.05)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -80,6 +80,7 @@ class RecommenderService:
                     )
                     adjusted_score *= self._active_deficit_quality_factor(
                         food_category=food.category,
+                        food_name=food.name,
                         has_active_deficits=has_active_deficits,
                     )
                     adjusted_score *= self._medical_goal_quality_factor(
@@ -470,6 +471,7 @@ class RecommenderService:
             quality_factor = self._category_quality_factor(food.category)
             quality_factor *= self._active_deficit_quality_factor(
                 food_category=food.category,
+                food_name=food.name,
                 has_active_deficits=bool(active_targets),
             )
             total_score *= quality_factor
@@ -590,11 +592,21 @@ class RecommenderService:
             return 0.75
         return 1.0
 
-    def _active_deficit_quality_factor(self, food_category: str, has_active_deficits: bool) -> float:
+    def _active_deficit_quality_factor(
+        self,
+        food_category: str,
+        has_active_deficits: bool,
+        food_name: str = "",
+    ) -> float:
         if not has_active_deficits:
             return 1.0
         cat = self._normalize_category(food_category)
+        name = normalize_clinical_text(food_name or "")
         if "procesat" in cat or "prajit" in cat or "prăjit" in cat:
+            return 0.05
+        if "bauturi" in cat or "snacks" in cat or "gustari" in cat:
+            return 0.05
+        if any(x in name for x in ("prajit", "prăjit", "cola", "bruschetta", "panare", "garnitura")):
             return 0.05
         if "condiment" in cat or "sos" in cat:
             return 0.08
@@ -693,6 +705,9 @@ class RecommenderService:
             or "procesat" in category_key
             or "prajit" in category_key
             or "prăjit" in category_key
+            or "bauturi" in category_key
+            or "gustari" in category_key
+            or "snacks" in category_key
         ):
             return 0
         caps = {
