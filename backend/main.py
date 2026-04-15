@@ -516,6 +516,7 @@ async def get_recommendations(
     # Build feedback_by_food without N+1 calls to Supabase:
     # fetch recommendations once, then map in-memory.
     feedback_by_food: dict = {}
+    existing_recs_for_user = rec_repo.get_by_user_id(request.user_id, limit=100)
     if user_feedbacks:
         recs = rec_repo.get_by_user_id(request.user_id, limit=1000)
         rec_by_id = {r.id: r for r in recs}
@@ -558,7 +559,7 @@ async def get_recommendations(
     is_replace_only = False
     if request.replace_recommendation_id:
         rec_to_replace = next(
-            (r for r in rec_repo.get_by_user_id(request.user_id, limit=100) if r.id == request.replace_recommendation_id),
+            (r for r in existing_recs_for_user if r.id == request.replace_recommendation_id),
             None
         )
         if rec_to_replace:
@@ -570,7 +571,6 @@ async def get_recommendations(
     # din nou un aliment care este deja în lista de recomandări a utilizatorului.
     # Astfel prevenim duplicatele de tip „același preparat de mai multe ori”.
     if is_replace_only:
-        existing_recs_for_user = rec_repo.get_by_user_id(request.user_id, limit=100)
         for r in existing_recs_for_user:
             exclude_ids.add(r.food_id)
 
@@ -604,6 +604,19 @@ async def get_recommendations(
             user_feedbacks=user_feedbacks,
             feedback_by_food=feedback_by_food,
         )
+        if not rec_list and settings.openfoodfacts_enabled and not settings.openfoodfacts_blocking_mode:
+            # Dacă verdictul extern pentru alergeni ascunși nu era încă disponibil,
+            # oferim un retry scurt pentru a stabiliza răspunsul la prima regenerare.
+            import time
+            time.sleep(min(max(settings.openfoodfacts_timeout_seconds, 0.15), 0.6))
+            rec_list = recommender.generate_recommendations(
+                user=user,
+                deficits=deficits,
+                foods=foods_filtered,
+                lab_results=lab_results,
+                user_feedbacks=user_feedbacks,
+                feedback_by_food=feedback_by_food,
+            )
         if rec_list:
             food = next((f for f in foods_filtered if f.id == rec_list[0]["food_id"]), None)
             if food:
@@ -664,6 +677,19 @@ async def get_recommendations(
             user_feedbacks=user_feedbacks,
             feedback_by_food=feedback_by_food,
         )
+        if not rec_list and settings.openfoodfacts_enabled and not settings.openfoodfacts_blocking_mode:
+            # Retry scurt după warmup API pentru a evita situațiile în care prima rulare
+            # e prea conservatoare, iar a doua rulare (imediat după) ar produce rezultate diferite.
+            import time
+            time.sleep(min(max(settings.openfoodfacts_timeout_seconds, 0.15), 0.6))
+            rec_list = recommender.generate_recommendations(
+                user=user,
+                deficits=deficits,
+                foods=foods_filtered,
+                lab_results=lab_results,
+                user_feedbacks=user_feedbacks,
+                feedback_by_food=feedback_by_food,
+            )
         explanation_gen = ExplanationGenerator()
         to_insert = []
         explanation_by_food_id: Dict[int, dict] = {}
@@ -723,7 +749,7 @@ async def get_recommendations(
                     "my_rating": user_feedback_by_rec.get(rec.id),
                 })
     else:
-        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=20)
+        existing_recs = existing_recs_for_user[:20]
         food_by_id = {f.id: f for f in foods}
         explanation_gen = ExplanationGenerator()
         for rec in existing_recs:

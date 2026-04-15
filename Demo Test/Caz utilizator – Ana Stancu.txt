@@ -1,0 +1,44 @@
+Caz utilizator – Ana Stancu (VitaBalance)
+Date de profil utilizator
+Ana Stancu, sex feminin, 36 ani, 64 kg, 168 cm, nivel de activitate moderat, tip dietă pescatarian.
+Restricții și context clinic: alergie la susan; condiție medicală declarată: boli de tiroidă.
+
+Date de analize introduse în aplicație
+Hemoglobină 13.1 g/dL, feritină 36 ng/mL, vitamina D 28.5 ng/mL, vitamina B12 355 pg/mL, calciu 9.08 mg/dL, magneziu 1.89 mg/dL, zinc 52 mcg/dL, proteine 6.65 g/dL, folat 6.1 ng/mL, vitamina A 40.5 mg/dL, iod 111 mg/L, potasiu 4.02 mmol/L.
+Observație medicală: „Zinc seric scăzut; dietă pescatariană.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Deficitul dominant în acest profil este zincul (valoare serică scăzută), în timp ce ceilalți indicatori sunt relativ stabili. În consecință, algoritmul prioritizează alimente cu aport relevant de zinc și construiește ranking-ul în jurul acestui micronutrient principal.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance pentru Ana:
+
+preluare profil + analize + tip dietă + alergii + context clinic;
+filtrare alimente incompatibile (inclusiv pe baza alergiei declarate);
+selectare nutrient prioritar: zinc;
+calcul scor per aliment în funcție de contribuția per porție la aportul zilnic recomandat;
+ordonare Top‑K și generare explicații textuale + numerice pentru trasabilitate.
+Top recomandări (K=10) din raport
+
+Cereale Integrale Fortificate cu B12 – 56.3%
+Edamame în păstaie (240 ml) – 53.1%
+Supă de mazăre despicată (240 ml) – 48.9%
+Supă de linte orientală (240 ml) – 44.6%
+Fasole neagră (120 ml) – 40.4%
+Salată de castravete (120 ml) – 37.5%
+Ardei și ceapă căliți – 37.5%
+Fasole verde (120 ml cu paste) – 37.5%
+Castraveți murați (60 ml) – 37.5%
+Brânză de capră (28 g) – 35.0%
+Explicație profesională a rezultatului
+Lista recomandată este coerentă cu obiectivul de corecție a zincului, având în top leguminoase, cereale fortificate, legume și lactate, fiecare cu aport cuantificat de zinc per porție.
+Scorurile descrescătoare (56.3% → 35.0% în top 10) arată modul în care sistemul ierarhizează opțiunile în funcție de eficiența nutrițională pentru deficitul identificat. În acest caz, recomandările nu sunt axate pe corecții hematologice sau proteice, deoarece acești markeri nu apar ca prioritari.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Cereale Integrale Fortificate cu B12, acoperire 56.3%: aliment selectat pentru compatibilitate clinico‑nutrițională ridicată, cu aport dominant de aproximativ 4.5 unități de zinc per porția recomandată (150 g), ceea ce corespunde la 56.2% din aportul zilnic de referință pentru nutrientul prioritar.
+
+Implicație clinică practică
+Pentru pacientă cu patologie tiroidiană, corectarea deficitului de zinc poate susține funcția metabolică generală, însă planul alimentar trebuie menținut în paralel cu monitorizarea endocrinologică și ajustările medicale specifice.
+
+Punct de validare algoritmică
+Acest caz este util în lucrare pentru a demonstra că sistemul poate selecta un deficit micronutrițional unic (zinc) și poate genera un ranking coerent, explicabil numeric, fără a devia către nutrienți secundari neprioritari.

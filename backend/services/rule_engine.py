@@ -133,7 +133,10 @@ class NutritionalRuleEngine:
         lab_results: Optional[LabResultItem] = None
     ) -> Optional[FoodRecommendation]:
         """Evaluează un aliment folosind toate regulile disponibile"""
-        if not self._is_compatible(food, user):
+        precomputed_restrictions = None
+        if user.medical_conditions:
+            precomputed_restrictions = self._parse_food_restrictions(user.medical_conditions)
+        if not self._is_compatible(food, user, precomputed_restrictions=precomputed_restrictions):
             return None
         
         scoped_rule_results: List[ScopedRuleResult] = []
@@ -957,7 +960,12 @@ class NutritionalRuleEngine:
             'preferred_categories': list(set(preferred_categories))
         }
     
-    def _is_compatible(self, food: FoodItem, user: UserProfile) -> bool:
+    def _is_compatible(
+        self,
+        food: FoodItem,
+        user: UserProfile,
+        precomputed_restrictions: Optional[Dict[str, List[str]]] = None,
+    ) -> bool:
         """Verifică dacă alimentul este compatibil cu profilul utilizatorului"""
         if not is_compatible_diet_and_allergies(food, user):
             return False
@@ -967,7 +975,7 @@ class NutritionalRuleEngine:
             food_name_lower = self._normalize_text(food.name or '')
             food_category_lower = self._normalize_text(food.category or '')
             
-            restrictions = self._parse_food_restrictions(user.medical_conditions)
+            restrictions = precomputed_restrictions or self._parse_food_restrictions(user.medical_conditions)
             preferred = set(restrictions.get('preferred_categories', []) or [])
             
             for forbidden_category in restrictions['forbidden_categories']:

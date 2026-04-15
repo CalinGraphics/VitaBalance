@@ -1,0 +1,42 @@
+Caz utilizator – Laura Enache (VitaBalance)
+Date de profil utilizator
+Laura Enache, sex feminin, 39 ani, 63 kg, 165 cm, nivel de activitate moderat, tip dietă omnivor.
+Restricții și context clinic: alergie la pește; condiție medicală declarată: reflux gastroesofagian.
+
+Date de analize introduse în aplicație
+Hemoglobină 12.7 g/dL, feritină 34 ng/mL, vitamina D 29.5 ng/mL, vitamina B12 370 pg/mL, calciu 8.98 mg/dL, magneziu 1.91 mg/dL, zinc 80 mcg/dL, proteine 6.52 g/dL, folat 6.15 ng/mL, vitamina A 40.8 mg/dL, iod 116 mg/L, potasiu 4.05 mmol/L.
+Observație medicală: „Nu mănânc pește, pui, porc. Evit cafea.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Nu se evidențiază un deficit sever singular; profilul este unul de menținere cu posibilă optimizare multi‑nutrient (A, C, K, B12, calciu, iod, zinc, proteine). Astfel, algoritmul prioritizează alimente cu acoperire globală bună, nu o corecție țintită pe un singur nutrient.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance:
+
+preluare profil + analize + alergii + observații medicale;
+filtrare de compatibilitate și calcul scor rule‑based pe aport per porție;
+estimare acoperire globală pe mai mulți nutrienți;
+ordonare Top‑K descrescător + explicații textuale și numerice.
+Top recomandări (K=10) din raport
+
+Porumb fiert pe știulete (1 mare) – 38.0%
+Cartof copt (mediu) – 37.2%
+Varză roșie crudă (240 ml) – 37.2%
+Kimchi (120 ml) – 34.0%
+Brânză Brie (28 g) – 33.7%
+Saltimbocca (1 porție) – 32.6%
+Cașcaval Provolone (1 felie) – 32.6%
+Brânză Gorgonzola (28 g) – 32.2%
+Iaurt grecesc natural (240 ml) – 31.9%
+Salată de cartofi (120 ml) – 31.8%
+Explicație profesională a rezultatului
+Topul este dominat de legume și lactate cu aport consistent de vitamine A/C/K, calciu, iod și B12, urmate de preparate proteice cu contribuții bune pe zinc și proteine. Acest pattern este coerent cu un profil fără deficit major critic și susține menținerea echilibrului nutrițional general.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Porumb fiert pe știulete (1 mare), acoperire 38.0%: selectat pentru compatibilitate clinico‑nutrițională și pentru aportul ridicat de vitamine A, C și K la porția recomandată, ceea ce maximizează scorul global al alimentului în ierarhia Top‑K.
+
+Implicație clinică practică
+În context de reflux gastroesofagian, selecția finală ar trebui adaptată prin tehnici de preparare și frecvență alimentară (evitare preparate iritante/grele, individualizare toleranță digestivă), cu monitorizare clinică.
+
+Punct de validare algoritmică (important pentru lucrare)
+Acest caz evidențiază clar o zonă de îmbunătățire: raportul include alimente ce pot intra în conflict cu restricțiile declarate (ex. alergie la pește și evitarea explicită a peștelui/puiului/porcului în observații). Metodologic, merită menționat în licență că este necesară o regulă de prioritate mai strictă pentru restricții hard (alergii + excluderi declarative), înainte de etapa de ranking nutrițional.

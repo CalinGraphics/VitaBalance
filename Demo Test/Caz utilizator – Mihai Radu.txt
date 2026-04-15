@@ -1,0 +1,44 @@
+Caz utilizator – Mihai Radu (VitaBalance)
+Date de profil utilizator
+Mihai Radu, sex masculin, 46 ani, 86 kg, 176 cm, nivel de activitate moderat, tip dietă omnivor.
+Restricții și context clinic: intoleranță la lactoză / lactate.
+
+Date de analize introduse în aplicație
+Hemoglobină 14.3 g/dL, feritină 58 ng/mL, vitamina D 27 ng/mL, vitamina B12 400 pg/mL, calciu 8.25 mg/dL, magneziu 1.86 mg/dL, zinc 81 mcg/dL, proteine 6.58 g/dL, folat 6 ng/mL, vitamina A 39.5 mg/dL, iod 117 mg/L, potasiu 4 mmol/L.
+Observație medicală: „Calciu ionic scăzut; intoleranță la lactoză – surse alternative de calciu.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Deficitul dominant este calciul (valoare sub prag), iar în contextul intoleranței la lactoză sistemul trebuie să favorizeze surse non-lactate sau alternative bine tolerate. Restul markerilor sunt relativ stabili și nu devin prioritari în ranking.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul rule-based VitaBalance:
+
+preluare profil + analize + alergii/intoleranțe;
+identificare nutrient prioritar: calciu;
+filtrare opțiuni incompatibile cu restricțiile alimentare declarate;
+scorare alimente după conținutul de calciu/100 g, aport per porție și procent de acoperire al deficitului;
+ierarhizare Top‑K și explicații textuale + numerice (mg/100 g, mg/porție, procent acoperire).
+Top recomandări (K=10) din raport
+
+Sparanghel la cuptor (6 fire) – 33.9%
+Sparanghel fiert (240 ml) – 33.6%
+Cereale integrale fortificate cu B12 – 33.3%
+Cartof copt (mediu) – 32.7%
+Țelină tocată (1/4 tulpină) – 32.7%
+Caponata (120 ml) – 27.8%
+Curmale Medjool (2 medii) – 26.1%
+Pară – 25.8%
+Mure (240 ml) – 25.8%
+Salată de cartofi (120 ml) – 24.5%
+Explicație profesională a rezultatului
+Lista este orientată corect către alimente vegetale și preparate fără bază lactată, în concordanță cu restricția la lactoză și cu obiectivul de creștere a aportului de calciu. Primele poziții oferă aproximativ 146–154 mg calciu/porție, cu acoperire de ~49–51% din deficitul estimat per recomandare individuală.
+Prin distribuția recomandărilor pe mai multe categorii (legume, cereale fortificate, fructe, leguminoase), sistemul susține aderența alimentară pe termen mediu și reduce dependența de surse lactate clasice.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Sparanghel la cuptor (6 fire), acoperire 33.9%: recomandat pentru aport de calciu; conține 77 mg calciu/100 g, iar porția de 200 g furnizează aproximativ 154 mg calciu, ceea ce acoperă 51.3% din deficitul calculat de sistem.
+
+Implicație clinică practică
+Cazul demonstrează utilitatea personalizării pe restricții digestive: corecția deficitului de calciu poate fi abordată eficient prin alternative non-lactate, cu monitorizare periodică a calciului ionic și ajustare dietetică progresivă.
+
+Punct de validare algoritmică
+Acest profil validează că motorul poate prioritiza un deficit specific (calciu) și poate genera un ranking coerent chiar în prezența unei restricții importante (intoleranță la lactoză), menținând explicații cuantificabile per recomandare.

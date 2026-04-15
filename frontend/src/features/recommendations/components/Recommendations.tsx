@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { UtensilsCrossed, Download } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
@@ -39,6 +39,14 @@ interface RecommendationsProps {
   refreshKey?: number
 }
 
+interface ApiErrorDetail {
+  response?: {
+    data?: {
+      detail?: unknown
+    }
+  }
+}
+
 const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   // Debug logging only in development
   if (import.meta.env.DEV) {
@@ -51,7 +59,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const [visibleCount, setVisibleCount] = useState(10)
   const [selectedCategory, setSelectedCategory] = useState<'all' | string>('all')
   const latestFetchIdRef = useRef(0)
-  const [prevUserValues, setPrevUserValues] = useState({
+  const prevUserValuesRef = useRef({
     diet_type: user.diet_type,
     activity_level: user.activity_level,
     allergies: user.allergies,
@@ -61,8 +69,9 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     weight: user.weight,
     height: user.height,
   })
+  const previousRefreshKeyRef = useRef<number | undefined>(refreshKey)
 
-  const fetchRecommendations = async (forceRegenerate: boolean = false) => {
+  const fetchRecommendations = useCallback(async (forceRegenerate: boolean = false) => {
     const fetchId = ++latestFetchIdRef.current
     try {
       if (import.meta.env.DEV) {
@@ -70,8 +79,8 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       }
       setLoading(true)
       setError(null)
-      if (!user || !user.id) {
-        console.error('User sau user.id lipsește!', user)
+      if (!user.id) {
+        console.error('User id lipsește la generarea recomandărilor')
         if (fetchId !== latestFetchIdRef.current) return
         setError('ID-ul utilizatorului lipsește. Vă rugăm să vă conectați din nou.')
         setLoading(false)
@@ -96,21 +105,29 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         setError('Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele medicale.')
         setRecommendations([])
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Eroare la obținerea recomandărilor:', err)
       // Extrage mesajul de eroare - axios interceptor-ul ar trebui să-l extragă deja
       let errorMessage = 'Nu s-au putut genera recomandări. Vă rugăm să încercați din nou.'
+      const apiError = err as ApiErrorDetail
 
       if (err instanceof Error && err.message) {
         errorMessage = err.message
-      } else if ((err as any)?.response?.data?.detail) {
-        const detail = (err as any).response.data.detail
+      } else if (apiError?.response?.data?.detail) {
+        const detail = apiError.response.data.detail
         if (typeof detail === 'string') {
           errorMessage = detail
         } else if (Array.isArray(detail)) {
-          errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
+          errorMessage = detail
+            .map((e) =>
+              typeof e === 'object' && e !== null && 'msg' in e
+                ? String((e as { msg?: unknown }).msg ?? JSON.stringify(e))
+                : JSON.stringify(e)
+            )
+            .join('; ')
         } else if (typeof detail === 'object') {
-          errorMessage = detail.msg || detail.message || JSON.stringify(detail)
+          const detailObj = detail as { msg?: unknown; message?: unknown }
+          errorMessage = String(detailObj.msg || detailObj.message || JSON.stringify(detail))
         }
       }
       
@@ -118,13 +135,15 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       setError(errorMessage)
       setRecommendations([])
     } finally {
-      if (fetchId !== latestFetchIdRef.current) return
-      setLoading(false)
+      if (fetchId === latestFetchIdRef.current) {
+        setLoading(false)
+      }
     }
-  }
+  }, [user.id])
 
   useEffect(() => {
-    const hasChanged = 
+    const prevUserValues = prevUserValuesRef.current
+    const hasProfileChanged =
       prevUserValues.diet_type !== user.diet_type ||
       prevUserValues.activity_level !== user.activity_level ||
       prevUserValues.allergies !== user.allergies ||
@@ -133,11 +152,15 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       prevUserValues.sex !== user.sex ||
       prevUserValues.weight !== user.weight ||
       prevUserValues.height !== user.height
+    const refreshKeyChanged =
+      typeof refreshKey === 'number' &&
+      refreshKey > 0 &&
+      refreshKey !== previousRefreshKeyRef.current
 
-    if (hasChanged) {
-      // Regenerează recomandările dacă s-au schimbat criteriile
-      fetchRecommendations(true)
-      setPrevUserValues({
+    fetchRecommendations(hasProfileChanged || refreshKeyChanged)
+
+    if (hasProfileChanged) {
+      prevUserValuesRef.current = {
         diet_type: user.diet_type,
         activity_level: user.activity_level,
         allergies: user.allergies,
@@ -146,100 +169,98 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         sex: user.sex,
         weight: user.weight,
         height: user.height,
-      })
-    } else {
-      // Dacă profilul nu s-a schimbat, folosim recomandările existente (mult mai rapid).
-      fetchRecommendations(false)
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id, user.diet_type, user.activity_level, user.allergies, user.medical_conditions, user.age, user.sex, user.weight, user.height])
-
-  // Dacă s-au salvat analizele medicale sau s-a făcut update de profil și s-a incrementat refreshKey,
-  // forțează regenerarea recomandărilor (include și cache invalidation pe backend).
-  useEffect(() => {
-    if (refreshKey && refreshKey > 0) {
-      fetchRecommendations(true)
+    if (refreshKeyChanged) {
+      previousRefreshKeyRef.current = refreshKey
       setVisibleCount(10)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey])
+  }, [
+    user.id,
+    user.diet_type,
+    user.activity_level,
+    user.allergies,
+    user.medical_conditions,
+    user.age,
+    user.sex,
+    user.weight,
+    user.height,
+    refreshKey,
+  ])
 
 
-  const exportToPDF = () => {
+  const exportToPDF = useCallback(() => {
     downloadRecommendationPdf({
       user: { name: user.name, email: user.email, id: user.id },
       recommendations,
     }).catch((err) => {
       console.error('Export PDF failed:', err)
     })
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neonCyan mx-auto mb-4"></div>
-          <p className="text-slate-300">Se generează recomandările personalizate...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error && !loading) {
-    return (
-      <GlassCard className="w-full max-w-full md:max-w-2xl mx-auto">
-        <div className="text-center text-red-400">
-          <p className="mb-4 text-base sm:text-sm break-words">{error}</p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <motion.button 
-              onClick={() => fetchRecommendations(true)} 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-neonCyan via-neonPurple to-neonMagenta px-4 py-3 text-sm font-semibold text-slate-950 shadow-neon transition hover:shadow-neon-magenta touch-manipulation"
-            >
-              Încearcă din nou
-            </motion.button>
-            {recommendations.length > 0 && (
-              <motion.button
-                onClick={exportToPDF}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)] touch-manipulation"
-              >
-                <Download className="w-5 h-5 text-neonCyan" />
-                <span>Exportă PDF</span>
-              </motion.button>
-            )}
-          </div>
-        </div>
-      </GlassCard>
-    )
-  }
-
-  // Error boundary - dacă nu există user sau id
-  if (!user || !user.id) {
-    return (
-      <div className="w-full text-center py-12">
-        <p className="text-red-400">Eroare: ID utilizator lipsă. Reconectează-te.</p>
-      </div>
-    )
-  }
+  }, [recommendations, user.email, user.id, user.name])
 
   const userId = user.id
-  const categoryCounts = recommendations.reduce<Record<string, number>>((acc, rec) => {
-    const category = rec.food?.category || 'Altele'
-    acc[category] = (acc[category] || 0) + 1
-    return acc
-  }, {})
-  const availableCategories = Object.keys(categoryCounts).sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0))
-  const filteredRecommendations = selectedCategory === 'all'
-    ? recommendations
-    : recommendations.filter((rec) => rec.food?.category === selectedCategory)
-  const visibleRecommendations = filteredRecommendations.slice(0, visibleCount)
+  const categoryCounts = useMemo(
+    () =>
+      recommendations.reduce<Record<string, number>>((acc, rec) => {
+        const category = rec.food?.category || 'Altele'
+        acc[category] = (acc[category] || 0) + 1
+        return acc
+      }, {}),
+    [recommendations]
+  )
+  const availableCategories = useMemo(
+    () => Object.keys(categoryCounts).sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0)),
+    [categoryCounts]
+  )
+  const filteredRecommendations = useMemo(
+    () =>
+      selectedCategory === 'all'
+        ? recommendations
+        : recommendations.filter((rec) => rec.food?.category === selectedCategory),
+    [recommendations, selectedCategory]
+  )
+  const visibleRecommendations = useMemo(
+    () => filteredRecommendations.slice(0, visibleCount),
+    [filteredRecommendations, visibleCount]
+  )
   const tailCount = visibleRecommendations.length % 3
   const mainCount = tailCount === 0 ? visibleRecommendations.length : visibleRecommendations.length - tailCount
-  const mainRecommendations = visibleRecommendations.slice(0, mainCount)
-  const tailRecommendations = visibleRecommendations.slice(mainCount)
+  const mainRecommendations = useMemo(
+    () => visibleRecommendations.slice(0, mainCount),
+    [visibleRecommendations, mainCount]
+  )
+  const tailRecommendations = useMemo(
+    () => visibleRecommendations.slice(mainCount),
+    [visibleRecommendations, mainCount]
+  )
+  const handleFeedbackSent = useCallback(
+    (recId: number, rating: number, newLikes: number, newDislikes: number) => {
+      setRecommendations((prev) =>
+        prev.map((r) =>
+          r.recommendation_id === recId
+            ? {
+                ...r,
+                feedback: { ...(r.feedback || { likes: 0, dislikes: 0 }), likes: newLikes, dislikes: newDislikes },
+                my_rating: rating,
+              }
+            : r
+        )
+      )
+    },
+    []
+  )
+  const handleReplaceRequested = useCallback(
+    async (recId: number) => {
+      const data = await recommendationsService.replace(userId, recId)
+      if (Array.isArray(data) && data.length > 0) {
+        setRecommendations(data)
+      } else {
+        await fetchRecommendations(false)
+      }
+    },
+    [fetchRecommendations, userId]
+  )
 
   return (
     <div className="space-y-8">
@@ -334,27 +355,8 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
               recommendation={rec}
               index={index}
               userId={userId}
-              onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
-                setRecommendations((prev) =>
-                  prev.map((r) =>
-                    r.recommendation_id === recId
-                      ? {
-                          ...r,
-                          feedback: { ...(r.feedback || { likes: 0, dislikes: 0 }), likes: newLikes, dislikes: newDislikes },
-                          my_rating: _rating,
-                        }
-                      : r
-                  )
-                )
-              }}
-              onReplaceRequested={async (recId) => {
-                const data = await recommendationsService.replace(userId, recId)
-                if (Array.isArray(data) && data.length > 0) {
-                  setRecommendations(data)
-                } else {
-                  await fetchRecommendations(false)
-                }
-              }}
+              onFeedbackSent={handleFeedbackSent}
+              onReplaceRequested={handleReplaceRequested}
             />
           </div>
         ))}
@@ -367,27 +369,8 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                   recommendation={rec}
                   index={mainRecommendations.length + idx}
                   userId={userId}
-                  onFeedbackSent={(recId, _rating, newLikes, newDislikes) => {
-                    setRecommendations((prev) =>
-                      prev.map((r) =>
-                        r.recommendation_id === recId
-                          ? {
-                              ...r,
-                              feedback: { ...(r.feedback || { likes: 0, dislikes: 0 }), likes: newLikes, dislikes: newDislikes },
-                              my_rating: _rating,
-                            }
-                          : r
-                      )
-                    )
-                  }}
-                  onReplaceRequested={async (recId) => {
-                    const data = await recommendationsService.replace(userId, recId)
-                    if (Array.isArray(data) && data.length > 0) {
-                      setRecommendations(data)
-                    } else {
-                      await fetchRecommendations(false)
-                    }
-                  }}
+                  onFeedbackSent={handleFeedbackSent}
+                  onReplaceRequested={handleReplaceRequested}
                 />
               </div>
             ))}

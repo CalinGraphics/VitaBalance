@@ -1,0 +1,41 @@
+Caz utilizator – Cristian Moldovan (VitaBalance)
+Date de profil utilizator
+Cristian Moldovan, sex masculin, 26 ani, 90 kg, 188 cm, nivel de activitate foarte activ, tip dietă omnivor.
+Restricții și context clinic: alergie la crustacee; obiectiv/condiție declarată: obezitate / management greutate.
+
+Date de analize introduse în aplicație
+Hemoglobină 15.2 g/dL, feritină 52 ng/mL, vitamina D 34 ng/mL, vitamina B12 430 pg/mL, calciu 9.35 mg/dL, magneziu 2.08 mg/dL, zinc 96 mcg/dL, proteine 5.1 g/dL, folat 8.8 ng/mL, vitamina A 49 mg/dL, iod 128 mg/L, potasiu 4.35 mmol/L.
+Observație medicală: „Antrenament zilnic; proteine serice sub prag – evaluat cu nutriționist.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Datele indică un deficit funcțional de aport proteic în raport cu profilul de efort ridicat, în timp ce ceilalți biomarkeri sunt relativ stabili. Prin urmare, sistemul prioritizează recomandări cu densitate proteică mare, calibrate pe porții care cresc aportul de proteine fără a ieși din modelul alimentar omnivor.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul rule-based VitaBalance aplicat acestui profil:
+
+preluare profil + analize + alergii + nivel activitate;
+detectare nutrient prioritar: proteine (corelat cu proteine serice scăzute și activitate foarte ridicată);
+scorare alimente după contribuția proteică per porție și procentul estimat din aportul zilnic recomandat;
+ierarhizare Top‑K descrescătoare după acoperirea deficitului proteic;
+generare explicații textuale și numerice (g/proteine per porție + procent RDI).
+Top recomandări (K=10) din raport
+
+Piept de pui (115 g la cuptor) – 53.7%
+Iaurt grecesc natural (240 ml) – 51.1%
+Friptură T-Bone (170 g) – 50.7%
+Saltimbocca (1 porție) – 50.7%
+Brânză cottage slabă (240 ml) – 49.8%
+Lomo Saltado (360 ml) – 46.7%
+Shish Tawook (2 frigărui) – 46.7%
+Salată cu pui la grătar – 46.0%
+Salată Caesar cu pui – 46.0%
+Salată Cobb – 46.0%
+Explicație profesională a rezultatului
+Clasamentul este coerent cu obiectivul metabolic principal: aproape toate opțiunile din top au aport proteic ridicat (aprox. 54–68 unități proteice/porție în explicațiile din raport), cu acoperiri între 46% și 54% pentru deficitul țintit.
+Structura recomandărilor combină surse animale slabe (pui), lactate hiperproteice (iaurt grecesc, cottage) și mese compuse, ceea ce favorizează aderența practică la planul nutrițional pentru utilizator activ.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Piept de pui (115 g la cuptor), acoperire 53.7%: aliment selectat pentru compatibilitate clinico‑nutrițională ridicată, cu aport dominant de aproximativ 63 unități proteice per porție, reprezentând 46.7% din aportul zilnic recomandat pentru componenta proteică urmărită de algoritm.
+
+Notă metodologică utilă (pentru capitolul de discuții)
+În acest caz, sistemul prioritizează corect deficitul proteic; totuși, deoarece profilul include alergie la crustacee iar lista extinsă conține unele alimente marine, merită menționat explicit în lucrare că regula de filtrare alergeni trebuie validată separat pe fiecare categorie (crustacee vs pește) pentru a evita ambiguități de interpretare clinică.

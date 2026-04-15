@@ -42,28 +42,21 @@ def consume_token(token: str) -> Optional[dict]:
     Returnează None dacă invalid sau deja folosit.
     """
     client: Client = get_supabase_client()
-    r = client.table(TABLE).select("id, email, expires_at, used_at").eq("token", token).execute()
-    if not r.data or len(r.data) == 0:
+    now_iso = _now_utc().isoformat()
+    # Consum atomic: un singur UPDATE condiționat pe token + folosit/neexpirat.
+    # Dacă două request-uri rulează în paralel, doar unul va actualiza rândul.
+    updated = (
+        client.table(TABLE)
+        .update({"used_at": now_iso})
+        .eq("token", token)
+        .is_("used_at", "null")
+        .gt("expires_at", now_iso)
+        .execute()
+    )
+    if not updated.data or len(updated.data) == 0:
         return None
-    row = r.data[0]
-    if row.get("used_at"):
-        return None
-    expires_at = row.get("expires_at")
-    if expires_at:
-        try:
-            if isinstance(expires_at, str):
-                exp = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-            else:
-                exp = expires_at
-            if exp.tzinfo is None:
-                exp = exp.replace(tzinfo=timezone.utc)
-            if _now_utc() > exp:
-                return None
-        except Exception:
-            return None
+    row = updated.data[0]
     email = row.get("email")
     if not email:
         return None
-    # Marchează ca folosit
-    client.table(TABLE).update({"used_at": _now_utc().isoformat()}).eq("id", row["id"]).execute()
     return {"email": email}

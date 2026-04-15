@@ -63,6 +63,31 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
         return self.cors_origins if isinstance(self.cors_origins, list) else ["http://localhost:3000", "http://localhost:5173"]
 
+    def validate_runtime(self) -> None:
+        """Validări minime pentru a evita erori de auth/config greu de diagnosticat."""
+        if not self.jwt_secret or not self.jwt_secret.strip():
+            raise ValueError("JWT_SECRET este obligatoriu.")
+        if len(self.jwt_secret.strip()) < 24:
+            raise ValueError("JWT_SECRET este prea scurt. Folosește un secret lung (minim 24 caractere).")
+        if self.jwt_expire_minutes <= 0:
+            raise ValueError("JWT_EXPIRE_MINUTES trebuie să fie > 0.")
+
+        base = (self.frontend_base_url or "").strip()
+        if not base:
+            raise ValueError("FRONTEND_BASE_URL este obligatoriu pentru magic link.")
+        if not (base.startswith("http://") or base.startswith("https://")):
+            raise ValueError("FRONTEND_BASE_URL trebuie să înceapă cu http:// sau https://.")
+        if "localhost" in base and not self.debug:
+            print(
+                "[Config] WARNING: FRONTEND_BASE_URL conține localhost în mod non-debug. "
+                "Magic link-urile pot eșua în producție."
+            )
+        if self.jwt_secret == "change-me-in-production-use-long-random-string":
+            print(
+                "[Config] WARNING: JWT_SECRET este pe valoarea implicită. "
+                "Setează un secret dedicat per mediu."
+            )
+
 
 # Instanță globală de settings
 _settings: Optional[Settings] = None
@@ -73,5 +98,6 @@ def get_settings() -> Settings:
     global _settings
     if _settings is None:
         _settings = Settings()
+        _settings.validate_runtime()
     return _settings
 

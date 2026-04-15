@@ -188,6 +188,15 @@ def assess_hidden_soy_risk_from_api(food_name: str, food_category: str = "") -> 
         return cached
 
     if not settings.openfoodfacts_blocking_mode:
+        # Stabilizare: pe primul miss încercăm un fetch sincron scurt, ca să evităm
+        # diferențe mari între prima și a doua regenerare.
+        warmup_timeout = min(max(settings.openfoodfacts_timeout_seconds + 0.35, 0.35), 1.2)
+        warmup_verdict = _fetch_openfoodfacts_verdict(
+            food_name, warmup_timeout, allergy_token="soia"
+        )
+        if warmup_verdict is not None:
+            _cache_set(cache_key, warmup_verdict)
+            return warmup_verdict
         _start_background_fetch(
             cache_key, food_name, settings.openfoodfacts_timeout_seconds, allergy_token="soia"
         )
@@ -230,6 +239,14 @@ def assess_hidden_allergen_risk_from_api(
     if cached is not None:
         return cached
     if not settings.openfoodfacts_blocking_mode:
+        # Stabilizare: evităm comportamentul în 2 etape (prima rulare=None, a doua rulare=cached).
+        warmup_timeout = min(max(settings.openfoodfacts_timeout_seconds + 0.35, 0.35), 1.2)
+        warmup_verdict = _fetch_openfoodfacts_verdict(
+            food_name, warmup_timeout, allergy_token=token
+        )
+        if warmup_verdict is not None:
+            _cache_set(cache_key, warmup_verdict)
+            return warmup_verdict
         _start_background_fetch(
             cache_key, food_name, settings.openfoodfacts_timeout_seconds, allergy_token=token
         )

@@ -23,6 +23,16 @@ pwd_context = CryptContext(
 )
 
 
+def _build_magic_link_url(token: str) -> str:
+    settings = get_settings()
+    base = (settings.frontend_base_url or "").strip().rstrip("/")
+    if not base:
+        raise RuntimeError("FRONTEND_BASE_URL nu este configurat.")
+    if not (base.startswith("http://") or base.startswith("https://")):
+        raise RuntimeError("FRONTEND_BASE_URL invalid. Trebuie să înceapă cu http:// sau https://.")
+    return f"{base}/?token={token}"
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     password_bytes = plain_password.encode('utf-8')
     if len(password_bytes) > 72:
@@ -223,12 +233,8 @@ def request_magic_link(email: str, full_name: Optional[str] = None) -> bool:
     from repositories.magic_link_repository import create_token
     from services.email_service import send_magic_link_email
 
-    settings = get_settings()
     token = create_token(email)
-    # URL relativ /?token= funcționează pe orice path (SPA servește index.html).
-    # Pentru hosting: setează FRONTEND_BASE_URL în .env / variabile de mediu (ex.: URL-ul de pe Vercel).
-    base = settings.frontend_base_url.rstrip('/')
-    link_url = f"{base}/?token={token}"
+    link_url = _build_magic_link_url(token)
 
     # send_magic_link_email va ridica RuntimeError cu mesaj clar în caz de problemă.
     send_magic_link_email(email, link_url)
