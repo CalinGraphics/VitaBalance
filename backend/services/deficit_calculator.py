@@ -349,6 +349,17 @@ class DeficitCalculator:
             
             current_intake = self.estimate_current_intake(nutrient, user)
             deficit = max(0, rdi - current_intake)
+            # Când avem panel de analize, evităm să activăm "pseudo-deficite" mici
+            # pe markeri fără valoare de laborator (ex: vitamina C estimată doar din profil).
+            # Excepție: dacă utilizatorul a menționat explicit nutrientul în observații.
+            if (
+                has_lab_panel
+                and nutrient not in self.LAB_BACKED_NUTRIENTS
+                and nutrient not in preferred_nutrients
+            ):
+                if rdi <= 0 or (deficit / rdi) < 0.20:
+                    deficits[nutrient] = 0
+                    continue
             deficits[nutrient] = deficit
         
         # Dacă utilizatorul menționează nevoie de nutrienți în observații,

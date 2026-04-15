@@ -597,6 +597,21 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertIn(601, ids)
         self.assertNotIn(600, ids)
 
+    def test_protein_deficit_is_supported_in_fallback(self):
+        user = make_user(diet_type="omnivore")
+        foods = [
+            make_food(id=701, name="Piept de Curcan", category="carne", protein=29.0, vitamin_c=0.0),
+            make_food(id=702, name="Mere", category="fructe", protein=0.3, vitamin_c=50.0),
+        ]
+        recs = self.recommender._generate_fallback_recommendations(
+            user=user,
+            foods=foods,
+            target_nutrients=["protein"],
+        )
+        self.assertTrue(recs)
+        top = recs[0]
+        self.assertIn("protein", top.get("nutrients_covered", []))
+
 
 if __name__ == "__main__":
     unittest.main()

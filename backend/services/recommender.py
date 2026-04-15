@@ -14,7 +14,8 @@ class RecommenderService:
     def __init__(self):
         self.rule_engine = NutritionalRuleEngine()
         self.nutrients = [
-            'iron', 'calcium', 'magnesium', 'vitamin_d', 'vitamin_b12', 
+            'iron', 'calcium', 'magnesium', 'vitamin_d', 'vitamin_b12',
+            'protein',
             'folate', 'zinc', 'vitamin_a', 'vitamin_c', 'iodine', 
             'vitamin_k', 'potassium'
         ]
@@ -47,7 +48,7 @@ class RecommenderService:
         }
         focus_deficits = self._build_focus_deficits(filtered_deficits, effective_user)
         required_focus_nutrients = self._clinical_required_focus_nutrients(
-            effective_user, focus_deficits
+            effective_user, filtered_deficits
         )
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
@@ -239,6 +240,8 @@ class RecommenderService:
             ("b12", "vitamin_b12"),
             ("vitamina d", "vitamin_d"),
             ("25 oh d", "vitamin_d"),
+            ("proteine", "protein"),
+            ("proteina", "protein"),
             ("anemie", "iron"),
             ("fier", "iron"),
             ("magneziu", "magnesium"),
@@ -265,10 +268,12 @@ class RecommenderService:
         med = normalize_clinical_text(user.medical_conditions or "")
         required: set[str] = set()
         if any(x in med for x in ("osteoporo", "osteopen")):
-            if deficits.get("calcium", 0) > 0:
-                required.add("calcium")
-            if deficits.get("vitamin_d", 0) > 0:
-                required.add("vitamin_d")
+            has_calcium_signal = deficits.get("calcium", 0) > 0
+            has_vit_d_signal = deficits.get("vitamin_d", 0) > 0
+            if has_calcium_signal or has_vit_d_signal:
+                # În osteoporoză cele două ținte sunt interdependente clinic:
+                # dacă avem semnal pe una, păstrăm ambele în focusul obligatoriu.
+                required.update({"calcium", "vitamin_d"})
         return required
 
     def _required_nutrient_hits(self, rec: Dict[str, Any], required_nutrients: set[str]) -> int:
@@ -383,6 +388,7 @@ class RecommenderService:
             'magnesium': 'Magneziu',
             'vitamin_d': 'Vitamina D',
             'vitamin_b12': 'Vitamina B12',
+            'protein': 'Proteine',
             'folate': 'Folat / acid folic',
             'zinc': 'Zinc',
             'vitamin_a': 'Vitamina A',
@@ -413,6 +419,7 @@ class RecommenderService:
                 'magnesium': food.magnesium or 0,
                 'vitamin_d': food.vitamin_d or 0,
                 'vitamin_b12': food.vitamin_b12 or 0,
+                'protein': getattr(food, 'protein', 0) or 0,
                 'folate': getattr(food, 'folate', 0) or 0,
                 'zinc': food.zinc or 0,
                 'vitamin_a': getattr(food, 'vitamin_a', 0) or 0,
