@@ -74,6 +74,42 @@ class DeficitCalculatorProfileTests(unittest.TestCase):
         rdi = self.calc.get_rdi("protein", u)
         self.assertAlmostEqual(rdi, 80.0, places=5)
 
+    def test_with_labs_small_non_lab_estimated_deficit_is_suppressed(self):
+        user = make_user(sex="M", diet_type="omnivore")
+        labs = LabResultItem(
+            id=11,
+            user_id=1,
+            calcium=9.2,
+            vitamin_d=34.0,
+            vitamin_b12=430.0,
+            protein=6.4,
+            zinc=96.0,
+            magnesium=2.0,
+            ferritin=52.0,
+        )
+        deficits = self.calc.calculate_deficits(user, labs)
+        self.assertEqual(deficits.get("vitamin_c", 0), 0)
+
+    def test_with_labs_explicit_vitamin_c_need_keeps_priority(self):
+        user = make_user(
+            sex="M",
+            diet_type="omnivore",
+            medical_conditions="deficienta de vitamina C",
+        )
+        labs = LabResultItem(
+            id=12,
+            user_id=1,
+            calcium=9.2,
+            vitamin_d=34.0,
+            vitamin_b12=430.0,
+            protein=6.4,
+            zinc=96.0,
+            magnesium=2.0,
+            ferritin=52.0,
+        )
+        deficits = self.calc.calculate_deficits(user, labs)
+        self.assertGreater(deficits.get("vitamin_c", 0), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
