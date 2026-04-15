@@ -678,6 +678,35 @@ class RecommendationLogicTests(unittest.TestCase):
             self.recommender._metabolic_clinical_quality_factor(whole, user),
         )
 
+    def test_diabetes_guard_penalizes_dense_high_fat_meal_even_with_low_sugar(self):
+        user = make_user(medical_conditions="diabet zaharat")
+        dense = make_food(
+            id=815,
+            name="Paste Alfredo cu Pui",
+            category="Mese/Paste",
+            free_sugar=5.0,
+            carbs=45.0,
+            fiber=2.0,
+            calories=680.0,
+            fat=38.0,
+            cholesterol=120.0,
+        )
+        lean = make_food(
+            id=816,
+            name="Piept de Pui la Cuptor",
+            category="Proteine/Carne",
+            free_sugar=0.0,
+            carbs=0.0,
+            fiber=0.0,
+            calories=185.0,
+            fat=4.0,
+            cholesterol=60.0,
+        )
+        self.assertLess(
+            self.recommender._metabolic_clinical_quality_factor(dense, user),
+            self.recommender._metabolic_clinical_quality_factor(lean, user),
+        )
+
     def test_reflux_guard_penalizes_coffee_and_spicy_condiments(self):
         user = make_user(medical_conditions="reflux gastroesofagian")
         coffee = make_food(id=812, name="Cafea Neagra", category="Bauturi")

@@ -740,6 +740,8 @@ class RecommenderService:
         carbs = float(getattr(food, "carbs", 0) or 0)
         fiber = float(getattr(food, "fiber", 0) or 0)
         calories = float(getattr(food, "calories", 0) or 0)
+        fat = float(getattr(food, "fat", 0) or 0)
+        cholesterol = float(getattr(food, "cholesterol", 0) or 0)
         factor = 1.0
 
         if diabetes_active:
@@ -755,6 +757,10 @@ class RecommenderService:
                 factor *= 0.60
             if calories >= 450 and free_sugar >= 10:
                 factor *= 0.70
+            if calories >= 380 and fat >= 18:
+                factor *= 0.70
+            if cholesterol >= 80 and fat >= 14:
+                factor *= 0.75
 
         if reflux_active:
             reflux_markers = (
