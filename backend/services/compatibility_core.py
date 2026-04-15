@@ -66,16 +66,23 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
     if not user.allergies:
         return True
 
+    # Acceptăm separatori multipli din UI/import (virgulă, ;, /, |, &, "si").
+    raw_allergies = (user.allergies or "").lower()
     user_allergies = [
-        a.strip().lower()
-        for a in re.split(r"[,;]+", user.allergies)
-        if a.strip()
+        a.strip()
+        for a in re.split(r"[,;/|&]+|\bsi\b", raw_allergies)
+        if a and a.strip()
     ]
     food_name_norm = name_norm
     food_category_norm = cat_norm
 
     has_dairy_allergy = any(
-        resolve_allergy_token(normalize_clinical_text(x)) in {"lactoza", "lactate"}
+        (
+            resolve_allergy_token(normalize_clinical_text(x)) in {"lactoza", "lactate"}
+            or "lact" in normalize_clinical_text(x)
+            or "milk" in normalize_clinical_text(x)
+            or "dairy" in normalize_clinical_text(x)
+        )
         for x in user_allergies
     )
     if has_dairy_allergy:
@@ -136,9 +143,15 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
             ]
             for allergen in food_allergens:
                 ag_norm = normalize_clinical_text(allergen)
+                ag_lookup = resolve_allergy_token(ag_norm)
                 if user_allergy_clean in allergen or allergen in user_allergy_clean:
                     return False
-                if ag_norm == user_allergy_norm or ag_norm == lookup_norm:
+                if (
+                    ag_norm == user_allergy_norm
+                    or ag_norm == lookup_norm
+                    or ag_lookup == user_allergy_norm
+                    or ag_lookup == lookup_norm
+                ):
                     return False
                 if len(user_allergy_norm) >= 3 and (
                     user_allergy_norm in ag_norm or ag_norm in user_allergy_norm
