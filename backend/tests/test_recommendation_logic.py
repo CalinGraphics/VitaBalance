@@ -673,6 +673,14 @@ class RecommendationLogicTests(unittest.TestCase):
         )
         self.assertFalse(self.rule_engine._is_compatible(lasagna, user))
 
+    def test_gluten_allergy_high_risk_meal_requires_safe_api_verdict(self):
+        user = make_user(diet_type="omnivore", allergies="gluten")
+        meal = make_food(id=833, name="Saltimbocca", category="Mese/Carne")
+        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=None):
+            self.assertFalse(self.rule_engine._is_compatible(meal, user))
+        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=False):
+            self.assertTrue(self.rule_engine._is_compatible(meal, user))
+
 
 if __name__ == "__main__":
     unittest.main()
