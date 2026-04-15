@@ -110,6 +110,25 @@ class DeficitCalculatorProfileTests(unittest.TestCase):
         deficits = self.calc.calculate_deficits(user, labs)
         self.assertGreater(deficits.get("vitamin_c", 0), 0)
 
+    def test_thyroid_condition_alone_does_not_force_iodine_deficit(self):
+        user = make_user(
+            sex="F",
+            diet_type="pescatarian",
+            medical_conditions="boli de tiroida",
+        )
+        labs = LabResultItem(
+            id=13,
+            user_id=1,
+            iodine=111.0,
+            calcium=9.1,
+            vitamin_d=28.5,
+            zinc=52.0,
+            protein=6.65,
+            ferritin=36.0,
+        )
+        deficits = self.calc.calculate_deficits(user, labs)
+        self.assertEqual(deficits.get("iodine", 0), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
