@@ -621,6 +621,15 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertLess(heavy_factor, 1.0)
         self.assertGreater(lean_factor, 1.0)
 
+    def test_weight_management_penalizes_fried_and_red_meat_keywords(self):
+        user = make_user(medical_conditions="management greutate")
+        fried = make_food(id=803, name="Snitel de Pui Milaneza", category="Mese/Carne", protein=26.0)
+        red_meat = make_food(id=804, name="Friptura de Vita (antricot)", category="Proteine/Carne", protein=30.0)
+        fish = make_food(id=805, name="Halibut la Cuptor", category="Proteine/Peste", protein=25.0)
+        self.assertLess(self.recommender._medical_goal_quality_factor(fried, user), 1.0)
+        self.assertLess(self.recommender._medical_goal_quality_factor(red_meat, user), 1.0)
+        self.assertGreater(self.recommender._medical_goal_quality_factor(fish, user), 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
