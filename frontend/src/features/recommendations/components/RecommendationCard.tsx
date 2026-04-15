@@ -76,7 +76,6 @@ const RecommendationCard = ({
         user_id: userId,
         recommendation_id: recommendation.recommendation_id,
         rating,
-        tried: true,
       })
       const prev = myRating
       let newLikes = counts.likes

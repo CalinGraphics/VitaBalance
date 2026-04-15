@@ -39,8 +39,6 @@ class UserRepository:
         diet_type: str,
         allergies: Optional[str] = None,
         medical_conditions: Optional[str] = None,
-        full_name: Optional[str] = None,
-        bio: Optional[str] = None,
         user_id: Optional[int] = None,
     ) -> UserProfile:
         row = {

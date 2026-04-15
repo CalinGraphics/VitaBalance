@@ -22,7 +22,6 @@ class UserProfile:
     medical_conditions: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    full_name: Optional[str] = None
     bio: Optional[str] = None
 
 
@@ -92,11 +91,8 @@ class RecommendationItem:
 class FeedbackItem:
     id: int
     user_id: int
-    recommendation_id: Optional[int] = None
+    recommendation_id: int
     rating: int = 0
-    comment: Optional[str] = None
-    tried: bool = False
-    worked: Optional[bool] = None
     created_at: Optional[datetime] = None
 
 
@@ -115,7 +111,7 @@ def row_to_user(row: dict) -> UserProfile:
     return UserProfile(
         id=row["id"],
         email=row.get("email") or "",
-        name=row.get("name") or row.get("full_name") or "",
+        name=row.get("name") or "",
         age=int(row.get("age") or 0),
         sex=row.get("sex") or "other",
         weight=_num(row.get("weight"), 0),
@@ -126,7 +122,6 @@ def row_to_user(row: dict) -> UserProfile:
         medical_conditions=row.get("medical_conditions"),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
-        full_name=row.get("full_name"),
         bio=row.get("bio"),
     )
 
@@ -203,10 +198,7 @@ def row_to_feedback(row: dict) -> FeedbackItem:
     return FeedbackItem(
         id=row["id"],
         user_id=row["user_id"],
-        recommendation_id=row.get("recommendation_id"),
+        recommendation_id=row["recommendation_id"],
         rating=row.get("rating", 0),
-        comment=row.get("comment"),
-        tried=row.get("tried", False),
-        worked=row.get("worked"),
         created_at=row.get("created_at"),
     )

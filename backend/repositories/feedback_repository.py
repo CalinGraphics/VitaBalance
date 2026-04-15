@@ -43,10 +43,6 @@ class FeedbackRepository:
         user_id: int,
         recommendation_id: int,
         rating: int,
-        *,
-        comment: Optional[str] = None,
-        tried: bool = False,
-        worked: Optional[bool] = None,
     ) -> FeedbackItem:
         """Creează sau actualizează feedback-ul. Un singur vote per (user_id, recommendation_id)."""
         existing = self.get_by_user_and_recommendation(user_id, recommendation_id)
@@ -55,9 +51,6 @@ class FeedbackRepository:
                 self._client.table(self.TABLE)
                 .update({
                     "rating": rating,
-                    "comment": comment,
-                    "tried": tried,
-                    "worked": worked,
                 })
                 .eq("id", existing.id)
                 .execute()
@@ -69,9 +62,6 @@ class FeedbackRepository:
             "user_id": user_id,
             "recommendation_id": recommendation_id,
             "rating": rating,
-            "comment": comment,
-            "tried": tried,
-            "worked": worked,
         }
         row = {k: v for k, v in row.items() if v is not None}
         resp = self._client.table(self.TABLE).insert(row).execute()
@@ -205,18 +195,12 @@ class FeedbackRepository:
         user_id: int,
         rating: int,
         *,
-        recommendation_id: Optional[int] = None,
-        comment: Optional[str] = None,
-        tried: bool = False,
-        worked: Optional[bool] = None,
+        recommendation_id: int,
     ) -> FeedbackItem:
         row = {
             "user_id": user_id,
             "rating": rating,
             "recommendation_id": recommendation_id,
-            "comment": comment,
-            "tried": tried,
-            "worked": worked,
         }
         row = {k: v for k, v in row.items() if v is not None}
         resp = self._client.table(self.TABLE).insert(row).execute()

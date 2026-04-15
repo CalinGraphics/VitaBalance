@@ -104,7 +104,7 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
         if verify_password(password, user['password_hash']):
             return {
                 "email": user.get('email'),
-                "fullName": user.get('name') or user.get('full_name', ''),
+                "fullName": user.get('name') or "",
                 "bio": user.get('bio', '') or "",
             }
         
@@ -170,7 +170,7 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         
         created_user = response.data[0]
         email_val = created_user.get('email') or email.strip()
-        full_name_val = created_user.get('name') or created_user.get('full_name') or fullName.strip()
+        full_name_val = created_user.get('name') or fullName.strip()
         bio_val = (bio.strip() if bio else "") or ""
         return {
             "email": email_val,
@@ -213,7 +213,7 @@ def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
 def request_magic_link(email: str, full_name: Optional[str] = None) -> bool:
     """
     Generează token magic, îl salvează, trimite email.
-    full_name opțional pentru înregistrare (salvat în token).
+    full_name este ignorat; folosim doar coloana `name` din users.
     Returnează True dacă request-ul a fost procesat.
     """
     email = email.strip().lower()
@@ -224,7 +224,7 @@ def request_magic_link(email: str, full_name: Optional[str] = None) -> bool:
     from services.email_service import send_magic_link_email
 
     settings = get_settings()
-    token = create_token(email, full_name=full_name)
+    token = create_token(email)
     # URL relativ /?token= funcționează pe orice path (SPA servește index.html).
     # Pentru hosting: setează FRONTEND_BASE_URL în .env / variabile de mediu (ex.: URL-ul de pe Vercel).
     base = settings.frontend_base_url.rstrip('/')
@@ -257,7 +257,6 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
             pass
         return None
     email = data["email"]
-    full_name_from_token = data.get("full_name") or ""
     repo = UserRepository()
     user_profile = repo.get_by_email(email)
     if not user_profile:
@@ -266,13 +265,13 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
             supabase: Client = get_supabase_client()
             supabase.table("users").insert({
                 "email": email,
-                "name": full_name_from_token or email.split("@")[0],
+                "name": email.split("@")[0],
             }).execute()
             user_profile = repo.get_by_email(email)
         except Exception as e:
             print("Eroare la crearea user la verify_magic_link:", e)
             user_profile = None
-    full_name = (user_profile.name or user_profile.full_name or full_name_from_token or "") if user_profile else full_name_from_token
+    full_name = user_profile.name if user_profile else ""
     bio = (user_profile.bio or "") if user_profile else ""
     access_token = create_access_token({"sub": email, "email": email})
     try:

@@ -194,7 +194,7 @@ async def api_request_magic_link(body: MagicLinkRequest, background_tasks: Backg
         from repositories.magic_link_repository import create_token
         from services.email_service import send_magic_link_email
 
-        token = create_token(email, full_name=body.fullName)
+        token = create_token(email)
         base = settings.frontend_base_url.rstrip("/")
         link_url = f"{base}/?token={token}"
 
@@ -247,7 +247,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     from repositories import UserRepository
     repo = UserRepository()
     profile = repo.get_by_email(current_user["email"])
-    full_name = (profile.full_name or profile.name or "") if profile else current_user.get("email", "")
+    full_name = profile.name if profile else current_user.get("email", "")
     bio = (profile.bio or "") if profile else ""
     return AuthResponse(
         email=current_user["email"],
@@ -965,9 +965,6 @@ async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends
         feedback.user_id,
         feedback.recommendation_id,
         feedback.rating,
-        comment=feedback.comment,
-        tried=feedback.tried,
-        worked=feedback.worked,
     )
     return {"message": "Feedback salvat cu succes", "id": result.id}
 
