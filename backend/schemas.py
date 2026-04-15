@@ -89,9 +89,6 @@ class RecommendationResponse(BaseModel):
 # Feedback Schemas
 class FeedbackCreate(BaseModel):
     user_id: int
-    recommendation_id: Optional[int] = None
+    recommendation_id: int
     rating: int
-    comment: Optional[str] = None
-    tried: bool = False
-    worked: Optional[bool] = None
 

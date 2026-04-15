@@ -179,7 +179,7 @@ export const recommendationsService = {
 }
 
 export const feedbackService = {
-  create: async (data: { user_id: number; recommendation_id: number; rating: number; tried: boolean }) => {
+  create: async (data: { user_id: number; recommendation_id: number; rating: number }) => {
     const response = await api.post('/feedback', data)
     return response.data
   },

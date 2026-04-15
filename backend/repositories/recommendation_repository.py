@@ -41,7 +41,7 @@ class RecommendationRepository:
             return []
         resp = self._client.table(self.TABLE).insert(rows).execute()
         if not resp.data:
-            return []
+            raise ValueError("Insert recommendations returned no data")
         return [row_to_recommendation(r) for r in resp.data]
 
     def get_first_by_user_id(self, user_id: int) -> Optional[RecommendationItem]:

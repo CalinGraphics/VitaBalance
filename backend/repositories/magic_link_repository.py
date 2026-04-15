@@ -16,7 +16,7 @@ def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def create_token(email: str, full_name: Optional[str] = None) -> str:
+def create_token(email: str) -> str:
     """Generează token unic, îl salvează în Supabase, returnează tokenul."""
     import secrets
     token = secrets.token_urlsafe(32)
@@ -31,8 +31,6 @@ def create_token(email: str, full_name: Optional[str] = None) -> str:
         "expires_at": expires_at.isoformat(),
         "used_at": None,
     }
-    if full_name is not None:
-        row["full_name"] = full_name.strip()
     client.table(TABLE).insert(row).execute()
     return token
 
@@ -40,11 +38,11 @@ def create_token(email: str, full_name: Optional[str] = None) -> str:
 def consume_token(token: str) -> Optional[dict]:
     """
     Validează tokenul: există, nu e expirat, nu e folosit.
-    Îl marchează ca folosit (used_at = now) și returnează {"email": str, "full_name": str|None}.
+    Îl marchează ca folosit (used_at = now) și returnează {"email": str}.
     Returnează None dacă invalid sau deja folosit.
     """
     client: Client = get_supabase_client()
-    r = client.table(TABLE).select("id, email, full_name, expires_at, used_at").eq("token", token).execute()
+    r = client.table(TABLE).select("id, email, expires_at, used_at").eq("token", token).execute()
     if not r.data or len(r.data) == 0:
         return None
     row = r.data[0]
@@ -68,4 +66,4 @@ def consume_token(token: str) -> Optional[dict]:
         return None
     # Marchează ca folosit
     client.table(TABLE).update({"used_at": _now_utc().isoformat()}).eq("id", row["id"]).execute()
-    return {"email": email, "full_name": row.get("full_name")}
+    return {"email": email}
