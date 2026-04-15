@@ -1,0 +1,41 @@
+Caz utilizator – Elena Vasilescu (VitaBalance)
+Date de profil utilizator
+Elena Vasilescu, sex feminin, 27 ani, 53 kg, 164 cm, nivel de activitate activ, tip dietă vegan.
+Restricții și context clinic: alergie la soia; condiții declarate: deficiență vitamina B12 și deficiență vitamina D.
+
+Date de analize introduse în aplicație
+Hemoglobină 12.4 g/dL, feritină 32 ng/mL, vitamina D 24 ng/mL, vitamina B12 165 pg/mL, calciu 8.95 mg/dL, magneziu 1.82 mg/dL, zinc 74 mcg/dL, proteine 6.35 g/dL, folat 7.2 ng/mL, vitamina A 37 mg/dL, iod 98 mg/L, potasiu 3.85 mmol/L.
+Observație medicală: „Regim vegan; B12 sub prag, urmărire cu medicul curant.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Deficitul dominant este vitamina B12 (165 pg/mL, sub pragul clinic uzual), iar vitamina D este de asemenea redusă. În acest context, sistemul prioritizează alimente compatibile cu profilul vegan care pot contribui la B12 (în special surse fortificate/fermentate), plus alimente de suport metabolic pentru micronutrienți adiacenți (vitamina C, iod), utile în menținerea echilibrului global.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance aplicat Elenei:
+
+preluare profil + analize + dietă vegană + alergie la soia;
+filtrare de siguranță (excludere opțiuni incompatibile alergiei);
+identificare deficite prioritare (B12, D);
+scorare rule-based pe baza contribuției estimate per porție la RDI și la deficitul activ;
+generare explicație mixtă (text + numeric: aport per porție, procent acoperire) pentru fiecare recomandare.
+Top recomandări (K=10) din raport
+
+Kimchi (120 ml) – 9.2%
+Varză Murată (120 ml) – 9.2%
+Cereale Integrale Fortificate cu B12 – 5.9%
+Ardei și Ceapă Căliți – 11.5%
+Jicama (240 ml bețișoare) – 11.5%
+Afine (120 ml) – 11.1%
+Măr – 11.0%
+Măsline Kalamata (5 mari) – 10.9%
+Smochine (2 medii) – 10.9%
+Bol Acai (1 porție) – 9.3%
+Explicație profesională a rezultatului
+Recomandările evidențiază două direcții:
+
+corecția B12 prin opțiuni compatibile profilului vegan (ex. kimchi, varză murată, cereale fortificate);
+optimizare nutrițională generală prin alimente cu aport în vitamina C și iod, pentru susținerea statusului micronutrițional total.
+Pentru acest caz, acoperirea per aliment este moderată, ceea ce este realist în deficitul de B12 pe regim vegan, unde alimentele singure pot avea limitări. Din perspectivă clinică, rezultatele susțin necesitatea combinării intervenției alimentare cu monitorizare medicală și, la nevoie, strategie de fortificare/suplimentare ghidată.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Cereale Integrale Fortificate cu B12, acoperire 5.9%: recomandarea este activată de regula specifică profilului vegan cu B12 sub prag (<200 pg/mL). Alimentul este inclus ca sursă fortificată (1.2 mcg/100 g), iar scorul reflectă contribuția sa punctuală în planul de recuperare, în combinație cu alte opțiuni compatibile și cu monitorizare medicală.

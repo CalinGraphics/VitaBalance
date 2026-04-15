@@ -1,0 +1,45 @@
+Caz utilizator – Vasile Toma (VitaBalance)
+Date de profil utilizator
+Vasile Toma, sex masculin, 61 ani, 81 kg, 170 cm, nivel de activitate sedentar, tip dietă omnivor.
+Context clinic declarat: insuficiență renală.
+
+Date de analize introduse în aplicație
+Hemoglobină 13.6 g/dL, feritină 45 ng/mL, vitamina D 25.5 ng/mL, vitamina B12 380 pg/mL, calciu 8.98 mg/dL, magneziu 1.88 mg/dL, zinc 82 mcg/dL, proteine 6.48 g/dL, folat 6 ng/mL, vitamina A 39.8 mg/dL, iod 115 mg/L, potasiu 4.18 mmol/L.
+Observație medicală: „Boală cronică de rinichi stadiu stabil; potasiu în limite strânse.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Markerii generali sunt relativ stabili, însă contextul nefrologic impune atenție prioritară la potasiu. În raport, algoritmul a selectat explicit potasiul ca nutrient dominant pentru scoring, iar recomandările sunt ordonate după aportul de potasiu per porție.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance pentru acest profil:
+
+preluare profil + analize + condiție clinică (insuficiență renală);
+identificare nutrient prioritar în modelul curent: potasiu;
+scorare alimente pe baza contribuției per porție la aportul zilnic recomandat;
+ierarhizare Top‑K descrescător după procentul de acoperire;
+generare explicații textuale + numerice (mg potasiu/porție și procent RDI).
+Top recomandări (K=10) din raport
+
+Kimchi (120 ml) – 27.6%
+Bok Choy fiert (240 ml) – 26.2%
+Salată de castravete (120 ml) – 25.9%
+Salată de alge marine (120 ml) – 24.4%
+Portocală – 22.6%
+Stafide (60 ml) – 22.2%
+Mango (240 ml felii) – 22.1%
+Struguri (240 ml) – 21.2%
+Salată Caprese – 19.7%
+Bisque de homar (240 ml) – 18.2%
+Explicație profesională a rezultatului
+Raportul arată un model clar: toate recomandările sunt motivate prin contribuția la potasiu, cu acoperiri de la ~27.6% la ~15.3% în lista extinsă. Tehnic, ranking-ul este coerent cu regula internă de prioritate pe nutrient dominant și are trasabilitate numerică bună (mg/porție + procent).
+
+În același timp, pentru contextul de boală renală cronică, acest caz este valoros în lucrare deoarece evidențiază nevoia de constrângeri clinice suplimentare (ex. praguri superioare de potasiu sau penalizare pentru alimente high-potassium), nu doar maximizarea acoperirii.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Kimchi (120 ml), acoperire 27.6%: recomandat pe baza compatibilității clinico‑nutriționale în modelul curent, cu aport estimat de ~939 mg potasiu per porția de 190 g, ceea ce reprezintă 27.6% din aportul zilnic de referință utilizat în algoritm.
+
+Implicație clinică practică
+La pacient cu insuficiență renală, recomandările trebuie interpretate împreună cu medicul nefrolog, iar porțiile/frecvența alimentelor bogate în potasiu trebuie ajustate individual în funcție de stadiu, tratament și obiectivele de monitorizare.
+
+Punct de validare algoritmică
+Acest profil este un exemplu foarte bun pentru capitolul de limitări/îmbunătățiri: motorul este explicabil și consistent matematic, dar are nevoie de reguli clinice dedicate CKD pentru a evita supra-prioritizarea potasiului în scenarii cu restricție potențială.

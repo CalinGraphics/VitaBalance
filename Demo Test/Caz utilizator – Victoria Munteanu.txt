@@ -1,0 +1,39 @@
+Caz utilizator – Victoria Munteanu (VitaBalance)
+Date de profil utilizator
+Victoria Munteanu, sex feminin, 69 ani, 71 kg, 158 cm, nivel de activitate sedentar, tip dietă omnivor.
+Context clinic declarat: osteoporoză și deficiență de vitamina D.
+
+Date de analize introduse în aplicație
+Hemoglobină 12.8 g/dL, feritină 35 ng/mL, vitamina D 14 ng/mL, vitamina B12 265 pg/mL, calciu 8.1 mg/dL, magneziu 1.72 mg/dL, zinc 76 mcg/dL, proteine 6.25 g/dL, folat 5.2 ng/mL, vitamina A 33 mg/dL, iod 102 mg/L, potasiu 3.75 mmol/L.
+Observație medicală: „Osteoporoză cunoscută; vitamina D și calciu sub ținta terapeutică.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Cazul evidențiază un deficit moderat de calciu (8.1 mg/dL) și un deficit important de vitamina D (14 ng/mL), pe fondul unei patologii osoase deja cunoscute. În consecință, motorul de recomandare prioritizează alimente cu densitate crescută de calciu și include opțiuni cu aport complementar pentru vitamina D, în limita disponibilității alimentare.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance aplicat acestui profil:
+
+preluare profil + analize + context clinic (osteoporoză);
+identificare nutrient-țintă principal: calciu (cu suport pentru vitamina D);
+scorare rule-based în funcție de conținutul de calciu/100 g, aportul per porție și procentul de acoperire al deficitului;
+ordonare Top‑K descrescător după acoperirea estimată;
+atașare de explicații textuale + numerice pentru trasabilitatea deciziei.
+Top recomandări (K=10) din raport
+
+Cașcaval elvețian (1 felie) – 67.7%
+Mozzarella proaspătă (28 g) – 67.7%
+Pecorino Romano (60 ml) – 67.5%
+Parmigiano-Reggiano (1 lingură) – 66.9%
+Ouă jumări (2 mari) – 38.1%
+Lapte de migdale neîndulcit (240 ml) – 35.2%
+Sparanghel la cuptor (6 fire) – 28.9%
+Sparanghel fiert (240 ml) – 28.6%
+Bama prăjită (240 ml) – 28.1%
+Cartof copt (mediu) – 27.8%
+Explicație profesională a rezultatului
+Primele poziții sunt dominate de lactate maturate, cu aport foarte ridicat de calciu per 100 g, ceea ce explică scorurile de acoperire semnificativ mai mari față de restul listei. Ulterior, sistemul completează planul cu alternative mixte (ouă, băuturi fortificate, legume), pentru diversificare și aderență mai bună la regim.
+În mod justificat clinic, recomandările sunt concentrate pe recuperarea statusului mineral osos; componenta de vitamina D apare mai redus în alimentație, ceea ce susține explicit nevoia de monitorizare medicală și strategie terapeutică integrată.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Cașcaval elvețian (1 felie), acoperire 67.7%: recomandat prioritar pentru deficit moderat de calciu; conține 397 mg calciu/100 g, iar porția de 190 g furnizează aproximativ 754.3 mg calciu, cuantificat de algoritm ca acoperire integrală a deficitului țintit în modelul de calcul nutrițional.
+

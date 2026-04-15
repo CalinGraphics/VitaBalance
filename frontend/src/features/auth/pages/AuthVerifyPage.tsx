@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { GlassCard } from '../../../shared/components'
 import { authService } from '../../../services/api'
 import { setToken } from '../../../services/authStorage'
@@ -12,8 +12,15 @@ interface AuthVerifyPageProps {
 const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const verifyStartedRef = useRef(false)
 
   useEffect(() => {
+    if (verifyStartedRef.current) {
+      return
+    }
+    verifyStartedRef.current = true
+    let isActive = true
+
     // Token din query (?token=) sau din hash (#?token=). Dacă nu există în URL,
     // încercăm să îl luăm din sessionStorage (setat în useAppNavigation).
     const queryParams = new URLSearchParams(window.location.search)
@@ -29,13 +36,16 @@ const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) 
       }
     }
     if (!token) {
-      setStatus('error')
-      setErrorMessage('Link invalid: lipsește tokenul.')
+      if (isActive) {
+        setStatus('error')
+        setErrorMessage('Link invalid: lipsește tokenul.')
+      }
       return
     }
     authService
       .verifyMagicLink(token)
       .then((data: { email: string; fullName: string; bio: string; access_token: string }) => {
+        if (!isActive) return
         setToken(data.access_token)
         try {
           sessionStorage.removeItem('vitabalance_magic_token')
@@ -54,10 +64,19 @@ const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) 
         setStatus('success')
         window.history.replaceState({}, '', window.location.pathname)
       })
-      .catch((err: any) => {
+      .catch((err: unknown) => {
+        if (!isActive) return
         setStatus('error')
-        setErrorMessage(err?.message || 'Link invalid, expirat sau deja folosit.')
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : 'Link invalid, expirat sau deja folosit.'
+        setErrorMessage(message)
       })
+
+    return () => {
+      isActive = false
+    }
   }, [onLogin])
 
   if (status === 'loading') {

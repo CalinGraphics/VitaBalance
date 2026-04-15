@@ -73,14 +73,22 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status
     const url: string = error.config?.url || ''
+    const hasSession = Boolean(getToken())
+    const shouldIgnore401ForAuthFlow =
+      url.includes('/auth/verify-magic-link') || url.includes('/auth/request-magic-link')
+    const protectedRouteMarkers = [
+      '/auth/me',
+      '/profile',
+      '/lab-results',
+      '/recommendations',
+      '/feedback',
+      '/foods',
+    ]
+    const isProtectedRoute = protectedRouteMarkers.some((marker) => url.includes(marker))
 
-    // Nu șterge tokenul dacă 401 vine de la verificarea magic link-ului.
-    // În dev, React StrictMode poate apela de două ori verificarea, iar al doilea apel va eșua cu 401.
-    if (
-      status === 401 &&
-      !url.includes('/auth/verify-magic-link') &&
-      !url.includes('/auth/request-magic-link')
-    ) {
+    // Ștergem tokenul doar când avem sesiune locală și 401 vine de la endpoint-uri protejate.
+    // Evităm logout fals pe erori tranzitorii din fluxurile publice.
+    if (status === 401 && hasSession && !shouldIgnore401ForAuthFlow && isProtectedRoute) {
       clearToken()
     }
     // Pentru toate status-urile (inclusiv 404) formatează un mesaj clar,

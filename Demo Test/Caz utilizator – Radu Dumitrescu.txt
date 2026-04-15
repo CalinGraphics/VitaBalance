@@ -1,0 +1,38 @@
+Caz utilizator – Radu Dumitrescu (VitaBalance)
+Date de profil utilizator
+Radu Dumitrescu, sex masculin, 42 ani, 84 kg, 178 cm, nivel de activitate sedentar, tip dietă omnivor.
+Restricție alimentară: alergie la pește.
+
+Date de analize introduse în aplicație
+Hemoglobină 11.2 g/dL, feritină nedeterminată clar în buletin (menționat interval 15–150 ng/mL, fără valoare numerică punctuală), vitamina D 29 ng/mL, vitamina B12 375 pg/mL, calciu 9.05 mg/dL, magneziu 1.92 mg/dL, zinc 84 mcg/dL, proteine 6.55 g/dL, folat 6 ng/mL, vitamina A 41 mg/dL, iod 114 mg/L, potasiu 4.05 mmol/L.
+Observație medicală: „Hemoglobina scăzută; feritina necompletată în buletin.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Profilul indică deficit ușor de fier, estimat indirect prin hemoglobina scăzută, în absența unei valori de feritină utilizabile pentru calcul direct. Acest context mută algoritmul în mod „estimare deficit fier din hemoglobină”, cu prioritate pe alimente bogate în fier și cofactori (ex. vitamina C pentru susținerea absorbției fierului non-heme).
+
+Cum sunt generate recomandările în acest caz
+Pentru acest utilizator, pipeline-ul VitaBalance operează astfel:
+
+preluare profil + analize + alergii + tip dietă;
+estimare necesar de corecție pentru fier pe baza hemoglobinei (deoarece feritina nu este completă);
+filtrare și scorare alimente după aportul de fier/100 g și contribuția per porție;
+includere de alimente cu suport metabolic complementar (ex. aport vitamina C);
+ordonare descrescătoare în Top‑K după procentul de acoperire a deficitului estimat.
+Top recomandări (K=10) din raport
+
+Fasole Albă Toscana (120 ml) – 72.5%
+Supă de Mazăre Despicată (240 ml) – 71.9%
+Fasole Refried (120 ml) – 71.4%
+Mazăre Verde (120 ml) – 71.4%
+Varză Roșie Crudă (240 ml) – 70.6%
+Gălbenuș de Ou (1 mare) – 70.3%
+Roșie (60 ml garnitură) – 69.9%
+Ou Poșat (1 mare) – 69.8%
+Sfeclă Roșie Coaptă (120 ml) – 68.1%
+Tofu Ferm (115 g) – 68.1%
+Explicație profesională a rezultatului
+Recomandările sunt puternic orientate spre corecția deficitului ușor de fier, motiv pentru care domină leguminoasele și sursele proteice cu conținut bun de fier. Prezența legumelor cu aport semnificativ de vitamina C (varză roșie, roșii, sfeclă) susține rațional absorbția intestinală a fierului non-heme din leguminoase și tofu.
+Scorurile ridicate (peste 68% în primele 10 poziții) arată o potrivire nutrițională bună între necesarul estimat și densitatea de fier per porție.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Fasole Albă Toscana (120 ml), acoperire 72.5%: recomandată pentru deficit ușor de fier, având 3.9 mg fier/100 g; porția de 162 g furnizează aproximativ 6.3 mg fier, cuantificată de sistem ca acoperire integrală a deficitului țintit la nivel de nutrient prioritar, în cadrul modelului de estimare bazat pe hemoglobină.

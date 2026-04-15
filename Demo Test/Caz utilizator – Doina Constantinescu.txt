@@ -1,0 +1,47 @@
+Caz utilizator – Doina Constantinescu (VitaBalance)
+Date de profil utilizator
+Doina Constantinescu, sex feminin, 57 ani, 78 kg, 160 cm, nivel de activitate sedentar, tip dietă omnivor.
+Restricții și context clinic: alergie la arahide; condiție medicală declarată: diabet.
+
+Date de analize introduse în aplicație
+Hemoglobină 12.9 g/dL, feritină 43 ng/mL, vitamina D 26.5 ng/mL, vitamina B12 388 pg/mL, calciu 9 mg/dL, magneziu 1.9 mg/dL, zinc 83 mcg/dL, proteine 6.58 g/dL, folat 6.2 ng/mL, vitamina A 40.8 mg/dL, iod 116.5 mg/L, potasiu 4.04 mmol/L.
+Observație medicală: „HbA1c urmărită în ambulator; profil lipido‑glucidic în evaluare.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Nu apare un deficit sever unic care să domine ranking-ul; profilul este relativ stabil, cu orientare spre optimizare multi-nutrient. În acest scenariu, algoritmul recomandă alimente cu acoperire globală bună (vitamine A/C/K, B12, iod, calciu, proteine, zinc), menținând compatibilitatea cu alergia declarată.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance:
+
+preluare profil + analize + condiții clinice + alergii;
+filtrare de siguranță (eliminare opțiuni incompatibile, inclusiv arahide);
+scorare rule-based pe contribuția per porție la RDI și la acoperirea globală;
+ordonare Top‑K descrescător;
+explicație textuală + numerică pentru trasabilitate (aport/porție și procente).
+Top recomandări (K=10) din raport
+
+Roșii pasate (120 ml) – 38.7%
+Porumb fiert pe știulete (1 mare) – 38.5%
+Verze cu ciocănel de porc – 38.3%
+Cartof copt (mediu) – 38.0%
+Saltimbocca (1 porție) – 32.1%
+Salată de cartofi (120 ml) – 31.1%
+Brânză Brie (28 g) – 31.1%
+Friptură Florentină (85 g) – 30.7%
+Burger de curcan (1 chiftea) – 30.7%
+Cașcaval Provolone (1 felie) – 30.5%
+Explicație profesională a rezultatului
+Topul este construit dintr-un mix de:
+
+legume cu aport ridicat de vitamine antioxidante (A/C/K),
+surse proteice și lactate care completează calciu, B12, iod, zinc și proteine.
+Acest tip de ranking este specific cazurilor fără deficit major izolat: sistemul prioritizează echilibrul nutrițional general și menținerea statusului biologic, în locul unei corecții targetate pe un singur nutrient.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Roșii pasate (120 ml), acoperire 38.7%: recomandare bazată pe compatibilitate clinico‑nutrițională și aport dominant de vitamine A, C și K la porția de 190 g, ceea ce determină un scor global ridicat în modelul de ierarhizare.
+
+Implicație clinică practică
+Pentru pacientă cu diabet, recomandările pot susține un model alimentar de menținere, cu necesitatea individualizării porțiilor și a frecvenței în funcție de monitorizarea glicemică (HbA1c și profil glucidic/lipidic).
+
+Punct de validare algoritmică
+Cazul validează comportamentul motorului în scenariu de comorbiditate metabolică, fără deficit dominant, dar cu filtrare pe alergeni și ranking explicabil pe acoperire multi‑nutrient.

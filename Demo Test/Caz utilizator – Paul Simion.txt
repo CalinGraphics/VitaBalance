@@ -1,0 +1,48 @@
+Caz utilizator – Paul Simion (VitaBalance)
+Date de profil utilizator
+Paul Simion, sex masculin, 48 ani, 88 kg, 180 cm, nivel de activitate moderat, tip dietă omnivor.
+Restricții și context clinic: alergii la nuci și susan; condiție medicală declarată: deficiență de vitamina D.
+
+Date de analize introduse în aplicație
+În acest caz, câmpurile de analize din interfață nu conțin valori numerice, ci doar intervale de referință (ex. hemoglobină 12–16 g/dL, vitamina D 30–100 ng/mL etc.).
+Observația medicală disponibilă: pacient cu oboseală, iar medicul curant notează deficit de vitamina D și magneziu, cu mențiunea că analizele numerice nu sunt încă completate în sistem.
+
+Interpretare nutrițională (deficiențe/minusuri)
+Interpretarea trebuie făcută prudent, deoarece lipsesc datele cantitative de laborator. Totuși, din observația clinică rezultă două direcții de interes:
+
+posibil deficit de vitamina D (deja menționat clinic);
+posibil deficit de magneziu (menționat clinic).
+În absența valorilor numerice, recomandările au caracter predominant estimativ/general, nu de corecție fină personalizată pe severitate.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance pare să fi rulat în mod fallback:
+
+preluare profil + restricții + observații clinice;
+în lipsa biomarkerilor numerici, scorare pe compatibilitate generală și model estimativ;
+ordonare Top‑K după scorul de acoperire estimată.
+Acest lucru este confirmat și de formulările din raport: „Recomandare bazată pe profilul tău și modelul estimativ de necesar nutritional”.
+
+Top recomandări (K=10) din raport
+
+Pâine albă (1 felie) – 42.0%
+Bagel simplu – 41.6%
+Crutoane cu usturoi (60 ml) – 40.7%
+Clătite americane (2 medii) – 39.8%
+Mămăligă cremoasă (240 ml) – 38.5%
+Salată verde cu dressing ușor – 36.8%
+Spanac cu smântână (120 ml) – 36.8%
+Brânză Brie (28 g) – 36.8%
+Piure de conopidă (240 ml) – 36.8%
+Felii de castravete (240 ml) – 36.2%
+Explicație profesională a rezultatului
+Lista este heterogenă și include multe alimente de bază din categoria cereale/lactate/legume, cu descrieri generice, fără detalii nutriționale punctuale (mg/porție, procent pe nutrient dominant), spre deosebire de alte cazuri unde există analize complete.
+Acest pattern susține concluzia că sistemul a funcționat în regim de recomandare generală din cauza datelor incomplete.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Pâine albă (1 felie), acoperire 42.0%: recomandarea este generată prin modelul estimativ de necesar nutrițional, în absența valorilor de laborator complete, având rol orientativ și necesitând recalcul după introducerea biomarkerilor numerici reali.
+
+Implicație clinică practică
+Pentru acest utilizator, calitatea recomandărilor depinde critic de completarea analizelor numerice. Până atunci, lista trebuie tratată ca orientare preliminară, nu plan nutrițional de corecție.
+
+Punct de validare algoritmică (foarte util pentru licență)
+Acest caz este excelent pentru secțiunea de limitări: demonstrează comportamentul sistemului pe date incomplete. Merită menționat explicit că, la absența biomarkerilor, acuratețea personalizării scade și trebuie activată o etichetă clară de „recomandări provizorii”. De asemenea, e utilă validarea strictă a restricțiilor (ex. alergii la susan/nuci) în etapa de filtrare înainte de ranking.

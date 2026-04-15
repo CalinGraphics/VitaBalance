@@ -1,0 +1,38 @@
+Caz utilizator – Maria Ionescu (VitaBalance)
+Date de profil utilizator
+Maria Ionescu, sex feminin, 29 ani, 56 kg, 162 cm, nivel de activitate moderat, tip dietă omnivor.
+Restricții și context clinic: alergie la ouă; condiție medicală declarată: anemie / deficiență de fier.
+
+Date de analize introduse în aplicație
+Hemoglobină 11.6 g/dL, feritină 11 ng/mL, vitamina D 26 ng/mL, vitamina B12 340 pg/mL, calciu 9 mg/dL, magneziu 1.88 mg/dL, zinc 78 mcg/dL, proteine 6.45 g/dL, folat 4.8 ng/mL, vitamina A 38 mg/dL, iod 108 mg/L, potasiu 4 mmol/L.
+Observație medicală: „Feritina scăzută, recomandat supliment fier sub supraveghere medicală.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Profilul arată un deficit activ de fier, susținut de feritină scăzută (11 ng/mL), în context de anemie declarată. În logica aplicației, acesta devine deficitul prioritar pentru ranking. Secundar, valorile pentru vitamina D, folat și proteine se situează într-o zonă care justifică monitorizare și optimizare alimentară, însă focusul principal al recomandărilor rămâne fierul.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance pentru acest profil urmează pașii:
+
+preluare profil + analize + dietă + alergii;
+excludere alimente neconforme (în special cele incompatibile cu alergia la ouă);
+detectare deficit dominant (fier);
+scorare alimente după conținutul de fier/100 g, porție sugerată și contribuția la acoperirea deficitului;
+ierarhizare descrescătoare și livrare Top‑K cu explicație textuală + numerică (mg fier/100 g, mg/porție, procent acoperire deficit).
+Top recomandări (K=10) din raport
+
+Fasole Albă Toscana (120 ml) – 36.8%
+Supă de Mazăre Despicată (240 ml) – 36.2%
+Fasole Refried (120 ml) – 35.6%
+Mazăre Verde (120 ml) – 35.6%
+Gyros (1 sandviș) – 33.3%
+Friptură Skirt (115 g la grătar) – 33.3%
+Burger de Curcan (1 chiftea) – 32.7%
+Tofu Ferm (115 g) – 32.1%
+Salam (3 felii) – 32.1%
+Friptură de Vită (170 g antricot) – 32.1%
+Explicație profesională a rezultatului
+Lista recomandată combină surse de fier din leguminoase și proteine animale/vegetale, ceea ce indică o strategie de creștere a aportului de fier atât prin opțiuni heme (carne), cât și non‑heme (leguminoase, tofu). Primele poziții sunt dominate de alimente cu densitate ridicată de fier și procent mare de acoperire raportat la deficitul estimat.
+Explicațiile generate de sistem sunt consecvente cu datele clinice: pentru alimentele-cheie se precizează explicit cantitatea de fier (mg/100 g), aportul per porție și contribuția procentuală la reducerea deficitului.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Fasole Albă Toscana (120 ml), acoperire 36.8%: recomandată prioritar pentru deficit sever de fier; are 3.9 mg fier/100 g, iar porția de 170 g oferă aproximativ 6.6 mg fier, contribuind cu 58.2% la deficitul calculat în modelul aplicației. Această recomandare este aliniată cu profilul omnivor și cu datele biologice care indică depleție de fier.

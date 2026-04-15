@@ -1,0 +1,43 @@
+Caz utilizator – Roxana Petrescu (VitaBalance)
+Date de profil utilizator
+Roxana Petrescu, sex feminin, 23 ani, 52 kg, 163 cm, nivel de activitate activ, tip dietă vegetarian.
+Restricții și context clinic: alergie la ouă; condiție medicală declarată: anemie / deficiență de fier.
+
+Date de analize introduse în aplicație
+Hemoglobină 11.9 g/dL, feritină 18 ng/mL, vitamina D 25 ng/mL, vitamina B12 305 pg/mL, calciu 8.88 mg/dL, magneziu 1.83 mg/dL, zinc 70 mcg/dL, proteine 6.38 g/dL, folat 6.6 ng/mL, vitamina A 38.5 mg/dL, iod 106 mg/L, potasiu 3.92 mmol/L.
+Observație medicală: „Vegetariană; feritină scăzută, suspiciune anemie feriprivă.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Deficitul dominant este clar fierul, susținut de feritină scăzută și hemoglobină la limită inferioară. Algoritmul prioritizează corect această țintă și calculează acoperirea deficitului per aliment/porție.
+
+Cum sunt generate recomandările în acest caz
+Pipeline-ul VitaBalance:
+
+preluare profil + analize + dietă + alergii;
+detectare deficit prioritar (fier);
+scorare rule-based după conținut de fier/100 g, aport per porție și procent de acoperire;
+ordonare Top‑K descrescător + explicații numerice (mg fier/100 g, mg/porție, procent deficit).
+Top recomandări (K=10) din raport
+
+Cereale Integrale Fortificate cu B12 – 64.7%
+Fasole Albă Toscana (120 ml) – 50.3%
+Fasole Refried (120 ml) – 49.0%
+Mazăre Verde (120 ml) – 49.0%
+Tofu Ferm (115 g) – 45.2%
+Humus (2 linguri) – 44.6%
+Seitan (85 g) – 43.1%
+Burger Vegetal (1 chiftea) – 39.9%
+Verze cu ciocănel de porc – 37.9%
+Roșii Pasate (120 ml) – 37.9%
+Explicație profesională a rezultatului
+Recomandările de top sunt în principal din zona cerealelor fortificate și leguminoaselor, adecvate pentru creșterea aportului de fier în context vegetarian. Scorurile ridicate din primele poziții reflectă o potrivire bună cu deficitul estimat.
+Cazul este foarte relevant pentru evaluarea sistemului, deoarece arată tranziția de la intervenție generală la intervenție țintită pe micronutrient (fier), cu justificări cantitative clare.
+
+Exemplu de justificare punctuală (model pentru lucrare)
+Cereale Integrale Fortificate cu B12, acoperire 64.7%: recomandate pentru deficit moderat de fier; conținutul de 8.0 mg fier/100 g permite un aport de ~13.2 mg per porția de 165 g, cuantificat de algoritm ca acoperire integrală a deficitului țintit.
+
+Implicație clinică practică
+Pentru suspiciune de anemie feriprivă, planul alimentar trebuie asociat cu monitorizare hematologică periodică și, dacă este cazul, conduită medicală specifică (suplimentare conform recomandării clinicianului).
+
+Punct de validare algoritmică
+Acest profil validează bine mecanismul de prioritizare a fierului, dar evidențiază și o zonă de îmbunătățire: unele recomandări din lista extinsă intră în conflict cu preferința dietară vegetariană (preparate cu carne), ceea ce sugerează necesitatea întăririi filtrului de constrângeri înainte de ranking.

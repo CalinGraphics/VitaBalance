@@ -1,0 +1,39 @@
+Caz utilizator – Andrei Popescu (VitaBalance)
+Date de profil utilizator
+Andrei Popescu, bărbat, 34 ani, 79 kg, 182 cm, nivel de activitate moderat, tip dietă omnivor.
+Restricții și context clinic: alergie la nuci/arahide și antecedent de colesterol ridicat.
+
+Date biometrice și analize introduse în aplicație
+Hemoglobină 14.2 g/dL, feritină 48 ng/mL, vitamina D 38 ng/mL, vitamina B12 420 pg/mL, calciu 9.3 mg/dL, magneziu 2.05 mg/dL, zinc 92 mcg/dL, proteine 6.9 g/dL, folat 8.2 ng/mL, vitamina A 46 mg/dL, iod 125 mg/L, potasiu 4.25 mmol/L.
+Observație medicală asociată: „Hemoleucograma și profil metabolic – fără anomalii semnificative.”
+
+Interpretare nutrițională (deficiențe/minusuri)
+Pentru acest profil, sistemul nu marchează deficite active majore. Din acest motiv, logica de recomandare nu este orientată pe corecție urgentă, ci pe menținerea echilibrului nutrițional și pe prevenirea dezechilibrelor, cu accent pe micronutrienți esențiali (ex. vitamina A, C, K, B12, iod, calciu, fier, zinc, folat, magneziu, potasiu).
+
+Cum sunt generate recomandările în acest caz (logică aplicație)
+Fluxul de decizie pentru Andrei urmează schema standard VitaBalance:
+
+se preiau profilul, analizele, preferința de dietă și restricțiile (alergii/condiții);
+se aplică filtrarea de siguranță (excludere alimente neconforme alergiilor);
+se calculează un scor de compatibilitate clinico‑nutrițională pentru alimentele rămase;
+se estimează contribuția fiecărei porții la acoperirea necesarului zilnic (RDI) pe micronutrienții monitorizați;
+se ordonează descrescător după acoperirea globală a necesarului și se livrează lista Top‑K.
+Top recomandări (K=10) și justificare
+În raportul generat, primele 10 recomandări sunt:
+
+Castravete (60 ml garnitură) – acoperire 40.6%
+Cartof copt (mediu) – 40.5%
+Roșii pasate (120 ml) – 39.4%
+Porumb fiert pe știulete (1 mare) – 39.2%
+Salată de cartofi (120 ml) – 31.0%
+Labneh (2 linguri) – 28.4%
+Sashimi somon (3 bucăți) – 28.1%
+Macrou (85 g gătit) – 27.8%
+Guacamole (60 ml) – 27.5%
+Burger de curcan (1 chiftea) – 27.4%
+Explicație profesională a recomandărilor
+Recomandările sunt predominant din clasele legume, pește/proteine și lactate, ceea ce indică o strategie de diversificare cu densitate bună de micronutrienți. Primele poziții sunt ocupate de alimente vegetale cu aport ridicat de vitamine antioxidante și de reglare metabolică (A, C, K), iar pozițiile următoare consolidează aportul de B12, iod, fier, calciu și zinc prin pește/lactate/proteine slabe.
+Formularea de motivare din raport („nu se evidențiază deficite active, dar alimentul susține menținerea unui aport nutrițional echilibrat”) este coerentă cu profilul clinic: pacientul este stabil biologic, iar recomandările au rol de optimizare și menținere, nu de intervenție corectivă agresivă.
+
+Exemplu de explicație punctuală (model de inclus în lucrare)
+Castravete (60 ml garnitură), scor de acoperire 40.6%: recomandat datorită compatibilității ridicate cu profilul utilizatorului și contribuției semnificative la vitaminele C, K și A, cu impact agregat favorabil asupra mai multor micronutrienți monitorizați în sistem. În contextul absenței deficitelor active, alimentul este utilizat ca opțiune de menținere a echilibrului nutrițional zilnic.
