@@ -651,6 +651,18 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertLessEqual(by_cat, 0.05)
         self.assertLessEqual(by_name, 0.05)
 
+    def test_hidden_allergen_api_blocks_processed_item_for_lactose_allergy(self):
+        user = make_user(diet_type="omnivore", allergies="lactoza")
+        processed = make_food(id=830, name="Sandvis Special", category="Mese/Procesate")
+        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=True):
+            self.assertFalse(self.rule_engine._is_compatible(processed, user))
+
+    def test_hidden_allergen_api_allows_processed_item_when_confirmed_safe(self):
+        user = make_user(diet_type="omnivore", allergies="lactoza")
+        processed = make_food(id=831, name="Supa Conserva Legume", category="Mese/Procesate")
+        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=False):
+            self.assertTrue(self.rule_engine._is_compatible(processed, user))
+
 
 if __name__ == "__main__":
     unittest.main()
