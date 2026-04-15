@@ -505,6 +505,7 @@ async def get_recommendations(
         # Dacă nu există alimente în baza de date, întoarcem o listă goală.
         # Frontend-ul va afișa un mesaj prietenos, în loc de eroare 404.
         return []
+    food_by_id = {f.id: f for f in foods}
 
     lab_results = lab_repo.get_latest_by_user_id(request.user_id)
     user_feedbacks = feedback_repo.get_by_user_id(request.user_id)
@@ -665,9 +666,10 @@ async def get_recommendations(
         )
         explanation_gen = ExplanationGenerator()
         to_insert = []
+        explanation_by_food_id: Dict[int, dict] = {}
         # Persistăm până la 20 de recomandări, sortate deja descrescător după coverage/score.
         for rec in rec_list[:20]:
-            food = next((f for f in foods if f.id == rec["food_id"]), None)
+            food = food_by_id.get(rec["food_id"])
             if not food:
                 continue
             explanation = explanation_gen.generate_explanation(
@@ -688,9 +690,9 @@ async def get_recommendations(
                 "portion_suggested": explanation["portion"],
                 "coverage_percentage": rec["coverage"],
             })
+            explanation_by_food_id[food.id] = explanation
         if to_insert:
             inserted = rec_repo.insert_many(to_insert)
-            food_by_id = {f.id: f for f in foods}
             # Asigurăm același ranking ca `rec_list` pe primele N poziții.
             for i, rec in enumerate(inserted):
                 if i >= len(rec_list):
@@ -699,7 +701,7 @@ async def get_recommendations(
                 if not food:
                     continue
                 orig = rec_list[i]
-                expl = explanation_gen.generate_explanation(
+                expl = explanation_by_food_id.get(food.id) or explanation_gen.generate_explanation(
                     food=food,
                     user=user,
                     deficits=deficits,
@@ -765,9 +767,10 @@ async def get_recommendations(
             return []
         explanation_gen = ExplanationGenerator()
         to_insert = []
+        explanation_by_food_id: Dict[int, dict] = {}
         # Persistăm până la 20 de recomandări fallback.
         for rec in rec_list[:20]:
-            food = next((f for f in foods if f.id == rec["food_id"]), None)
+            food = food_by_id.get(rec["food_id"])
             if not food:
                 continue
             explanation = explanation_gen.generate_explanation(
@@ -788,8 +791,8 @@ async def get_recommendations(
                 "portion_suggested": explanation["portion"],
                 "coverage_percentage": rec["coverage"],
             })
+            explanation_by_food_id[food.id] = explanation
         inserted = rec_repo.insert_many(to_insert)
-        food_by_id = {f.id: f for f in foods}
         for i, rec in enumerate(inserted):
             if i >= len(rec_list):
                 break
@@ -797,7 +800,7 @@ async def get_recommendations(
             if not food:
                 continue
             orig = rec_list[i]
-            expl = explanation_gen.generate_explanation(
+            expl = explanation_by_food_id.get(food.id) or explanation_gen.generate_explanation(
                 food=food,
                 user=user,
                 deficits=deficits,
