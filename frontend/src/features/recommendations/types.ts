@@ -1,4 +1,4 @@
-// Recommendation-specific types
+/** Model recomandare afișat în UI (API + feedback local). */
 export interface Recommendation {
   food_id: number
   food: {
@@ -17,5 +17,9 @@ export interface Recommendation {
     alternatives?: string[]
   }
   recommendation_id: number
+  feedback?: {
+    likes: number
+    dislikes: number
+  }
+  my_rating?: number | null
 }
-

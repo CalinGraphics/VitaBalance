@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { UserCog, Save, FlaskConical, ArrowLeft } from 'lucide-react'
 import React from 'react'
@@ -32,15 +32,7 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  useEffect(() => {
-    // Load user data from backend when component mounts if user has ID
-    if (user.id) {
-      loadUserData()
-    }
-    // Otherwise, formData is already initialized with user prop data
-  }, [user.id])
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       if (user.id) {
         const response = await profileService.get(user.id)
@@ -59,9 +51,14 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
       }
     } catch (error) {
       console.error('Eroare la încărcarea datelor:', error)
-      // If loading fails, keep the initial user data that was passed as prop
     }
-  }
+  }, [user.id])
+
+  useEffect(() => {
+    if (user.id) {
+      void loadUserData()
+    }
+  }, [user.id, loadUserData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,24 +105,12 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
       setTimeout(() => {
         onNavigateBack()
       }, 1500)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Eroare la actualizarea profilului:', err)
-      // Extrage mesajul de eroare
-      let errorMessage = 'Eroare la salvarea modificărilor. Te rugăm să încerci din nou.'
-      
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.response?.data?.detail) {
-        const detail = err.response.data.detail
-        if (typeof detail === 'string') {
-          errorMessage = detail
-        } else if (Array.isArray(detail)) {
-          errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
-        } else if (typeof detail === 'object') {
-          errorMessage = detail.msg || detail.message || JSON.stringify(detail)
-        }
-      }
-      
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Eroare la salvarea modificărilor. Te rugăm să încerci din nou.'
       setError(errorMessage)
     } finally {
       setLoading(false)

@@ -5,7 +5,7 @@
 import { pdf } from '@react-pdf/renderer'
 import type { RecommendationForPdf, UserForPdf } from './RecommendationReportDocument'
 import { RecommendationReportDocument } from './RecommendationReportDocument'
-import React from 'react'
+import React, { type ReactElement } from 'react'
 
 const formatDate = () =>
   new Date().toLocaleDateString('ro-RO', {
@@ -32,8 +32,8 @@ export async function generateRecommendationPdfBlob(
     user,
     recommendations,
     generatedAt: formatDate(),
-  })
-  const blob = await pdf(doc as any).toBlob()
+  }) as ReactElement
+  const blob = await pdf(doc).toBlob()
   return blob
 }
 

@@ -63,7 +63,7 @@ const RecommendationCard = ({
   useEffect(() => {
     setMyRating(recommendation.my_rating)
     setLocalCounts(recommendation.feedback ? { ...recommendation.feedback } : { likes: 0, dislikes: 0 })
-  }, [recommendation.recommendation_id, recommendation.my_rating, recommendation.feedback?.likes, recommendation.feedback?.dislikes])
+  }, [recommendation.recommendation_id, recommendation.my_rating, recommendation.feedback])
 
   const counts = localCounts
 

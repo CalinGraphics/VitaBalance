@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Route, AuthUser, User } from '../types'
+import { isAxiosError } from 'axios'
 import { profileService, authService } from '../../services/api'
 import { getToken, setToken, clearToken } from '../../services/authStorage'
 
@@ -62,9 +63,10 @@ export const useAppNavigation = () => {
           setMedicalUser(null)
           setRoute('medical-profile')
         }
-      } catch (error: any) {
-        // Verifică dacă eroarea este 404 (profilul nu există)
-        const statusCode = error.response?.status || error.status
+      } catch (error: unknown) {
+        const statusCode = isAxiosError(error)
+          ? error.response?.status
+          : (error as { status?: number }).status
         if (import.meta.env.DEV) {
           console.log('Eroare la căutarea profilului, status:', statusCode, error)
         }

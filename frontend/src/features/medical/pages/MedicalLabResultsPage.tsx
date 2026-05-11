@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft, Trash2 } from 'lucide-react'
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
-import { labResultsService } from '../../../services/api'
+import { labResultsService, type LabResultsCreatePayload } from '../../../services/api'
+import {
+  LAB_KEYS,
+  coerceLabNumeric,
+  extractLabValuesFromTextLocal,
+  normalizeLabNoteText,
+  type LabKey,
+} from '../utils/labLocalExtract'
 import { extractTextFromPdfFile } from '../../../shared/utils/pdfTextExtractor'
 import { parseOptionalDecimal, sanitizeDecimalInput } from '../../../shared/utils/numberParsing'
 import type { User } from '../../../shared/types'
@@ -31,37 +38,6 @@ interface LabResult {
   notes?: string
 }
 
-type LabKey =
-  | 'hemoglobin'
-  | 'ferritin'
-  | 'vitamin_d'
-  | 'vitamin_b12'
-  | 'calcium'
-  | 'magnesium'
-  | 'zinc'
-  | 'protein'
-  | 'folate'
-  | 'vitamin_a'
-  | 'iodine'
-  | 'vitamin_k'
-  | 'potassium'
-
-const LAB_KEYS: LabKey[] = [
-  'hemoglobin',
-  'ferritin',
-  'vitamin_d',
-  'vitamin_b12',
-  'calcium',
-  'magnesium',
-  'zinc',
-  'protein',
-  'folate',
-  'vitamin_a',
-  'iodine',
-  'vitamin_k',
-  'potassium',
-]
-
 const OBSERVATION_SUGGESTIONS = [
   'Anemie feriprivă confirmată',
   'Deficiență de vitamina D',
@@ -82,125 +58,6 @@ const OBSERVATION_SUGGESTIONS = [
   'Nu pot consuma lactate',
   'Nu pot consuma semințe',
 ]
-
-const normalizeNoteText = (value: string): string =>
-  value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-
-function extractLabValuesFromTextLocal(text: string): Partial<Record<LabKey, number>> {
-  const raw = text || ''
-  const t = raw
-    .replace(/\u00a0/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  const normalized = normalizeNoteText(raw)
-  const normalizedFlat = normalized.replace(/\s+/g, ' ').trim()
-  const normalizedLines = raw
-    .split(/\r?\n/)
-    .map((ln) => normalizeNoteText(ln))
-    .filter(Boolean)
-
-  const tryParse = (raw: string | undefined): number | undefined => {
-    if (!raw) return undefined
-    const n = Number(raw.replace(',', '.'))
-    return Number.isFinite(n) ? n : undefined
-  }
-
-  const pickFirst = (patterns: RegExp[], sources: string[] = [t, normalizedFlat]): number | undefined => {
-    for (const p of patterns) {
-      for (const source of sources) {
-        const m = source.match(p)
-        if (m?.[1]) {
-          const v = tryParse(m[1])
-          if (v !== undefined) return v
-        }
-      }
-    }
-    return undefined
-  }
-
-  const pickLineValue = (
-    lineKeyPatterns: RegExp[],
-    isPlausible?: (value: number) => boolean
-  ): number | undefined => {
-    for (const line of normalizedLines) {
-      let startIndex = -1
-      for (const kp of lineKeyPatterns) {
-        const m = kp.exec(line)
-        if (m && m.index >= 0 && (startIndex === -1 || m.index < startIndex)) {
-          startIndex = m.index
-        }
-      }
-      if (startIndex < 0) continue
-
-      for (const m of line.matchAll(/\d+(?:[.,]\d+)?/g)) {
-        if ((m.index ?? -1) < startIndex) continue
-        const token = m[0]
-        const nextChunk = line.slice((m.index ?? 0) + token.length, (m.index ?? 0) + token.length + 8)
-        // Evită să ia primul capăt din intervale de referință, ex: "12,0 - 15,6".
-        if (/^\s*[-–]\s*\d/.test(nextChunk)) continue
-        const v = tryParse(token)
-        if (v !== undefined && (!isPlausible || isPlausible(v))) return v
-      }
-    }
-    return undefined
-  }
-
-  return {
-    hemoglobin: pickFirst([
-      /\b(?:hemoglobina|hemoglobină|hemoglobin)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\b(?:hgb)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\b(?:hb)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]) ?? pickLineValue(
-      [/\bhemoglobina\b/i, /\bhemoglobin\b/i, /\bhgb\b/i, /\bhb\b/i],
-      (v) => v >= 3 && v <= 25
-    ),
-    ferritin: pickFirst([
-      /\b(?:feritina|feritină|ferritin)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\b(?:feritina|ferritina)\s+seric[ăa]?\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    vitamin_d: pickFirst([
-      /\b(?:25\s*-?\s*oh\s*-?\s*d|25\s*\(?oh\)?\s*d|vit(?:\.)?\s*d|vitamina\s*d)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    vitamin_b12: pickFirst([
-      /\b(?:vit(?:\.)?\s*b\s*12|vitamina\s*b\s*12|b\s*12|cobalamina|cianocobalamina)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    calcium: pickFirst([
-      /\b(?:calciu|calcium)\b(?:\s+(?:total|ionic|seric|serica))?\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\bca\b\s*[:=]\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    magnesium: pickFirst([
-      /\b(?:magneziu|magnesium)\b(?:\s+seric)?\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\bmg\b\s*[:=]\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    zinc: pickFirst([
-      /\b(?:zinc|zn)\b(?:\s+seric)?\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    protein: pickFirst([
-      /\b(?:proteine|proteine\s+totale|proteine\s+serice|protein(?:a)?)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    folate: pickFirst([
-      /\b(?:folat|folate|acid\s*folic|folic\s*acid|vit(?:\.)?\s*b9|vitamina\s*b9)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    vitamin_a: pickFirst([
-      /\b(?:vit(?:\.)?\s*a|vitamina\s*a|retinol)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    iodine: pickFirst([
-      /\b(?:iod|iodine|iodina)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    vitamin_k: pickFirst([
-      /\b(?:vit(?:\.)?\s*k|vitamina\s*k|phylloquinone|filochinona)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-    potassium: pickFirst([
-      /\b(?:potasiu|potassium)\b(?:\s+seric)?\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
-      /\bk\b\s*[:=]\s*(\d+(?:[.,]\d+)?)/i,
-    ]),
-  }
-}
 
 /** Convertește valoarea din API la string pentru input. Null/undefined/0 → '' (câmp gol, placeholder cu interval estimativ). */
 function toInputValue(v: number | null | undefined): string {
@@ -271,34 +128,21 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
     setError(null)
 
     try {
-      const payload: LabResult & Record<string, unknown> = {
+      const payload: LabResultsCreatePayload = {
         user_id: user.id || 0,
         notes: inputs.notes?.trim() || '',
       }
       for (const k of LAB_KEYS) {
         const v = parseOptionalDecimal(inputs[k])
-        ;(payload as any)[k] = v !== undefined ? v : null
+        payload[k] = v !== undefined ? v : null
       }
 
       await labResultsService.create(payload)
       onComplete()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Eroare la salvarea analizelor:', err)
-      let errorMessage = 'Eroare la salvarea analizelor. Poți continua oricum.'
-      
-      if (err?.message) {
-        errorMessage = err.message
-      } else if (err?.response?.data?.detail) {
-        const detail = err.response.data.detail
-        if (typeof detail === 'string') {
-          errorMessage = detail
-        } else if (Array.isArray(detail)) {
-          errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
-        } else if (typeof detail === 'object') {
-          errorMessage = detail.msg || detail.message || JSON.stringify(detail)
-        }
-      }
-      
+      const errorMessage =
+        err instanceof Error ? err.message : 'Eroare la salvarea analizelor. Poți continua oricum.'
       setError(errorMessage)
       // Continuă chiar dacă e eroare - poate sări peste acest pas
       // Utilizatorul poate continua manual
@@ -352,14 +196,9 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
       const extracted = await labResultsService.extractFromText(text)
       const merged: Partial<Record<LabKey, number>> = {}
       for (const k of LAB_KEYS) {
-        const backendVal = (extracted as any)?.[k]
-        const localVal = (localExtracted as any)?.[k]
-        merged[k] =
-          backendVal !== null && backendVal !== undefined && backendVal !== ''
-            ? backendVal
-            : localVal !== null && localVal !== undefined && localVal !== ''
-              ? localVal
-              : undefined
+        const backendVal = coerceLabNumeric(extracted[k])
+        const localVal = localExtracted[k]
+        merged[k] = backendVal ?? localVal
       }
       const knownKeyLabels: Record<string, string> = {
         hemoglobin: 'Hemoglobină',
@@ -376,9 +215,9 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         vitamin_k: 'Vitamina K',
         potassium: 'Potasiu',
       }
-      const extractedKnownKeys = Object.keys(knownKeyLabels).filter((k) => {
-        const v = (merged as any)?.[k]
-        return v != null && v !== undefined && v !== ''
+      const extractedKnownKeys = (Object.keys(knownKeyLabels) as LabKey[]).filter((k) => {
+        const v = merged[k]
+        return v != null && v !== undefined
       })
       const count = extractedKnownKeys.length
       setInputs(prev => ({
@@ -644,8 +483,8 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                       setInputs((prev) => {
                         const current = (prev.notes || '').trim()
                         if (!current) return { ...prev, notes: item }
-                        const currentNormalized = normalizeNoteText(current)
-                        const itemNormalized = normalizeNoteText(item)
+                        const currentNormalized = normalizeLabNoteText(current)
+                        const itemNormalized = normalizeLabNoteText(item)
                         if (currentNormalized.includes(itemNormalized)) return prev
                         return { ...prev, notes: `${current}; ${item}` }
                       })

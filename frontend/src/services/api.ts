@@ -1,14 +1,22 @@
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
 import type { User } from '../shared/types'
+import { extractErrorMessage } from '../shared/utils/apiErrors'
+import type { LabExtractFromApi, LabKey } from '../features/medical/utils/labLocalExtract'
 import { getToken, clearToken } from './authStorage'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+
+/** Cereri standard (profil, analize, feedback). */
+const DEFAULT_TIMEOUT_MS = 45_000
+/** Generare recomandări poate depăși 60s la cold start / logică grea. */
+const LONG_OPERATION_TIMEOUT_MS = 180_000
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: DEFAULT_TIMEOUT_MS,
 })
 
 api.interceptors.request.use((config) => {
@@ -16,63 +24,18 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  const url = typeof config.url === 'string' ? config.url : ''
+  if (url.includes('/recommendations')) {
+    config.timeout = LONG_OPERATION_TIMEOUT_MS
+  }
   return config
 })
 
-// Helper function pentru extragerea mesajului de eroare
-const extractErrorMessage = (error: any): string => {
-  // Dacă există un detail în răspuns
-  if (error.response?.data?.detail) {
-    const detail = error.response.data.detail
-    
-    // Dacă detail este un string, returnează-l direct
-    if (typeof detail === 'string') {
-      return detail
-    }
-    
-    // Dacă detail este un array (erori de validare Pydantic)
-    if (Array.isArray(detail)) {
-      return detail
-        .map((err: any) => {
-          // Extrage mesajul din fiecare eroare
-          if (typeof err === 'string') {
-            return err
-          }
-          if (err.msg) {
-            const loc = err.loc ? err.loc.join('.') : ''
-            return loc ? `${loc}: ${err.msg}` : err.msg
-          }
-          return JSON.stringify(err)
-        })
-        .join('; ')
-    }
-    
-    // Dacă detail este un obiect, convertește-l în string
-    if (typeof detail === 'object') {
-      return detail.msg || detail.message || JSON.stringify(detail)
-    }
-  }
-  
-  // Încearcă alte câmpuri comune
-  if (error.response?.data?.message) {
-    return typeof error.response.data.message === 'string' 
-      ? error.response.data.message 
-      : JSON.stringify(error.response.data.message)
-  }
-  
-  if (error.message) {
-    return error.message
-  }
-  
-  return 'A apărut o eroare neașteptată'
-}
-
-// Interceptor pentru gestionarea erorilor
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const status = error.response?.status
-    const url: string = error.config?.url || ''
+  (error: unknown) => {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    const url = isAxiosError(error) ? error.config?.url || '' : ''
     const hasSession = Boolean(getToken())
     const shouldIgnore401ForAuthFlow =
       url.includes('/auth/verify-magic-link') || url.includes('/auth/request-magic-link')
@@ -86,17 +49,21 @@ api.interceptors.response.use(
     ]
     const isProtectedRoute = protectedRouteMarkers.some((marker) => url.includes(marker))
 
-    // Ștergem tokenul doar când avem sesiune locală și 401 vine de la endpoint-uri protejate.
-    // Evităm logout fals pe erori tranzitorii din fluxurile publice.
     if (status === 401 && hasSession && !shouldIgnore401ForAuthFlow && isProtectedRoute) {
       clearToken()
     }
-    // Pentru toate status-urile (inclusiv 404) formatează un mesaj clar,
-    // dar păstrează codul de status în error.response.status.
-    error.message = extractErrorMessage(error)
+    const message = extractErrorMessage(error)
+    if (error instanceof Error) {
+      error.message = message
+    }
     return Promise.reject(error)
   }
 )
+
+export type LabResultsCreatePayload = {
+  user_id: number
+  notes?: string | null
+} & Partial<Record<LabKey, number | null>>
 
 // Auth (magic link + JWT)
 export const authService = {
@@ -117,14 +84,13 @@ export const authService = {
   },
 }
 
-// API Services
 export const profileService = {
   create: async (data: Partial<User>) => {
     const response = await api.post('/profile', data)
     return response.data
   },
   getByEmail: async (email: string) => {
-    const response = await api.get(`/profile/by-email/${email}`)
+    const response = await api.get(`/profile/by-email/${encodeURIComponent(email)}`)
     return response.data
   },
   get: async (userId: number) => {
@@ -138,7 +104,7 @@ export const profileService = {
 }
 
 export const labResultsService = {
-  create: async (data: any) => {
+  create: async (data: LabResultsCreatePayload) => {
     const response = await api.post('/lab-results', data)
     return response.data
   },
@@ -148,7 +114,7 @@ export const labResultsService = {
   },
   extractFromText: async (text: string) => {
     const response = await api.post('/lab-results/extract-from-text', { text })
-    return response.data
+    return response.data as LabExtractFromApi
   },
 }
 
@@ -194,4 +160,3 @@ export const feedbackService = {
 }
 
 export default api
-

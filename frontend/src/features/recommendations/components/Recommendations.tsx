@@ -7,32 +7,7 @@ import type { User } from '../../../shared/types'
 import RecommendationCard from './RecommendationCard'
 import NutrientChart from './NutrientChart'
 import UserProfileInfo from './UserProfileInfo'
-import { downloadRecommendationPdf } from '../pdf/exportRecommendationPdf'
-
-interface Recommendation {
-  food_id: number
-  food: {
-    id: number
-    name: string
-    category: string
-    image_url?: string
-  }
-  score: number
-  coverage: number
-  explanation: {
-    text: string
-    portion: number
-    reasons: string[]
-    tips?: string[]
-    alternatives?: string[]
-  }
-  recommendation_id: number
-  feedback?: {
-    likes: number
-    dislikes: number
-  }
-  my_rating?: number | null
-}
+import type { Recommendation } from '../types'
 
 interface RecommendationsProps {
   user: User
@@ -191,10 +166,12 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
 
   const exportToPDF = useCallback(() => {
-    downloadRecommendationPdf({
-      user: { name: user.name, email: user.email, id: user.id },
-      recommendations,
-    }).catch((err) => {
+    void import('../pdf/exportRecommendationPdf').then(({ downloadRecommendationPdf }) =>
+      downloadRecommendationPdf({
+        user: { name: user.name, email: user.email, id: user.id },
+        recommendations,
+      })
+    ).catch((err: unknown) => {
       console.error('Export PDF failed:', err)
     })
   }, [recommendations, user.email, user.id, user.name])

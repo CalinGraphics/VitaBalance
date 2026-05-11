@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import { motion } from 'framer-motion';
 import type { AuthUser } from '../../../shared/types';
+import { formatApiDetail } from '../../../shared/utils/apiErrors';
 
 interface RegisterPageProps {
   onNavigate: (page: 'login' | 'register') => void;
@@ -84,18 +85,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
           try {
             const text = await response.text();
             try {
-              const errorData = JSON.parse(text);
-              const detail = errorData.detail || errorData.message;
+              const errorData = JSON.parse(text) as { detail?: unknown; message?: unknown };
+              const detail = errorData.detail ?? errorData.message;
               if (typeof detail === 'string') {
                 errorMessage = detail;
-              } else if (Array.isArray(detail)) {
-                errorMessage = detail.map((e: any) => {
-                  const msg = e.msg || JSON.stringify(e);
-                  const loc = e.loc ? e.loc.join('.') : '';
-                  return loc ? `${loc}: ${msg}` : msg;
-                }).join('; ');
-              } else if (detail && typeof detail === 'object') {
-                errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+              } else if (detail !== undefined && detail !== null) {
+                errorMessage = formatApiDetail(detail);
               }
             } catch {
               // Răspunsul nu e JSON (ex.: pagină de eroare) – afișăm primele 200 caractere
@@ -114,7 +109,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
             } else {
               setErrors({ email: errorMessage });
             }
-          } catch (parseError) {
+          } catch {
             setErrors({ email: `${errorMessage} (${response.status})` });
           }
           return;
@@ -130,21 +125,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
           },
           user.access_token
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Eroare la înregistrare:', error);
-        let errorMessage = 'Eroare la conectare. Vă rugăm să încercați din nou.';
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        } else if (error?.response?.data?.detail) {
-          const detail = error.response.data.detail;
-          if (typeof detail === 'string') {
-            errorMessage = detail;
-          } else if (Array.isArray(detail)) {
-            errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ');
-          } else if (typeof detail === 'object') {
-            errorMessage = detail.msg || detail.message || JSON.stringify(detail);
-          }
-        }
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Eroare la conectare. Vă rugăm să încercați din nou.';
         setErrors({ email: errorMessage });
       }
     }

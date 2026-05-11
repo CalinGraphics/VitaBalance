@@ -61,21 +61,12 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
 
       const response = await profileService.create(payload)
       onComplete(response)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Eroare la salvarea profilului:', err)
-      let errorMessage = 'Eroare la salvarea profilului. Te rugăm să încerci din nou.'
-      const detail = err?.response?.data?.detail
-      if (detail !== undefined && detail !== null) {
-        if (typeof detail === 'string') {
-          errorMessage = detail
-        } else if (Array.isArray(detail)) {
-          errorMessage = detail.map((e: any) => e.msg || JSON.stringify(e)).join('; ')
-        } else if (typeof detail === 'object') {
-          errorMessage = detail.msg || detail.message || JSON.stringify(detail)
-        }
-      } else if (err?.message) {
-        errorMessage = err.message
-      }
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Eroare la salvarea profilului. Te rugăm să încerci din nou.'
       setError(errorMessage)
     } finally {
       setLoading(false)
