@@ -69,7 +69,7 @@ Interfața este disponibilă la **http://localhost:3000**.
 | Variabilă | Obligatoriu | Descriere |
 |-----------|-------------|-----------|
 | `SUPABASE_URL` | Da | URL-ul proiectului Supabase |
-| `SUPABASE_KEY` | Da | Cheia API (service role sau anon) |
+| `SUPABASE_KEY` | Da | **`service_role`** (secret din Supabase → API). Nu folosi cheia `anon` pe backend: RLS blochează scrieri (`magic_links`, recomandări, etc.). |
 | `JWT_SECRET` | Recomandat | Secret pentru semnarea token-urilor JWT |
 | `RESEND_API_KEY` | Nu | Pentru trimitere magic link pe email; în lipsa lui, linkul apare în consolă |
 | `RESEND_FROM_EMAIL` | Nu | Adresa expeditor pentru email |

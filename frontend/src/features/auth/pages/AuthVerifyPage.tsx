@@ -44,7 +44,7 @@ const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) 
     }
     authService
       .verifyMagicLink(token)
-      .then((data: { email: string; fullName: string; bio: string; access_token: string }) => {
+      .then((data: { email: string; fullName: string; access_token: string }) => {
         if (!isActive) return
         setToken(data.access_token)
         try {
@@ -56,7 +56,6 @@ const AuthVerifyPage: React.FC<AuthVerifyPageProps> = ({ onLogin, onNavigate }) 
           {
             fullName: data.fullName,
             email: data.email,
-            bio: data.bio,
             avatarUrl: null,
           },
           data.access_token

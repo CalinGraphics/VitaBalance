@@ -120,8 +120,12 @@ export const useAppNavigation = () => {
     }
     authService
       .me()
-      .then((me: AuthUser) => {
-        setAuthUser(me)
+      .then((me: { email: string; fullName: string }) => {
+        setAuthUser({
+          email: me.email,
+          fullName: me.fullName,
+          avatarUrl: null,
+        })
         return profileService.getByEmail(me.email)
       })
       .then((existingProfile: User) => {

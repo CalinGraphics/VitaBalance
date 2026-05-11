@@ -32,6 +32,7 @@ interface LabResult {
   protein?: number
   folate?: number
   vitamin_a?: number
+  vitamin_c?: number
   iodine?: number
   vitamin_k?: number
   potassium?: number
@@ -79,6 +80,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
     protein: '',
     folate: '',
     vitamin_a: '',
+    vitamin_c: '',
     iodine: '',
     vitamin_k: '',
     potassium: '',
@@ -108,6 +110,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
               protein: toInputValue(latest.protein),
               folate: toInputValue(latest.folate),
               vitamin_a: toInputValue(latest.vitamin_a),
+              vitamin_c: toInputValue(latest.vitamin_c),
               iodine: toInputValue(latest.iodine),
               vitamin_k: toInputValue(latest.vitamin_k),
               potassium: toInputValue(latest.potassium),
@@ -167,6 +170,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
       protein: '',
       folate: '',
       vitamin_a: '',
+      vitamin_c: '',
       iodine: '',
       vitamin_k: '',
       potassium: '',
@@ -211,6 +215,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         protein: 'Proteine',
         folate: 'Folat / Acid folic',
         vitamin_a: 'Vitamina A',
+        vitamin_c: 'Vitamina C',
         iodine: 'Iod',
         vitamin_k: 'Vitamina K',
         potassium: 'Potasiu',
@@ -232,6 +237,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         protein: merged.protein != null ? String(merged.protein) : prev.protein,
         folate: merged.folate != null ? String(merged.folate) : prev.folate,
         vitamin_a: merged.vitamin_a != null ? String(merged.vitamin_a) : prev.vitamin_a,
+        vitamin_c: merged.vitamin_c != null ? String(merged.vitamin_c) : prev.vitamin_c,
         iodine: merged.iodine != null ? String(merged.iodine) : prev.iodine,
         vitamin_k: merged.vitamin_k != null ? String(merged.vitamin_k) : prev.vitamin_k,
         potassium: merged.potassium != null ? String(merged.potassium) : prev.potassium,
@@ -440,6 +446,17 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
               />
 
               <InputField
+                label="Vitamina C (μmol/L)"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.vitamin_c}
+                onChange={(e) => setInputs({ ...inputs, vitamin_c: sanitizeDecimalInput(e.target.value) })}
+                placeholder="23–85 μmol/L (orientativ)"
+                transparentWhenEmpty
+              />
+
+              <InputField
                 label="Iod (μg/L)"
                 type="text"
                 inputMode="decimal"
@@ -447,6 +464,17 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
                 value={inputs.iodine}
                 onChange={(e) => setInputs({ ...inputs, iodine: sanitizeDecimalInput(e.target.value) })}
                 placeholder="> 100 μg/L"
+                transparentWhenEmpty
+              />
+
+              <InputField
+                label="Vitamina K (ng/mL)"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs.vitamin_k}
+                onChange={(e) => setInputs({ ...inputs, vitamin_k: sanitizeDecimalInput(e.target.value) })}
+                placeholder="filochinonă / vit. K1"
                 transparentWhenEmpty
               />
 

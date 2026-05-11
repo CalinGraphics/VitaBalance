@@ -152,6 +152,8 @@ export const recommendationsService = {
     return response.data as {
       user_updated_at: string | null
       latest_rec_created_at: string | null
+      /** max(created_at, updated_at) la ultimul rând lab_results — pentru polling după salvare analize */
+      labs_fresh_at: string | null
     }
   },
   /** Pornește regenerarea în background; răspuns rapid (nu așteaptă motorul). */

@@ -131,6 +131,9 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         # Vitamina A
         (r"vitamina?\s*a\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μg/dl|mcg/dl)?", "vitamin_a"),
         (r"retinol\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_a"),
+        # Vitamina C (μmol/L sau mg/L în rapoarte)
+        (r"(?:vitamina?\s*c|vit\.?\s*c|acid\s*ascorbic|ascorbic)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μmol/l|umol/l|umol\s*/\s*l)?", "vitamin_c"),
+        (r"vitamina?\s*c\s+(\d+[.,]\d+|\d+)", "vitamin_c"),
         # Iod
         (r"(?:iod|iodina|iodine)\s*[:\s]*(\d+[.,]\d+|\d+)\s*(?:μg/l|mcg/l)?", "iodine"),
         (r"iod\s+(\d+[.,]\d+|\d+)", "iodine"),
@@ -184,6 +187,8 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         (r"proteine\s*[:\s]*(\d+[.,]\d+|\d+)", "protein"),
         (r"folat\s*[:\s]*(\d+[.,]\d+|\d+)", "folate"),
         (r"vit\.?\s*a\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_a"),
+        (r"vit\.?\s*c\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_c"),
+        (r"acid\s*ascorbic\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_c"),
         (r"iod\s*[:\s]*(\d+[.,]\d+|\d+)", "iodine"),
         (r"vit\.?\s*k\s*[:\s]*(\d+[.,]\d+|\d+)", "vitamin_k"),
         (r"potasiu\s*[:\s]*(\d+[.,]\d+|\d+)", "potassium"),
@@ -212,6 +217,7 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
         "protein": [r"\bproteine?\b", r"\bprotein[ae]?\b", r"\btotal\s+protein(?:s)?\b"],
         "folate": [r"\bfolat\b", r"\bfolate\b", r"\bacid\s*folic\b", r"\bfolic\s*acid\b", r"\bvit\.?\s*b9\b"],
         "vitamin_a": [r"\bvit\.?\s*a\b", r"\bvitamina\s*a\b", r"\bretinol\b"],
+        "vitamin_c": [r"\bvit\.?\s*c\b", r"\bvitamina\s*c\b", r"\bacid\s*ascorbic\b", r"\bascorbic\b"],
         "iodine": [r"\biod\b", r"\biodina\b", r"\biodine\b"],
         "vitamin_k": [r"\bvit\.?\s*k\b", r"\bvitamina\s*k\b", r"\bphylloquinone\b", r"\bfilochinona\b"],
         "potassium": [r"\bpotasiu\b", r"\bpotassium\b", r"\bk\s*mmol/l\b"],
@@ -247,7 +253,11 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
     for key, key_patterns in line_key_patterns.items():
         if result.get(key) is not None:
             continue
-        validator = (lambda v: 3 <= v <= 25) if key == "hemoglobin" else None
+        validator = None
+        if key == "hemoglobin":
+            validator = lambda v: 3 <= v <= 25
+        elif key == "vitamin_c":
+            validator = lambda v: 1 <= v <= 300
         for line in normalized_lines:
             if any(re.search(kp, line, re.IGNORECASE) for kp in key_patterns):
                 val = _extract_line_value(line, key_patterns, validator)
@@ -281,6 +291,7 @@ def _empty_result() -> Dict[str, Optional[float]]:
         "protein": None,
         "folate": None,
         "vitamin_a": None,
+        "vitamin_c": None,
         "iodine": None,
         "vitamin_k": None,
         "potassium": None,

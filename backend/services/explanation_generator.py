@@ -3,22 +3,28 @@ import re
 import unicodedata
 from domain.models import FoodItem, UserProfile
 from services.medical_rules_loader import normalize_clinical_text
+from services.deficit_calculator import DeficitCalculator
 
 
 class ExplanationGenerator:
-    """Generează explicații detaliate și personalizate pentru fiecare recomandare"""
-    
-    def __init__(self):
-        self.nutrient_names = {
-            'iron': 'fier',
-            'calcium': 'calciu',
-            'vitamin_d': 'vitamina D',
-            'vitamin_b12': 'vitamina B12',
-            'magnesium': 'magneziu',
-            'protein': 'proteine',
-            'zinc': 'zinc'
-        }
-    
+    """Generează explicații pentru recomandări: text principal + detalii cu valori per porție și VNR (model)."""
+
+    NUTRIENT_LABELS_RO: Dict[str, str] = {
+        "iron": "fier",
+        "calcium": "calciu",
+        "vitamin_d": "vitamina D",
+        "vitamin_b12": "vitamina B12",
+        "magnesium": "magneziu",
+        "protein": "proteine",
+        "zinc": "zinc",
+        "folate": "folat (B9)",
+        "vitamin_a": "vitamina A",
+        "vitamin_c": "vitamina C",
+        "iodine": "iod",
+        "vitamin_k": "vitamina K",
+        "potassium": "potasiu",
+    }
+
     def generate_explanation(
         self,
         food: FoodItem,
@@ -29,8 +35,8 @@ class ExplanationGenerator:
         explanations: Optional[List[str]] = None,
         matched_rules: Optional[List[str]] = None,
         has_lab_data: bool = False,
+        nutrients_covered: Optional[List[str]] = None,
     ) -> Dict:
-        """Generează o explicație completă pentru o recomandare"""
         if explanations and len(explanations) > 0:
             return self._generate_from_rule_explanations(
                 food=food,
@@ -39,16 +45,18 @@ class ExplanationGenerator:
                 matched_rules=matched_rules or [],
                 coverage=coverage,
                 has_lab_data=has_lab_data,
+                deficits=deficits,
+                nutrients_covered=nutrients_covered,
             )
-        
+
         return self._generate_traditional_explanation(
             food=food,
             user=user,
             deficits=deficits,
             score=score,
-            coverage=coverage
+            coverage=coverage,
         )
-    
+
     def _generate_from_rule_explanations(
         self,
         food: FoodItem,
@@ -57,12 +65,22 @@ class ExplanationGenerator:
         matched_rules: List[str],
         coverage: float,
         has_lab_data: bool = False,
+        deficits: Optional[Dict[str, float]] = None,
+        nutrients_covered: Optional[List[str]] = None,
     ) -> Dict:
         portion = self._estimate_portion_by_category(food, user)
-        is_fallback_profile_based = 'fallback_profile_based' in matched_rules
-        
+        is_fallback_profile_based = "fallback_profile_based" in matched_rules
+
         if explanations:
-            main_text = " ".join(explanations)
+            seen: set[str] = set()
+            unique_explanations: List[str] = []
+            for ex in explanations:
+                t = (ex or "").strip()
+                if not t or t in seen:
+                    continue
+                seen.add(t)
+                unique_explanations.append(t)
+            main_text = " ".join(unique_explanations)
         else:
             main_text = f"Am recomandat {food.name.lower()} pentru valoarea sa nutrițională."
         if not has_lab_data and "deficit" in main_text.lower():
@@ -70,8 +88,14 @@ class ExplanationGenerator:
                 f"Am recomandat {food.name.lower()} pentru profilul său nutritiv "
                 "și compatibilitatea cu nevoile tale generale."
             )
-        
-        # Scurte bullet-uri, fără a repeta paragraful principal (evită dublarea în UI)
+
+        factual = self._rdi_portion_sentence(
+            food, user, portion, nutrients_covered, deficits or {}
+        )
+        if factual:
+            main_text = main_text.rstrip().rstrip(".")
+            main_text = f"{main_text}. {factual}"
+
         reasons = []
         if is_fallback_profile_based:
             if has_lab_data:
@@ -87,21 +111,20 @@ class ExplanationGenerator:
             reasons.append("Recomandare informată de profilul tău și valorile disponibile din analize medicale.")
         else:
             reasons.append("Recomandare bazată pe profilul tău și modelul estimativ de necesar nutrițional.")
-        
+
         tips = self._generate_tips_from_rules(matched_rules, food, user)
         tips.extend(self._clinical_priority_tips(user, main_text))
-        # dedupe, păstrează ordinea
         tips = list(dict.fromkeys(tips))
         if not tips:
             tips = ["Poți integra acest aliment în mesele zilnice pentru un echilibru nutrițional mai bun."]
         alternatives = self._generate_alternatives(food, user)
-        
+
         return {
-            'text': main_text,
-            'portion': portion,
-            'reasons': reasons,
-            'tips': tips,
-            'alternatives': alternatives if alternatives else None
+            "text": main_text,
+            "portion": portion,
+            "reasons": reasons,
+            "tips": tips,
+            "alternatives": alternatives if alternatives else None,
         }
 
     def _clinical_priority_tips(self, user: Optional[UserProfile], main_text: str) -> List[str]:
@@ -123,86 +146,174 @@ class ExplanationGenerator:
                     "la nevoie, urmează recomandarea medicală pentru suplimentare."
                 )
         return out
-    
+
+    def _food_nutrient_value(self, food: FoodItem, nutrient: str) -> float:
+        m = {
+            "iron": food.iron,
+            "calcium": food.calcium,
+            "vitamin_d": food.vitamin_d,
+            "vitamin_b12": food.vitamin_b12,
+            "magnesium": food.magnesium,
+            "protein": food.protein,
+            "zinc": food.zinc,
+            "folate": getattr(food, "folate", None),
+            "vitamin_a": getattr(food, "vitamin_a", None),
+            "vitamin_c": food.vitamin_c,
+            "iodine": getattr(food, "iodine", None),
+            "vitamin_k": getattr(food, "vitamin_k", None),
+            "potassium": getattr(food, "potassium", None),
+        }
+        v = m.get(nutrient)
+        try:
+            return float(v) if v is not None else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _rdi_reference_amount(self, nutrient: str, rdi: float) -> float:
+        """Același reper ca la compararea din motor: vitamina D în catalog = µg/100g, VNR model = UI/zi."""
+        if nutrient == "vitamin_d" and rdi > 0:
+            return rdi / 40.0
+        return rdi
+
+    def _format_amount_for_nutrient(self, nutrient: str, amount: float) -> str:
+        if amount <= 0:
+            return "0"
+        if nutrient == "protein":
+            return f"{amount:.1f} g"
+        if nutrient in ("vitamin_b12", "folate", "vitamin_a", "iodine", "vitamin_k"):
+            return f"{amount:.1f} μg"
+        if nutrient == "vitamin_d":
+            return f"{amount:.1f} μg"
+        if nutrient in ("iron", "calcium", "magnesium", "zinc", "vitamin_c"):
+            return f"{amount:.1f} mg"
+        if nutrient == "potassium":
+            return f"{amount:.0f} mg"
+        return f"{amount:.1f}"
+
+    def _rdi_portion_sentence(
+        self,
+        food: FoodItem,
+        user: UserProfile,
+        portion: int,
+        nutrients_covered: Optional[List[str]],
+        deficits: Dict[str, float],
+    ) -> str:
+        """Propoziție scurtă cu cantități la porție și % față de VNR în model (DeficitCalculator)."""
+        calc = DeficitCalculator()
+        keys = list(nutrients_covered or [])
+        # Strict: afișăm doar nutrienți cu deficit modelat > 0 (nevoia pacientului), nu „bonus” din motor.
+        keys = [k for k in keys if (deficits.get(k, 0) or 0) > 0]
+        if not keys:
+            keys = [k for k, v in sorted(deficits.items(), key=lambda x: -x[1]) if v and v > 0]
+        seen = set()
+        ordered = []
+        for k in keys:
+            if k in seen:
+                continue
+            if k not in self.NUTRIENT_LABELS_RO:
+                continue
+            seen.add(k)
+            ordered.append(k)
+        ordered = [k for k in ordered if self._food_nutrient_value(food, k) > 0][:4]
+        if not ordered:
+            return ""
+
+        parts: List[str] = []
+        for n in ordered:
+            v100 = self._food_nutrient_value(food, n)
+            rdi = calc.get_rdi(n, user)
+            ref = self._rdi_reference_amount(n, rdi)
+            if ref <= 0:
+                continue
+            at_portion = v100 * float(portion) / 100.0
+            pct = min(100.0, (at_portion / ref) * 100.0)
+            label = self.NUTRIENT_LABELS_RO.get(n, n)
+            amt = self._format_amount_for_nutrient(n, at_portion)
+            parts.append(
+                f"**{label}**: la ~{portion} g aprox. **{amt}** (~**{pct:.0f}%** din reperul zilnic folosit în model pentru {label})"
+            )
+        if not parts:
+            return ""
+        return (
+            "La porția orientativă din catalog (raportat la deficitele estimate în model pentru tine): "
+            + "; ".join(parts)
+            + ". Valorile per 100 g provin din baza de date a aplicației (orientativ, nu înlocuiesc sfatul medical)."
+        )
+
     def _generate_traditional_explanation(
         self,
         food: FoodItem,
         user: UserProfile,
         deficits: Dict[str, float],
         score: float,
-        coverage: float
+        coverage: float,
     ) -> Dict:
-        """Generează explicație tradițională (fallback)"""
         portion = self._estimate_portion_by_category(food, user)
-        reasons = []
-        tips = []
-        alternatives = []
-        
+        reasons: List[str] = []
+        tips: List[str] = []
+        alternatives: List[str] = []
+
         top_nutrients = self._get_top_nutrients(food, deficits)
-        main_text = f"Am recomandat {food.name.lower()} pentru că "
-        
-        nutrient_descriptions = []
-        for nutrient, value in top_nutrients:
-            nutrient_ro = self.nutrient_names.get(nutrient, nutrient)
-            portion_value = (value * portion) / 100
-            deficit = deficits.get(nutrient, 0)
-            if deficit > 0:
-                coverage_pct = min(100, (portion_value / deficit) * 100)
-                nutrient_descriptions.append(
-                    f"conține {value:.1f} mg {nutrient_ro} per 100g, "
-                    f"iar o porție de {portion}g îți oferă aproximativ {portion_value:.1f} mg, "
-                    f"acoperind {coverage_pct:.1f}% din deficitul tău zilnic estimat ({deficit:.1f} mg)"
+        calc = DeficitCalculator()
+
+        if top_nutrients:
+            intro = f"Pentru **{food.name}**, în modelul actual de necesități nutriționale, contează în special: "
+            detail_parts: List[str] = []
+            for nutrient, value_per_100 in top_nutrients:
+                label = self.NUTRIENT_LABELS_RO.get(nutrient, nutrient)
+                at_portion = value_per_100 * float(portion) / 100.0
+                rdi = calc.get_rdi(nutrient, user)
+                ref = self._rdi_reference_amount(nutrient, rdi)
+                pct = min(100.0, (at_portion / ref) * 100.0) if ref > 0 else 0.0
+                amt = self._format_amount_for_nutrient(nutrient, at_portion)
+                detail_parts.append(
+                    f"**{label}** (~**{amt}** la ~{portion} g, adică ~**{pct:.0f}%** din reperul zilnic din model pentru {label})"
                 )
-        
-        main_text += "; ".join(nutrient_descriptions) + "."
-        
-        for nutrient, value in top_nutrients[:3]:
-            nutrient_ro = self.nutrient_names.get(nutrient, nutrient)
-            reasons.append(f"Conține {value:.1f} mg {nutrient_ro} per 100g")
-            
-            deficit = deficits.get(nutrient, 0)
-            if deficit > 0:
-                portion_value = (value * portion) / 100
-                coverage_pct = min(100, (portion_value / deficit) * 100)
-                reasons.append(
-                    f"O porție de {portion}g acoperă {coverage_pct:.1f}% din deficitul tău de {nutrient_ro}"
-                )
-        
-        if user.diet_type == 'vegan':
+            main_text = intro + "; ".join(detail_parts) + "."
+        else:
+            main_text = (
+                f"**{food.name}** este propus(ă) ca opțiune compatibilă cu profilul și restricțiile tale, "
+                f"cu acoperire orientativă în model de ~**{coverage:.0f}%** pentru țintele curente."
+            )
+
+        for nutrient, value_per_100 in top_nutrients[:3]:
+            label = self.NUTRIENT_LABELS_RO.get(nutrient, nutrient)
+            reasons.append(
+                f"Conține ~{self._format_amount_for_nutrient(nutrient, value_per_100)} {label} per 100 g (date catalog)."
+            )
+
+        if user.diet_type == "vegan":
             reasons.append("Compatibil cu regim vegan")
-        elif user.diet_type == 'vegetarian':
+        elif user.diet_type == "vegetarian":
             reasons.append("Compatibil cu regim vegetarian")
-        
+
         if user.medical_conditions:
-            conditions = [c.strip().lower() for c in user.medical_conditions.split(',')]
-            if 'rinichi' in str(conditions) or 'oxalati' in str(conditions):
-                if 'spanac' in food.name.lower() or 'rabarbar' in food.name.lower():
-                    reasons.append("⚠️ Exclus dacă ai probleme cu rinichii (oxalați ridicați)")
-        
-        if food.iron > 1.0:
-            tips.append("Sfat: Combină-l cu vitamina C (ex: lămâie) pentru absorbție mai bună a fierului!")
-        
-        if food.calcium > 50:
-            tips.append("Sfat: Evită consumul simultan cu alimente bogate în fier, pentru o absorbție optimă!")
-        
-        if food.vitamin_d > 0:
-            tips.append("Sfat: Expunerea la soare (10-15 minute zilnic) ajută la sinteza vitaminei D!")
-        
-        if food.category == 'legume':
+            conditions = [c.strip().lower() for c in user.medical_conditions.split(",")]
+            if "rinichi" in str(conditions) or "oxalati" in str(conditions):
+                if "spanac" in food.name.lower() or "rabarbar" in food.name.lower():
+                    reasons.append("Atenție: poate fi nepotrivit dacă ai restricții legate de oxalați/rinichi.")
+
+        if food.iron and food.iron > 1.0:
+            tips.append("Sfat: combină cu surse de vitamina C (ex. ardei, citrice) pentru absorbție mai bună a fierului.")
+        if food.calcium and food.calcium > 50:
+            tips.append("Sfat: separă temporal consumul foarte bogat în calciu de cel foarte bogat în fier, dacă e cazul.")
+        if food.vitamin_d and food.vitamin_d > 0:
+            tips.append("Sfat: expunerea solară moderată contribuie la sinteza vitaminei D; urmează recomandările medicale.")
+
+        if food.category == "legume":
             alternatives.append("Dacă nu-ți place, încearcă alte legume verzi: linte, fasole, mazăre")
-        elif food.category == 'carne':
+        elif food.category == "carne":
             alternatives.append(self._meat_alternatives_line(user))
-        
+
         return {
-            'text': main_text,
-            'portion': portion,
-            'reasons': reasons,
-            'tips': tips if tips else None,
-            'alternatives': alternatives if alternatives else None
+            "text": main_text,
+            "portion": portion,
+            "reasons": reasons,
+            "tips": tips if tips else None,
+            "alternatives": alternatives if alternatives else None,
         }
 
     def _estimate_portion_by_category(self, food: FoodItem, user: Optional[UserProfile] = None) -> int:
-        """Porție orientativă în grame, diferențiată pe categorii alimentare."""
         category = self._normalize_category(food.category or "")
         portions = {
             "peste & fructe de mare": 130,
@@ -231,46 +342,34 @@ class ExplanationGenerator:
     def _normalize_category(self, value: str) -> str:
         raw = (value or "").strip().lower()
         return unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
-    
-    def _get_top_nutrients(self, food: FoodItem, deficits: Dict[str, float]) -> List[tuple]:
-        """Identifică nutrienții principali din aliment care corespund deficitelor"""
-        nutrient_values = {
-            'iron': food.iron,
-            'calcium': food.calcium,
-            'vitamin_d': food.vitamin_d / 40,  # Normalizează
-            'vitamin_b12': food.vitamin_b12,
-            'magnesium': food.magnesium,
-            'protein': food.protein,
-            'zinc': food.zinc
-        }
-        
-        relevance = []
-        for nutrient, value in nutrient_values.items():
-            deficit = deficits.get(nutrient, 0)
-            if deficit > 0 and value > 0:
-                relevance.append((nutrient, value, value * deficit))
-        
+
+    def _get_top_nutrients(self, food: FoodItem, deficits: Dict[str, float]) -> List[Tuple[str, float]]:
+        """Nutrienți din aliment care se suprapun cu deficitele modelate, sortați după relevanță."""
+        keys = list(self.NUTRIENT_LABELS_RO.keys())
+        relevance: List[Tuple[str, float, float]] = []
+        for nutrient in keys:
+            deficit = deficits.get(nutrient, 0) or 0
+            if deficit <= 0:
+                continue
+            value = self._food_nutrient_value(food, nutrient)
+            if value <= 0:
+                continue
+            relevance.append((nutrient, value, value * deficit))
         relevance.sort(key=lambda x: x[2], reverse=True)
-        return [(nutrient, value) for nutrient, value, _ in relevance[:3]]
-    
+        return [(a, b) for a, b, _ in relevance[:4]]
+
     def _generate_tips_from_rules(
         self, matched_rules: List[str], food: FoodItem, user: Optional[UserProfile] = None
     ) -> List[str]:
-        """Generează sfaturi bazate pe regulile care s-au potrivit și pe aliment"""
-        tips = []
-        
+        tips: List[str] = []
         if food.iron and food.iron > 1.0:
             tips.append("Combină cu vitamina C (lămâie, ardei) pentru absorbție mai bună a fierului.")
-        
         if food.calcium and food.calcium > 50:
             tips.append("Evită consumul simultan cu alimente foarte bogate în fier, pentru absorbție optimă.")
-        
         if food.vitamin_d and food.vitamin_d > 0:
-            tips.append("Expunerea la soare (10-15 min zilnic) ajută la sinteza vitaminei D.")
-        
+            tips.append("Expunerea la soare (10–15 min zilnic) poate ajuta la sinteza vitaminei D.")
         if food.magnesium and food.magnesium > 50:
             tips.append(self._magnesium_combo_tip(user))
-        
         return tips
 
     def _allergy_fish_egg(self, user: Optional[UserProfile]) -> Tuple[bool, bool]:
@@ -316,15 +415,11 @@ class ExplanationGenerator:
         return f"{base}, leguminoase sau tofu (dacă ți se potrivesc)"
 
     def _generate_alternatives(self, food: FoodItem, user: Optional[UserProfile] = None) -> List[str]:
-        """Generează alternative similare pentru aliment"""
-        alternatives = []
-        
-        if food.category == 'legume':
+        alternatives: List[str] = []
+        if food.category == "legume":
             alternatives.append("Dacă nu-ți place, încearcă alte legume verzi: linte, fasole, mazăre")
-        elif food.category == 'carne':
+        elif food.category == "carne":
             alternatives.append(self._meat_alternatives_line(user))
-        elif food.category == 'lactate':
+        elif food.category == "lactate":
             alternatives.append("Alternative: iaurt, brânză, lapte")
-        
         return alternatives
-

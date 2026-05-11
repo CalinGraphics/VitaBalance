@@ -11,7 +11,7 @@ class DeficitCalculator:
     # nutrienți, îl tratăm ca „necunoscut” și NU estimăm deficit din dietă.
     LAB_BACKED_NUTRIENTS = {
         'iron', 'calcium', 'vitamin_d', 'vitamin_b12', 'magnesium',
-        'protein', 'zinc', 'folate', 'vitamin_a', 'iodine', 'vitamin_k', 'potassium'
+        'protein', 'zinc', 'folate', 'vitamin_a', 'vitamin_c', 'iodine', 'vitamin_k', 'potassium'
     }
 
     RDI_TABLES = {
@@ -121,7 +121,7 @@ class DeficitCalculator:
 
     def _user_likely_pregnant(self, user: UserProfile) -> bool:
         blob = normalize_clinical_text(
-            f"{user.medical_conditions or ''} {getattr(user, 'bio', None) or ''}"
+            f"{user.medical_conditions or ''}"
         )
         if not blob:
             return False
@@ -468,7 +468,7 @@ class DeficitCalculator:
             'iodine': lab_results.iodine if hasattr(lab_results, 'iodine') else None,
             'vitamin_k': lab_results.vitamin_k if hasattr(lab_results, 'vitamin_k') else None,
             'potassium': lab_results.potassium if hasattr(lab_results, 'potassium') else None,
-            'vitamin_c': None  # Nu este în modelul LabResult, va folosi estimare
+            'vitamin_c': lab_results.vitamin_c if hasattr(lab_results, 'vitamin_c') else None,
         }
         return mapping.get(nutrient)
     
@@ -483,6 +483,7 @@ class DeficitCalculator:
             'zinc': {'threshold': 70.0, 'unit': 'mcg_dl'},
             'folate': {'threshold': 3.0, 'unit': 'ng_ml'},
             'vitamin_a': {'threshold': 20.0, 'unit': 'mcg_dl'},
+            'vitamin_c': {'threshold': 23.0, 'unit': 'umol_l'},
             'iodine': {'threshold': 100.0, 'unit': 'mcg_l'},
             'potassium': {'threshold': 3.5, 'unit': 'mmol_l'},
         }

@@ -90,6 +90,23 @@ class DeficitCalculatorProfileTests(unittest.TestCase):
         deficits = self.calc.calculate_deficits(user, labs)
         self.assertEqual(deficits.get("vitamin_c", 0), 0)
 
+    def test_vitamin_c_low_plasma_triggers_deficit(self):
+        user = make_user(sex="M", diet_type="omnivore")
+        labs = LabResultItem(
+            id=20,
+            user_id=1,
+            calcium=9.2,
+            vitamin_d=34.0,
+            vitamin_b12=430.0,
+            protein=6.4,
+            zinc=96.0,
+            magnesium=2.0,
+            ferritin=52.0,
+            vitamin_c=10.0,
+        )
+        deficits = self.calc.calculate_deficits(user, labs)
+        self.assertGreater(deficits.get("vitamin_c", 0), 0)
+
     def test_with_labs_explicit_vitamin_c_need_keeps_priority(self):
         user = make_user(
             sex="M",

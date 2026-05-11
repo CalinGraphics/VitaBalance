@@ -40,6 +40,9 @@ yarn-error.log*
 frontend/dist/
 frontend/.vite/
 
+# Agent skills instalate local (npx skills add) — nu versionăm copii generate
+.agents/
+
 # IDE
 .vscode/
 .idea/

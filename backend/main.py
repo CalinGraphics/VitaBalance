@@ -50,13 +50,17 @@ async def global_exception_handler(request, exc):
     """Asigură că orice excepție neprinsă returnează JSON cu detail, nu HTML."""
     from fastapi.responses import JSONResponse
     import traceback
+
     traceback.print_exc()
     if isinstance(exc, HTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"Eroare server: {str(exc)}"},
+    cfg = get_settings()
+    detail = (
+        f"Eroare server: {str(exc)}"
+        if cfg.debug
+        else "Eroare la procesare. Încearcă din nou; dacă persistă, contactează suportul."
     )
+    return JSONResponse(status_code=500, content={"detail": detail})
 
 
 settings = get_settings()
@@ -125,20 +129,23 @@ async def health_check(settings=Depends(get_settings)):
     }
 
 
-@app.get("/debug/rule-engine")
-async def debug_rule_engine():
-    try:
-        from services import rule_engine as re_mod
-        src = inspect.getsource(re_mod.NutritionalRuleEngine.evaluate_food)
-        src_hash = hashlib.md5(src.encode("utf-8")).hexdigest()
-        return {
-            "module_file": getattr(re_mod, "__file__", None),
-            "module_mtime": os.path.getmtime(re_mod.__file__) if getattr(re_mod, "__file__", None) else None,
-            "evaluate_food_md5": src_hash,
-            "evaluate_food_first_line": src.splitlines()[0] if src else None,
-        }
-    except Exception as e:
-        return {"error": str(e)}
+if settings.debug:
+
+    @app.get("/debug/rule-engine")
+    async def debug_rule_engine():
+        try:
+            from services import rule_engine as re_mod
+
+            src = inspect.getsource(re_mod.NutritionalRuleEngine.evaluate_food)
+            src_hash = hashlib.md5(src.encode("utf-8")).hexdigest()
+            return {
+                "module_file": getattr(re_mod, "__file__", None),
+                "module_mtime": os.path.getmtime(re_mod.__file__) if getattr(re_mod, "__file__", None) else None,
+                "evaluate_food_md5": src_hash,
+                "evaluate_food_first_line": src.splitlines()[0] if src else None,
+            }
+        except Exception as e:
+            return {"error": str(e)}
 
 
 @app.get("/config")
@@ -156,13 +163,11 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     fullName: str
-    bio: Optional[str] = None
 
 
 class AuthResponse(BaseModel):
     email: str
     fullName: str
-    bio: str
     access_token: Optional[str] = None
     token_type: str = "bearer"
 
@@ -183,7 +188,6 @@ class MagicLinkResponse(BaseModel):
 class VerifyMagicLinkResponse(BaseModel):
     email: str
     fullName: str
-    bio: str
     access_token: str
     token_type: str = "bearer"
 
@@ -255,7 +259,6 @@ async def api_verify_magic_link(body: MagicLinkVerifyRequest):
     return VerifyMagicLinkResponse(
         email=result["email"],
         fullName=result["fullName"],
-        bio=result["bio"],
         access_token=result["access_token"],
         token_type=result.get("token_type", "bearer"),
     )
@@ -268,11 +271,9 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     repo = UserRepository()
     profile = repo.get_by_email(current_user["email"])
     full_name = profile.name if profile else current_user.get("email", "")
-    bio = (profile.bio or "") if profile else ""
     return AuthResponse(
         email=current_user["email"],
         fullName=full_name,
-        bio=bio,
     )
 
 
@@ -358,7 +359,6 @@ async def login(credentials: LoginRequest):
     return AuthResponse(
         email=user["email"],
         fullName=user["fullName"],
-        bio=user["bio"],
         access_token=access_token,
         token_type="bearer",
     )
@@ -382,7 +382,6 @@ async def register(user_data: RegisterRequest):
             email=user_data.email.strip(),
             password=user_data.password,
             fullName=user_data.fullName.strip(),
-            bio=user_data.bio.strip() if user_data.bio else None,
         )
         from services.auth import create_access_token
         access_token = create_access_token({"sub": new_user["email"], "email": new_user["email"]})
@@ -390,7 +389,6 @@ async def register(user_data: RegisterRequest):
         return AuthResponse(
             email=new_user.get("email") or user_data.email,
             fullName=new_user.get("fullName") or user_data.fullName,
-            bio=new_user.get("bio") or "",
             access_token=access_token,
             token_type="bearer",
         )
@@ -496,6 +494,7 @@ async def create_lab_results(lab_result: LabResultCreate, current_user: dict = D
     return LabResultResponse(
         id=created.id,
         user_id=created.user_id,
+        user_email=created.user_email or "",
         hemoglobin=created.hemoglobin,
         ferritin=created.ferritin,
         vitamin_d=created.vitamin_d,
@@ -506,11 +505,13 @@ async def create_lab_results(lab_result: LabResultCreate, current_user: dict = D
         protein=created.protein,
         folate=created.folate,
         vitamin_a=created.vitamin_a,
+        vitamin_c=created.vitamin_c,
         iodine=created.iodine,
         vitamin_k=created.vitamin_k,
         potassium=created.potassium,
         notes=created.notes,
         created_at=created.created_at,
+        updated_at=getattr(created, "updated_at", None) or created.created_at,
     )
 
 
@@ -523,6 +524,7 @@ async def get_lab_results(user_id: int, current_user: dict = Depends(get_current
         LabResultResponse(
             id=x.id,
             user_id=x.user_id,
+            user_email=x.user_email or "",
             hemoglobin=x.hemoglobin,
             ferritin=x.ferritin,
             vitamin_d=x.vitamin_d,
@@ -533,11 +535,13 @@ async def get_lab_results(user_id: int, current_user: dict = Depends(get_current
             protein=x.protein,
             folate=x.folate,
             vitamin_a=x.vitamin_a,
+            vitamin_c=x.vitamin_c,
             iodine=x.iodine,
             vitamin_k=x.vitamin_k,
             potassium=x.potassium,
             notes=x.notes,
             created_at=x.created_at,
+            updated_at=getattr(x, "updated_at", None) or x.created_at,
         )
         for x in items
     ]
@@ -582,12 +586,14 @@ async def get_recommendations(
 
 @app.get("/api/recommendations/sync-meta/{user_id}")
 async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(get_current_user)):
-    """Pentru polling: compară updated_at utilizator cu created_at la ultima recomandare."""
+    """Pentru polling: compară profil + analize (max created/updated la labs) cu created_at la recomandări."""
     _ensure_user_resource(current_user, user_id)
     urepo = UserRepository()
     rrepo = RecommendationRepository()
+    lrepo = LabResultRepository()
     u = urepo.get_by_id(user_id)
     first = rrepo.get_first_by_user_id(user_id)
+    labs = lrepo.get_latest_by_user_id(user_id)
 
     def iso(v):
         if v is None:
@@ -596,9 +602,31 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
             return v.isoformat()
         return str(v)
 
+    def _parse_ts(v):
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            s = v.replace("Z", "+00:00")
+            try:
+                return datetime.fromisoformat(s)
+            except Exception:
+                return None
+        return None
+
+    labs_fresh_at = None
+    if labs is not None:
+        ca = _parse_ts(getattr(labs, "created_at", None))
+        ua = _parse_ts(getattr(labs, "updated_at", None))
+        candidates = [t for t in (ca, ua) if t is not None]
+        if candidates:
+            labs_fresh_at = max(candidates)
+
     return {
         "user_updated_at": iso(getattr(u, "updated_at", None)) if u else None,
         "latest_rec_created_at": iso(getattr(first, "created_at", None)) if first else None,
+        "labs_fresh_at": iso(labs_fresh_at) if labs_fresh_at else None,
     }
 
 
@@ -673,7 +701,7 @@ async def audit_recommendations_quality(
     if lab_results is not None:
         for key in [
             "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
-            "protein", "zinc", "folate", "vitamin_a", "iodine", "vitamin_k", "potassium"
+            "protein", "zinc", "folate", "vitamin_a", "vitamin_c", "iodine", "vitamin_k", "potassium"
         ]:
             if getattr(lab_results, key, None) is not None:
                 has_lab_data = True

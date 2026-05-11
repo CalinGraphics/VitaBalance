@@ -76,7 +76,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
             email: form.email.trim(),
             password: form.password,
             fullName: form.fullName.trim(),
-            bio: 'Spune lumii cine ești.',
           }),
         });
 
@@ -120,7 +119,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
           {
             fullName: user.fullName,
             email: user.email,
-            bio: user.bio,
             avatarUrl: null,
           },
           user.access_token
@@ -152,8 +150,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
           Cont nou <span className="text-neonMagenta">VitaBalance</span>
         </h2>
         <p className="text-base sm:text-sm text-slate-300 leading-relaxed">
-          Personalizează-ți profilul cu un avatar, bio și date de contact,
-          toate într-un ambient neon futurist.
+          Completează profilul medical și analizele într-un flux simplu, cu un ambient neon futurist.
         </p>
       </motion.div>
 

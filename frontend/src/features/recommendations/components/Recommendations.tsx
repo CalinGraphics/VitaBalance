@@ -32,13 +32,19 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
-/** Recomandările din DB sunt la zi față de profil (folosit cu GET sync-meta). */
-function syncMetaIsFresh(meta: { user_updated_at: string | null; latest_rec_created_at: string | null }) {
+/** Recomandările din DB sunt la zi față de profil și/sau analize (GET sync-meta). */
+function syncMetaIsFresh(meta: {
+  user_updated_at: string | null
+  latest_rec_created_at: string | null
+  labs_fresh_at?: string | null
+}) {
   if (!meta.latest_rec_created_at) return false
-  if (!meta.user_updated_at) return true
-  return (
-    new Date(meta.latest_rec_created_at).getTime() >= new Date(meta.user_updated_at).getTime()
-  )
+  const rec = new Date(meta.latest_rec_created_at).getTime()
+  const profileT = meta.user_updated_at ? new Date(meta.user_updated_at).getTime() : 0
+  const labT = meta.labs_fresh_at ? new Date(meta.labs_fresh_at).getTime() : 0
+  const needRefreshIfAfter = Math.max(profileT, labT)
+  if (needRefreshIfAfter === 0) return true
+  return rec >= needRefreshIfAfter
 }
 
 function isHttp404(err: unknown): boolean {
@@ -107,7 +113,11 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         const pollDeadline = Date.now() + SYNC_POLL_MAX_MS
         while (Date.now() < pollDeadline) {
           if (fetchId !== latestFetchIdRef.current) return
-          let meta: { user_updated_at: string | null; latest_rec_created_at: string | null }
+          let meta: {
+            user_updated_at: string | null
+            latest_rec_created_at: string | null
+            labs_fresh_at?: string | null
+          }
           try {
             meta = await recommendationsService.getSyncMeta(user.id)
           } catch (metaErr) {

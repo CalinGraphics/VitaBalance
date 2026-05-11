@@ -40,8 +40,9 @@ class LabResultBase(BaseModel):
     # Nutrienți suplimentari conform tabelului
     folate: Optional[float] = None  # ng/mL (B9)
     vitamin_a: Optional[float] = None  # μg/dL
+    vitamin_c: Optional[float] = None  # μmol/L (acid ascorbic plasmatic)
     iodine: Optional[float] = None  # μg/L
-    vitamin_k: Optional[float] = None  # PT/INR (indirect)
+    vitamin_k: Optional[float] = None  # ng/mL (vit. K1 / filochinonă, dacă e raportat)
     potassium: Optional[float] = None  # mmol/L
     notes: Optional[str] = None
 
@@ -55,8 +56,10 @@ class LabResultExtractFromTextRequest(BaseModel):
 
 class LabResultResponse(LabResultBase):
     id: int
+    user_email: str = ""
     created_at: datetime
-    
+    updated_at: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 

@@ -17,7 +17,6 @@ export interface User {
 export interface AuthUser {
   fullName: string
   email: string
-  bio: string
   avatarUrl: string | null
 }
 

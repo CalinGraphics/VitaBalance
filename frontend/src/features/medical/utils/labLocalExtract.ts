@@ -14,6 +14,7 @@ export type LabKey =
   | 'protein'
   | 'folate'
   | 'vitamin_a'
+  | 'vitamin_c'
   | 'iodine'
   | 'vitamin_k'
   | 'potassium'
@@ -29,6 +30,7 @@ export const LAB_KEYS: LabKey[] = [
   'protein',
   'folate',
   'vitamin_a',
+  'vitamin_c',
   'iodine',
   'vitamin_k',
   'potassium',
@@ -136,6 +138,9 @@ export function extractLabValuesFromTextLocal(text: string): Partial<Record<LabK
       /\b(?:folat|folate|acid\s*folic|folic\s*acid|vit(?:\.)?\s*b9|vitamina\s*b9)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
     ]),
     vitamin_a: pickFirst([/\b(?:vit(?:\.)?\s*a|vitamina\s*a|retinol)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
+    vitamin_c: pickFirst([
+      /\b(?:vit(?:\.)?\s*c|vitamina\s*c|acid\s*ascorbic|ascorbic)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,
+    ]),
     iodine: pickFirst([/\b(?:iod|iodine|iodina)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i]),
     vitamin_k: pickFirst([
       /\b(?:vit(?:\.)?\s*k|vitamina\s*k|phylloquinone|filochinona)\b\s*[:-]?\s*(\d+(?:[.,]\d+)?)/i,

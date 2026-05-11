@@ -3,8 +3,25 @@ Configurație aplicație folosind Pydantic Settings
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List
+import base64
+import json
 import os
 from dotenv import load_dotenv
+
+
+def _supabase_key_role(supabase_key: str) -> Optional[str]:
+    """Citește claim-ul `role` din JWT-ul Supabase (fără verificare semnătură — doar diagnostic)."""
+    try:
+        parts = (supabase_key or "").strip().split(".")
+        if len(parts) < 2:
+            return None
+        payload_b64 = parts[1]
+        padded = payload_b64 + "=" * (-len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded))
+        role = payload.get("role")
+        return str(role) if role is not None else None
+    except Exception:
+        return None
 
 # Încarcă variabilele de mediu din .env
 load_dotenv()
@@ -94,6 +111,21 @@ class Settings(BaseSettings):
                 "[Config] WARNING: JWT_SECRET este pe valoarea implicită. "
                 "Setează un secret dedicat per mediu."
             )
+
+        if self.supabase_url and self.supabase_key:
+            role = _supabase_key_role(self.supabase_key)
+            if role == "anon":
+                raise ValueError(
+                    "SUPABASE_KEY folosește rolul «anon» — RLS din Supabase blochează INSERT/UPDATE "
+                    "(ex.: tabela magic_links, 42501). Pe server folosește cheia «service_role» "
+                    "(Project Settings → API → service_role secret). Nu expune această cheie în "
+                    "frontend sau în repo; rămâne doar în variabilele de mediu ale backend-ului."
+                )
+            if role and role not in ("service_role",):
+                print(
+                    f"[Config] WARNING: SUPABASE_KEY are rol JWT «{role}». "
+                    "Backend-ul VitaBalance presupune «service_role» pentru a ocoli RLS pe tabele interne."
+                )
 
 
 # Instanță globală de settings

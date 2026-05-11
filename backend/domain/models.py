@@ -22,7 +22,6 @@ class UserProfile:
     medical_conditions: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    bio: Optional[str] = None
 
 
 @dataclass
@@ -57,6 +56,7 @@ class FoodItem:
 class LabResultItem:
     id: int
     user_id: int
+    user_email: Optional[str] = None
     hemoglobin: Optional[float] = None
     ferritin: Optional[float] = None
     vitamin_d: Optional[float] = None
@@ -67,11 +67,13 @@ class LabResultItem:
     protein: Optional[float] = None
     folate: Optional[float] = None
     vitamin_a: Optional[float] = None
+    vitamin_c: Optional[float] = None
     iodine: Optional[float] = None
     vitamin_k: Optional[float] = None
     potassium: Optional[float] = None
     notes: Optional[str] = None
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 @dataclass
@@ -121,7 +123,6 @@ def row_to_user(row: dict) -> UserProfile:
         medical_conditions=row.get("medical_conditions"),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
-        bio=row.get("bio"),
     )
 
 
@@ -159,6 +160,7 @@ def row_to_lab_result(row: dict) -> LabResultItem:
     return LabResultItem(
         id=row["id"],
         user_id=row["user_id"],
+        user_email=row.get("user_email"),
         hemoglobin=row.get("hemoglobin"),
         ferritin=row.get("ferritin"),
         vitamin_d=row.get("vitamin_d"),
@@ -169,11 +171,13 @@ def row_to_lab_result(row: dict) -> LabResultItem:
         protein=row.get("protein"),
         folate=row.get("folate"),
         vitamin_a=row.get("vitamin_a"),
+        vitamin_c=row.get("vitamin_c"),
         iodine=row.get("iodine"),
         vitamin_k=row.get("vitamin_k"),
         potassium=row.get("potassium"),
         notes=row.get("notes"),
         created_at=row.get("created_at"),
+        updated_at=row.get("updated_at"),
     )
 
 

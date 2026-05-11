@@ -1,5 +1,4 @@
--- Rulare în Supabase SQL Editor — doar coloană profil.
--- (Completări vechi pentru image_url / text „nedeclarat” au fost retrase; vezi `003_schema_cleanup_rls.sql`.)
+-- Istoric: adăuga users.bio. Coloana a fost retrasă prin 006_lab_results_user_email_drop_bio.sql.
+-- Nu executa ADD bio pe instalări noi (evită ciclu add/drop). Pentru catalog foods vezi 003.
 
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bio text;
-COMMENT ON COLUMN public.users.bio IS 'Text opțional profil / notițe utilizator.';
+SELECT 1;

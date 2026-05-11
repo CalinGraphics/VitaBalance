@@ -584,6 +584,16 @@ class ScopedRulesEngine:
                         f"vitamina B12 din analize este {biomarker_value:.1f} pg/mL "
                         f"(sub {rule.clinical_threshold:g} pg/mL)"
                     )
+            elif rule.nutrient == NutrientType.VITAMIN_C:
+                if (
+                    biomarker_value is not None
+                    and rule.clinical_threshold is not None
+                    and biomarker_value < rule.clinical_threshold
+                ):
+                    biomarker_text = (
+                        f"vitamina C din analize este {biomarker_value:.1f} μmol/L "
+                        f"(sub {rule.clinical_threshold:g} μmol/L)"
+                    )
             elif biomarker_value is not None:
                 if rule.nutrient == NutrientType.CALCIUM:
                     biomarker_text = f"nivelul tău de calciu este scăzut (< {rule.clinical_threshold} mg/dL)"
@@ -680,7 +690,9 @@ class ScopedRulesEngine:
             NutrientType.VITAMIN_B12: lab_results.vitamin_b12,
             NutrientType.FOLATE: lab_results.folate,
             NutrientType.VITAMIN_A: lab_results.vitamin_a,
+            NutrientType.VITAMIN_C: lab_results.vitamin_c,
             NutrientType.IODINE: lab_results.iodine,
+            NutrientType.VITAMIN_K: lab_results.vitamin_k,
             NutrientType.POTASSIUM: lab_results.potassium,
         }
         return mapping.get(nutrient)

@@ -105,7 +105,6 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
             return {
                 "email": user.get('email'),
                 "fullName": user.get('name') or "",
-                "bio": user.get('bio', '') or "",
             }
         
         return None
@@ -114,7 +113,7 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
         return None
 
 
-def create_user(email: str, password: str, fullName: str, bio: Optional[str] = None) -> Dict:
+def create_user(email: str, password: str, fullName: str) -> Dict:
     """
     Creează un utilizator nou în Supabase
     
@@ -148,13 +147,10 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         # Creează utilizatorul nou
         password_hash = get_password_hash(password)
         
-        # Construiește datele utilizatorului
-        bio_val_insert = (bio.strip() if bio else "") or ""
         new_user_data = {
             "email": email.strip(),
             "password_hash": password_hash,
             "name": fullName.strip(),
-            "bio": bio_val_insert,
         }
         
         try:
@@ -172,11 +168,9 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         created_user = response.data[0]
         email_val = created_user.get('email') or email.strip()
         full_name_val = created_user.get('name') or fullName.strip()
-        bio_val = created_user.get('bio') or bio_val_insert
         return {
             "email": email_val,
             "fullName": full_name_val,
-            "bio": bio_val,
         }
     except ValueError:
         raise
@@ -241,12 +235,10 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
             logging.getLogger(__name__).exception("Eroare la crearea user la verify_magic_link")
             user_profile = None
     full_name = user_profile.name if user_profile else ""
-    bio = (user_profile.bio or "") if user_profile else ""
     access_token = create_access_token({"sub": email, "email": email})
     return {
         "email": email,
         "fullName": full_name,
-        "bio": bio,
         "access_token": access_token,
         "token_type": "bearer",
     }

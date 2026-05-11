@@ -97,7 +97,13 @@ def materialize_recommendations(
     if not force_regenerate and existing is not None:
         rec_dt = _to_dt(getattr(existing, "created_at", None))
         if lab_results is not None:
-            lab_dt = _to_dt(getattr(lab_results, "created_at", None))
+            lab_ca = _to_dt(getattr(lab_results, "created_at", None))
+            lab_ua = _to_dt(getattr(lab_results, "updated_at", None))
+            lab_dt = lab_ca
+            if lab_ca is not None and lab_ua is not None:
+                lab_dt = max(lab_ca, lab_ua)
+            elif lab_ua is not None:
+                lab_dt = lab_ua
             if lab_dt and (rec_dt is None or lab_dt > rec_dt):
                 should_generate = True
         user_dt = _to_dt(getattr(user, "updated_at", None))
@@ -131,7 +137,7 @@ def materialize_recommendations(
     if lab_results is not None:
         for key in [
             "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
-            "protein", "zinc", "folate", "vitamin_a", "iodine", "vitamin_k", "potassium",
+            "protein", "zinc", "folate", "vitamin_a", "vitamin_c", "iodine", "vitamin_k", "potassium",
         ]:
             if getattr(lab_results, key, None) is not None:
                 has_lab_data = True
@@ -170,6 +176,7 @@ def materialize_recommendations(
                     explanations=rec_list[0].get("explanations"),
                     matched_rules=rec_list[0].get("matched_rules"),
                     has_lab_data=has_lab_data,
+                    nutrients_covered=rec_list[0].get("nutrients_covered"),
                 )
                 rec_repo.insert_many(
                     [
@@ -248,6 +255,7 @@ def materialize_recommendations(
                 explanations=rec.get("explanations"),
                 matched_rules=rec.get("matched_rules"),
                 has_lab_data=has_lab_data,
+                nutrients_covered=rec.get("nutrients_covered"),
             )
             to_insert.append(
                 {
@@ -278,6 +286,7 @@ def materialize_recommendations(
                     explanations=orig.get("explanations"),
                     matched_rules=orig.get("matched_rules"),
                     has_lab_data=has_lab_data,
+                    nutrients_covered=orig.get("nutrients_covered"),
                 )
                 counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
                 recommendations.append(
@@ -352,6 +361,7 @@ def materialize_recommendations(
                 explanations=rec.get("explanations"),
                 matched_rules=rec.get("matched_rules"),
                 has_lab_data=has_lab_data,
+                nutrients_covered=rec.get("nutrients_covered"),
             )
             to_insert.append(
                 {
@@ -381,6 +391,7 @@ def materialize_recommendations(
                 explanations=orig.get("explanations"),
                 matched_rules=orig.get("matched_rules"),
                 has_lab_data=has_lab_data,
+                nutrients_covered=orig.get("nutrients_covered"),
             )
             counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append(

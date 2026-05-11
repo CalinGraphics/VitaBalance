@@ -274,6 +274,27 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertIn("feritin", text.lower())
         self.assertNotIn("feritină < 30", text.lower())
 
+    def test_vitamin_c_explanation_uses_plasma_umol(self):
+        from services.scoped_rules import ScopedRulesEngine, ScopedRule, NutrientType, ScopeType
+
+        eng = ScopedRulesEngine()
+        rule = ScopedRule(
+            nutrient=NutrientType.VITAMIN_C,
+            scope=ScopeType.SMOKER,
+            weight=1.0,
+            recommended_foods=["citrice"],
+            explanation_template="Pentru că fumezi, recomandăm {foods}.",
+            clinical_threshold=23.0,
+        )
+        labs = LabResultItem(id=1, user_id=1, vitamin_c=10.0)
+        user = make_user()
+        food = make_food(name="Ardei", category="legume", vitamin_c=90.0)
+        text = eng._generate_explanation(rule, food, 90.0, 5.0, labs, user)
+        low = text.lower()
+        self.assertIn("vitamina c", low)
+        self.assertIn("10.0", text)
+        self.assertTrue("μmol/l" in low or "umol/l" in low)
+
     def test_fallback_reason_with_lab_data_does_not_claim_no_deficits(self):
         gen = ExplanationGenerator()
         user = make_user(diet_type="vegan")
