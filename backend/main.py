@@ -340,13 +340,12 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
         raise HTTPException(status_code=403, detail="Poți actualiza doar propriul profil")
     try:
         repo = UserRepository()
-        rec_repo = RecommendationRepository()
         existing = repo.get_by_email(user.email)
         allergies_val = user.allergies or ""
         medical_val = user.medical_conditions or ""
         if existing:
-            # Dacă se schimbă oricare dintre datele care influențează recomandările,
-            # invalidăm recomandările curente ca să fie regenerate pe noile valori.
+            # Date care influențează motorul de recomandări – la schimbare setăm updated_at
+            # (vezi POST /recommendations) fără a bloca acest request cu ștergeri/regenerări.
             old_snapshot = {
                 "age": existing.age,
                 "sex": existing.sex,
@@ -367,8 +366,9 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
                 "allergies": allergies_val,
                 "medical_conditions": medical_val,
             }
-            if old_snapshot != new_snapshot:
-                rec_repo.delete_by_user_id(existing.id)
+            snapshot_changed = old_snapshot != new_snapshot
+            # Nu ștergem recomandările aici (răspuns API rapid). Regenerarea se face în
+            # POST /recommendations când updated_at e mai nou decât created_at la recomandări.
             updated = repo.upsert(
                 user.email,
                 name=user.name,
@@ -381,6 +381,7 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
                 allergies=allergies_val,
                 medical_conditions=medical_val,
                 user_id=existing.id,
+                bump_updated_at=snapshot_changed,
             )
         else:
             updated = repo.upsert(
@@ -394,6 +395,7 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
                 diet_type=user.diet_type,
                 allergies=allergies_val,
                 medical_conditions=medical_val,
+                bump_updated_at=True,
             )
         return _profile_to_response(updated)
     except ValueError as e:
@@ -546,12 +548,16 @@ async def get_recommendations(
                 return None
         return None
 
-    # Dacă user-ul și-a actualizat analizele după ce s-au generat recomandările,
-    # regenerează automat ca să reflecte valorile medicale curente.
-    if not force_regenerate and existing is not None and lab_results is not None:
+    # Recomandări depășite: analize mai noi decât generarea curentă, sau profil
+    # (updated_at) mai nou decât recomandările – fără nevoie de force_regenerate din client.
+    if not force_regenerate and existing is not None:
         rec_dt = _to_dt(getattr(existing, "created_at", None))
-        lab_dt = _to_dt(getattr(lab_results, "created_at", None))
-        if lab_dt and (rec_dt is None or lab_dt > rec_dt):
+        if lab_results is not None:
+            lab_dt = _to_dt(getattr(lab_results, "created_at", None))
+            if lab_dt and (rec_dt is None or lab_dt > rec_dt):
+                should_generate = True
+        user_dt = _to_dt(getattr(user, "updated_at", None))
+        if user_dt and (rec_dt is None or user_dt > rec_dt):
             should_generate = True
 
     # Înlocuire unei recomandări (după dislike + "Da, schimb-o")
@@ -605,10 +611,7 @@ async def get_recommendations(
             feedback_by_food=feedback_by_food,
         )
         if not rec_list and settings.openfoodfacts_enabled and not settings.openfoodfacts_blocking_mode:
-            # Dacă verdictul extern pentru alergeni ascunși nu era încă disponibil,
-            # oferim un retry scurt pentru a stabiliza răspunsul la prima regenerare.
-            import time
-            time.sleep(min(max(settings.openfoodfacts_timeout_seconds, 0.15), 0.6))
+            # A doua încercare imediată (fără sleep): cache-ul poate fi populat între timp în background.
             rec_list = recommender.generate_recommendations(
                 user=user,
                 deficits=deficits,
@@ -678,10 +681,6 @@ async def get_recommendations(
             feedback_by_food=feedback_by_food,
         )
         if not rec_list and settings.openfoodfacts_enabled and not settings.openfoodfacts_blocking_mode:
-            # Retry scurt după warmup API pentru a evita situațiile în care prima rulare
-            # e prea conservatoare, iar a doua rulare (imediat după) ar produce rezultate diferite.
-            import time
-            time.sleep(min(max(settings.openfoodfacts_timeout_seconds, 0.15), 0.6))
             rec_list = recommender.generate_recommendations(
                 user=user,
                 deficits=deficits,

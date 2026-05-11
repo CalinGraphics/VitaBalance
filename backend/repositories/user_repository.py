@@ -1,6 +1,7 @@
 """
 User profile data access – Supabase only.
 """
+from datetime import datetime, timezone
 from typing import Optional, List
 from supabase import Client
 
@@ -40,6 +41,7 @@ class UserRepository:
         allergies: Optional[str] = None,
         medical_conditions: Optional[str] = None,
         user_id: Optional[int] = None,
+        bump_updated_at: bool = True,
     ) -> UserProfile:
         row = {
             "email": email,
@@ -53,6 +55,8 @@ class UserRepository:
             "allergies": allergies if allergies is not None else "",
             "medical_conditions": medical_conditions if medical_conditions is not None else "",
         }
+        if bump_updated_at:
+            row["updated_at"] = datetime.now(timezone.utc).isoformat()
         if user_id is not None:
             resp = self._client.table(self.TABLE).update(row).eq("id", user_id).execute()
         else:

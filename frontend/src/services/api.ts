@@ -8,8 +8,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 /** Cereri standard (profil, analize, feedback). */
 const DEFAULT_TIMEOUT_MS = 45_000
-/** Generare recomandări poate depăși 60s la cold start / logică grea. */
-const LONG_OPERATION_TIMEOUT_MS = 180_000
+/** Recomandări: sub limita tipică de proxy (~60s); evităm așteptări foarte lungi în UI. */
+const LONG_OPERATION_TIMEOUT_MS = 55_000
 
 const api = axios.create({
   baseURL: API_BASE_URL,

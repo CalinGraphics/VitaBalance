@@ -132,7 +132,9 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       refreshKey > 0 &&
       refreshKey !== previousRefreshKeyRef.current
 
-    fetchRecommendations(hasProfileChanged || refreshKeyChanged)
+    // force_regenerate doar la „Încearcă din nou”; backend decide regenerarea din
+    // profil (updated_at) / analize / lipsă recomandări.
+    void fetchRecommendations(false)
 
     if (hasProfileChanged) {
       prevUserValuesRef.current = {
