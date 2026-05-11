@@ -40,7 +40,7 @@ interface RecommendationCardProps {
     my_rating?: number | null
   }
   index: number
-  userId: number
+  userId?: number
   onFeedbackSent?: (recId: number, rating: number, newLikes: number, newDislikes: number) => void
   onReplaceRequested?: (recId: number) => Promise<void>
 }

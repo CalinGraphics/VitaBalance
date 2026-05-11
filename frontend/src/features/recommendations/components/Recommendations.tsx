@@ -252,14 +252,16 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   )
   const handleReplaceRequested = useCallback(
     async (recId: number) => {
-      const data = await recommendationsService.replace(userId, recId)
+      const uid = user.id
+      if (uid == null) return
+      const data = await recommendationsService.replace(uid, recId)
       if (Array.isArray(data) && data.length > 0) {
         setRecommendations(data)
       } else {
         await fetchRecommendations(false)
       }
     },
-    [fetchRecommendations, userId]
+    [fetchRecommendations, user.id]
   )
 
   return (
