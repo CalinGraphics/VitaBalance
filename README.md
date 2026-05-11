@@ -74,6 +74,50 @@ Interfața este disponibilă la **http://localhost:3000**.
 | `RESEND_API_KEY` | Nu | Pentru trimitere magic link pe email; în lipsa lui, linkul apare în consolă |
 | `RESEND_FROM_EMAIL` | Nu | Adresa expeditor pentru email |
 | `FRONTEND_BASE_URL` | Nu | URL-ul frontend-ului (ex.: `http://localhost:3000`) |
+| `CORS_ORIGINS` | Nu | Origini permise, separate prin virgulă (implicit localhost:3000 și :5173) |
+| `CORS_ALLOW_ALL` | Nu | Dacă `true`, permite orice origin (doar depanare; în producție lasă `false`) |
+| `RATE_LIMIT_ENABLED` | Nu | Implicit `true`; setează `false` doar în dev dacă testezi multe cereri |
+| `RATE_LIMIT_AUTH_PER_MIN` | Nu | Limită cereri `/api/auth/*` pe minut per IP (implicit 24) |
+| `RATE_LIMIT_RECOMMENDATIONS_PER_MIN` | Nu | Limită `/api/recommendations*` pe minut per IP (implicit 45) |
+
+---
+
+## Performanță și UX (faza finală)
+
+- **Prefetch**: `GET /api/recommendations/stored/{user_id}` returnează rapid recomandările din baza de date; frontend-ul le afișează înainte de `POST /api/recommendations` (regenerare).
+- **Catalog alimente**: cache în memorie TTL pentru `FoodRepository.get_all()` (reduce apeluri Supabase repetate).
+- **Motor**: pre-filtrare alimente incompatibile cu profilul înainte de evaluarea costisitoare a regulilor.
+- **Indexuri DB**: vezi [backend/migrations/001_recommendations_indexes.sql](backend/migrations/001_recommendations_indexes.sql).
+- **Deploy / timeout proxy**: vezi [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- **Regenerare asincronă (scalare)**: vezi [docs/ASYNC_RECOMMENDATIONS.md](docs/ASYNC_RECOMMENDATIONS.md).
+- **Audit catalog**: [docs/CATALOG_AUDIT_CHECKLIST.md](docs/CATALOG_AUDIT_CHECKLIST.md).
+- **Validare clinică / limitări**: [docs/CLINICAL_VALIDATION.md](docs/CLINICAL_VALIDATION.md).
+
+### Flux date (rezumat)
+
+```mermaid
+flowchart LR
+  profile[Profil_si_analize]
+  deficits[DeficitCalculator]
+  rules[RuleEngines]
+  recs[Recomandari_DB]
+  ui[Frontend]
+  profile --> deficits --> rules --> recs
+  recs --> ui
+```
+
+### Metrici orientative (măsurare locală)
+
+| Etapă | Observație |
+|--------|-------------|
+| `GET /recommendations/stored` | Depinde de latența Supabase; tipic sub 1–2 s |
+| `POST /recommendations` (regenerare) | Depinde de numărul de alimente și CPU; poate depăși 30–60 s la cataloage mari |
+
+### Personae demo (pentru filmare / comisie)
+
+1. **Omnivor + intoleranță lactoză** — verifică filtrarea lactatelor și mesajele de explicație.
+2. **Vegan + deficit B12 din analize** — verifică prioritatea B12 și surse fortificate.
+3. **Profil cu observații în câmpul analizelor** — verifică integrarea textului clinic în restricții.
 
 ---
 

@@ -29,37 +29,20 @@ export const useAppNavigation = () => {
 
   const handleLogin = useCallback(async (loggedUser: AuthUser, accessToken?: string) => {
     if (accessToken) setToken(accessToken)
-    if (import.meta.env.DEV) {
-      console.log('handleLogin called with:', loggedUser)
-    }
     setIsLoading(true)
     setAuthUser(loggedUser)
     
     try {
       // Verifică dacă utilizatorul are deja profil medical
       try {
-        if (import.meta.env.DEV) {
-          console.log('Caută profil pentru email:', loggedUser.email)
-        }
-        
         const existingProfile = await profileService.getByEmail(loggedUser.email)
-        
-        if (import.meta.env.DEV) {
-          console.log('Profil găsit:', existingProfile)
-        }
         
         if (hasCompleteMedicalProfile(existingProfile)) {
           // Are deja profil complet, merge direct la recomandări
-          if (import.meta.env.DEV) {
-            console.log('Profil complet găsit, mergem la recommendations')
-          }
           setMedicalUser(existingProfile)
           setRoute('recommendations')
         } else {
           // Nu are profil complet (sau e utilizator nou creat automat) – merge la crearea profilului
-          if (import.meta.env.DEV) {
-            console.log('Profil inexistent sau incomplet, mergem la medical-profile')
-          }
           setMedicalUser(null)
           setRoute('medical-profile')
         }
@@ -67,14 +50,8 @@ export const useAppNavigation = () => {
         const statusCode = isAxiosError(error)
           ? error.response?.status
           : (error as { status?: number }).status
-        if (import.meta.env.DEV) {
-          console.log('Eroare la căutarea profilului, status:', statusCode, error)
-        }
         if (statusCode === 404) {
           // Nu are profil, merge la crearea profilului
-          if (import.meta.env.DEV) {
-            console.log('Utilizatorul nu are profil medical (404), va crea unul nou')
-          }
           setRoute('medical-profile')
         } else {
           // Altă eroare - loghează și merge la crearea profilului

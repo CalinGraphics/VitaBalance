@@ -21,11 +21,6 @@ function App() {
     handleLogout,
   } = useAppNavigation()
 
-  // Debug logging only in development
-  if (import.meta.env.DEV) {
-    console.log('App render - Route:', route, 'AuthUser:', !!authUser, 'MedicalUser:', !!medicalUser, 'Loading:', isLoading)
-  }
-
   return (
     <ThemeProvider>
       <Layout 

@@ -51,3 +51,22 @@ export function extractErrorMessage(error: unknown): string {
   }
   return 'A apărut o eroare neașteptată'
 }
+
+/** Mesaje prietenoase pentru ecranul de recomandări (timeout, gateway, rețea). */
+export function humanizeRecommendationClientError(error: unknown): string {
+  const base = extractErrorMessage(error)
+  const lower = base.toLowerCase()
+  if (lower.includes('timeout') || lower.includes('exceeded')) {
+    return 'Serverul a răspuns prea lent (timeout). Reîncearcă sau verifică conexiunea; recomandările se regenerează după modificarea profilului.'
+  }
+  if (lower.includes('network') || lower.includes('econnrefused') || lower.includes('err_network')) {
+    return 'Nu s-a putut contacta serverul. Verifică dacă API-ul rulează și conexiunea la internet.'
+  }
+  if (base.includes('504') || lower.includes('gateway')) {
+    return 'Gateway timeout (504): proxy-ul sau hosting-ul a întrerupt cererea prea devreme. Mărește timeout-ul la proxy sau reîncearcă.'
+  }
+  if (base.includes('502') || base.includes('503')) {
+    return 'Server temporar indisponibil (502/503). Reîncearcă peste câteva momente.'
+  }
+  return base
+}

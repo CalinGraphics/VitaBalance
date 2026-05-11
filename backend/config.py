@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     
     # CORS Origins (poate fi string separată prin virgulă sau listă)
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+    # Dacă true, permite orice origin (doar dev / depanare). În producție lasă false.
+    cors_allow_all: bool = os.getenv("CORS_ALLOW_ALL", "false").lower() in ("1", "true", "yes")
+
+    # Rate limit în memorie (per proces) — dezactivează cu RATE_LIMIT_ENABLED=false
+    rate_limit_enabled: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in ("1", "true", "yes")
+    rate_limit_auth_per_min: int = int(os.getenv("RATE_LIMIT_AUTH_PER_MIN", "24"))
+    rate_limit_recommendations_per_min: int = int(os.getenv("RATE_LIMIT_RECOMMENDATIONS_PER_MIN", "45"))
 
     # Food intelligence API (OpenFoodFacts) – opțional, pentru reducerea hardcodării la alergeni ascunși
     # Activ implicit: rulare continuă cu strategie non-blocantă + cache în memorie.

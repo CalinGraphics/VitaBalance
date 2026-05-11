@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { UtensilsCrossed, Download } from 'lucide-react'
+import { UtensilsCrossed, Download, Loader2 } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
 import { recommendationsService } from '../../../services/api'
 import type { User } from '../../../shared/types'
@@ -8,6 +8,7 @@ import RecommendationCard from './RecommendationCard'
 import NutrientChart from './NutrientChart'
 import UserProfileInfo from './UserProfileInfo'
 import type { Recommendation } from '../types'
+import { humanizeRecommendationClientError } from '../../../shared/utils/apiErrors'
 
 interface RecommendationsProps {
   user: User
@@ -22,17 +23,30 @@ interface ApiErrorDetail {
   }
 }
 
+const FETCH_DEBOUNCE_MS = 320
+const SYNC_POLL_INTERVAL_MS = 1200
+const SYNC_POLL_MAX_MS = 120000
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+/** Recomandările din DB sunt la zi față de profil (folosit cu GET sync-meta). */
+function syncMetaIsFresh(meta: { user_updated_at: string | null; latest_rec_created_at: string | null }) {
+  if (!meta.latest_rec_created_at) return false
+  if (!meta.user_updated_at) return true
+  return (
+    new Date(meta.latest_rec_created_at).getTime() >= new Date(meta.user_updated_at).getTime()
+  )
+}
+
 const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
-  // Debug logging only in development
-  if (import.meta.env.DEV) {
-    console.log('Recommendations component render - user:', user)
-  }
-  
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(10)
   const [selectedCategory, setSelectedCategory] = useState<'all' | string>('all')
+  const [regeneratingAfterProfile, setRegeneratingAfterProfile] = useState(false)
   const latestFetchIdRef = useRef(0)
   const prevUserValuesRef = useRef({
     diet_type: user.diet_type,
@@ -45,73 +59,100 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     height: user.height,
   })
   const previousRefreshKeyRef = useRef<number | undefined>(refreshKey)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchRecommendations = useCallback(async (forceRegenerate: boolean = false) => {
     const fetchId = ++latestFetchIdRef.current
+    let preloadedFromDb = false
     try {
-      if (import.meta.env.DEV) {
-        console.log('fetchRecommendations called for user.id:', user.id, 'forceRegenerate:', forceRegenerate)
-      }
-      setLoading(true)
-      setError(null)
       if (!user.id) {
-        console.error('User id lipsește la generarea recomandărilor')
         if (fetchId !== latestFetchIdRef.current) return
         setError('ID-ul utilizatorului lipsește. Vă rugăm să vă conectați din nou.')
         setLoading(false)
+        setRegeneratingAfterProfile(false)
         return
       }
-      
-      const data = await recommendationsService.get(user.id, forceRegenerate)
-      if (import.meta.env.DEV) {
-        console.log('Recomandări primite:', data)
+
+      setError(null)
+
+      try {
+        const stored = await recommendationsService.listStored(user.id)
+        if (fetchId !== latestFetchIdRef.current) return
+        if (Array.isArray(stored) && stored.length > 0) {
+          setRecommendations(stored as Recommendation[])
+          preloadedFromDb = true
+          setLoading(false)
+          setRegeneratingAfterProfile(true)
+        }
+      } catch {
+        /* listStored e opțional */
       }
-      
+
+      if (!preloadedFromDb) {
+        setLoading(true)
+        setRegeneratingAfterProfile(false)
+      }
+
+      await recommendationsService.startRefreshAsync(user.id, forceRegenerate)
+      if (fetchId !== latestFetchIdRef.current) return
+
+      const pollDeadline = Date.now() + SYNC_POLL_MAX_MS
+      while (Date.now() < pollDeadline) {
+        if (fetchId !== latestFetchIdRef.current) return
+        const meta = await recommendationsService.getSyncMeta(user.id)
+        if (fetchId !== latestFetchIdRef.current) return
+        if (syncMetaIsFresh(meta)) break
+        await sleep(SYNC_POLL_INTERVAL_MS)
+      }
+
+      const data = await recommendationsService.listStored(user.id)
+
       if (fetchId !== latestFetchIdRef.current) return
       if (Array.isArray(data) && data.length > 0) {
-        setRecommendations(data)
+        setRecommendations(data as Recommendation[])
         setSelectedCategory('all')
         setVisibleCount(Math.min(10, data.length))
         setError(null)
       } else {
-        if (import.meta.env.DEV) {
-          console.log('Nu s-au găsit recomandări sau array-ul este gol')
-        }
         setError('Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele medicale.')
         setRecommendations([])
       }
     } catch (err: unknown) {
       console.error('Eroare la obținerea recomandărilor:', err)
-      // Extrage mesajul de eroare - axios interceptor-ul ar trebui să-l extragă deja
-      let errorMessage = 'Nu s-au putut genera recomandări. Vă rugăm să încercați din nou.'
+      let errorMessage = humanizeRecommendationClientError(err)
       const apiError = err as ApiErrorDetail
 
-      if (err instanceof Error && err.message) {
-        errorMessage = err.message
-      } else if (apiError?.response?.data?.detail) {
-        const detail = apiError.response.data.detail
-        if (typeof detail === 'string') {
-          errorMessage = detail
-        } else if (Array.isArray(detail)) {
-          errorMessage = detail
-            .map((e) =>
-              typeof e === 'object' && e !== null && 'msg' in e
-                ? String((e as { msg?: unknown }).msg ?? JSON.stringify(e))
-                : JSON.stringify(e)
-            )
-            .join('; ')
-        } else if (typeof detail === 'object') {
-          const detailObj = detail as { msg?: unknown; message?: unknown }
-          errorMessage = String(detailObj.msg || detailObj.message || JSON.stringify(detail))
+      if (!errorMessage || errorMessage === 'A apărut o eroare neașteptată') {
+        if (err instanceof Error && err.message) {
+          errorMessage = humanizeRecommendationClientError(err)
+        } else if (apiError?.response?.data?.detail) {
+          const detail = apiError.response.data.detail
+          if (typeof detail === 'string') {
+            errorMessage = detail
+          } else if (Array.isArray(detail)) {
+            errorMessage = detail
+              .map((e) =>
+                typeof e === 'object' && e !== null && 'msg' in e
+                  ? String((e as { msg?: unknown }).msg ?? JSON.stringify(e))
+                  : JSON.stringify(e)
+              )
+              .join('; ')
+          } else if (typeof detail === 'object') {
+            const detailObj = detail as { msg?: unknown; message?: unknown }
+            errorMessage = String(detailObj.msg || detailObj.message || JSON.stringify(detail))
+          }
         }
       }
-      
+
       if (fetchId !== latestFetchIdRef.current) return
       setError(errorMessage)
-      setRecommendations([])
+      if (!preloadedFromDb) {
+        setRecommendations([])
+      }
     } finally {
       if (fetchId === latestFetchIdRef.current) {
         setLoading(false)
+        setRegeneratingAfterProfile(false)
       }
     }
   }, [user.id])
@@ -132,9 +173,12 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       refreshKey > 0 &&
       refreshKey !== previousRefreshKeyRef.current
 
-    // force_regenerate doar la „Încearcă din nou”; backend decide regenerarea din
-    // profil (updated_at) / analize / lipsă recomandări.
-    void fetchRecommendations(false)
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+    debounceRef.current = setTimeout(() => {
+      void fetchRecommendations(false)
+    }, FETCH_DEBOUNCE_MS)
 
     if (hasProfileChanged) {
       prevUserValuesRef.current = {
@@ -152,6 +196,13 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       previousRefreshKeyRef.current = refreshKey
       setVisibleCount(10)
     }
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+        debounceRef.current = null
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     user.id,
@@ -163,9 +214,10 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     user.sex,
     user.weight,
     user.height,
+    user.updated_at,
     refreshKey,
+    fetchRecommendations,
   ])
-
 
   const exportToPDF = useCallback(() => {
     void import('../pdf/exportRecommendationPdf').then(({ downloadRecommendationPdf }) =>
@@ -235,7 +287,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       if (uid == null) return
       const data = await recommendationsService.replace(uid, recId)
       if (Array.isArray(data) && data.length > 0) {
-        setRecommendations(data)
+        setRecommendations(data as Recommendation[])
       } else {
         await fetchRecommendations(false)
       }
@@ -243,9 +295,11 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     [fetchRecommendations, user.id]
   )
 
+  const showFullPageLoader = loading && recommendations.length === 0
+  const showInlineRegenerating = regeneratingAfterProfile && recommendations.length > 0
+
   return (
     <div className="space-y-8">
-      {/* Date profil utilizator */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -253,7 +307,18 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         <UserProfileInfo user={user} />
       </motion.div>
 
-      {/* Graficul ocupă aceeași lățime ca și cardul de profil utilizator */}
+      {showInlineRegenerating && (
+        <GlassCard className="border border-neonCyan/30 bg-neonCyan/5">
+          <div className="flex flex-wrap items-center gap-3 text-slate-200 text-sm">
+            <Loader2 className="w-5 h-5 text-neonCyan shrink-0 animate-spin" aria-hidden />
+            <p>
+              <span className="font-semibold text-neonCyan">Se actualizează recomandările</span> după modificarea
+              profilului sau analizelor. Poți vedea mai jos lista anterioară până la finalizare.
+            </p>
+          </div>
+        </GlassCard>
+      )}
+
       {recommendations.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -328,7 +393,6 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         </GlassCard>
       )}
 
-      {/* Cardurile individuale de recomandări */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-stretch">
         {mainRecommendations.map((rec, index) => (
           <div key={`${rec.recommendation_id}-${rec.food_id}`} className="w-full flex">
@@ -372,22 +436,19 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         </div>
       )}
 
-      {loading && (
+      {showFullPageLoader && (
         <GlassCard className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neonCyan mb-4"></div>
-          <p className="text-slate-300 text-lg">
-            Se încarcă recomandările...
-          </p>
+          <p className="text-slate-300 text-lg">Se încarcă recomandările...</p>
         </GlassCard>
       )}
 
       {!loading && error && (
         <GlassCard className="text-center py-12">
-          <p className="text-red-400 text-lg mb-4">
-            {error}
-          </p>
+          <p className="text-red-400 text-lg mb-4">{error}</p>
           <button
-            onClick={() => fetchRecommendations(true)}
+            type="button"
+            onClick={() => void fetchRecommendations(true)}
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-3 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition touch-manipulation"
           >
             Încearcă din nou
@@ -407,4 +468,3 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 }
 
 export default Recommendations
-

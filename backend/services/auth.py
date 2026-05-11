@@ -23,16 +23,6 @@ pwd_context = CryptContext(
 )
 
 
-def _build_magic_link_url(token: str) -> str:
-    settings = get_settings()
-    base = (settings.frontend_base_url or "").strip().rstrip("/")
-    if not base:
-        raise RuntimeError("FRONTEND_BASE_URL nu este configurat.")
-    if not (base.startswith("http://") or base.startswith("https://")):
-        raise RuntimeError("FRONTEND_BASE_URL invalid. Trebuie să înceapă cu http:// sau https://.")
-    return f"{base}/?token={token}"
-
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     password_bytes = plain_password.encode('utf-8')
     if len(password_bytes) > 72:
@@ -220,47 +210,19 @@ def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
 
 
 # ---------- Magic Link ----------
-def request_magic_link(email: str, full_name: Optional[str] = None) -> bool:
-    """
-    Generează token magic, îl salvează, trimite email.
-    full_name este ignorat; folosim doar coloana `name` din users.
-    Returnează True dacă request-ul a fost procesat.
-    """
-    email = email.strip().lower()
-    if not email:
-        return False
-
-    from repositories.magic_link_repository import create_token
-    from services.email_service import send_magic_link_email
-
-    token = create_token(email)
-    link_url = _build_magic_link_url(token)
-
-    # send_magic_link_email va ridica RuntimeError cu mesaj clar în caz de problemă.
-    send_magic_link_email(email, link_url)
-    return True
-
-
 def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
     """
     Validează tokenul magic, îl invalidează, creează user dacă nu există, returnează user info + access_token.
     Returnează None dacă token invalid/expirat/folosit.
     """
+    import logging
+
     from repositories.magic_link_repository import consume_token
     from repositories import UserRepository
     from supabase_client import get_supabase_client
-    # Debug logging pentru a înțelege de ce unele token-uri eșuează în dev
-    try:
-        print(f"[MagicLink] verify_magic_link: primit token={token}")
-    except Exception:
-        pass
 
     data = consume_token(token)
     if not data:
-        try:
-            print(f"[MagicLink] verify_magic_link: token invalid/expirat/deja folosit: {token}")
-        except Exception:
-            pass
         return None
     email = data["email"]
     repo = UserRepository()
@@ -274,16 +236,12 @@ def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
                 "name": email.split("@")[0],
             }).execute()
             user_profile = repo.get_by_email(email)
-        except Exception as e:
-            print("Eroare la crearea user la verify_magic_link:", e)
+        except Exception:
+            logging.getLogger(__name__).exception("Eroare la crearea user la verify_magic_link")
             user_profile = None
     full_name = user_profile.name if user_profile else ""
     bio = (user_profile.bio or "") if user_profile else ""
     access_token = create_access_token({"sub": email, "email": email})
-    try:
-        print(f"[MagicLink] verify_magic_link: succes pentru {email}")
-    except Exception:
-        pass
     return {
         "email": email,
         "fullName": full_name,

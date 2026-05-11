@@ -8,8 +8,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 /** Cereri standard (profil, analize, feedback). */
 const DEFAULT_TIMEOUT_MS = 45_000
-/** Recomandări: sub limita tipică de proxy (~60s); evităm așteptări foarte lungi în UI. */
-const LONG_OPERATION_TIMEOUT_MS = 55_000
+/** POST sincron la /recommendations (ex. înlocuire aliment) poate dura mai mult. */
+const LONG_OPERATION_TIMEOUT_MS = 120_000
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -119,35 +119,33 @@ export const labResultsService = {
 }
 
 export const recommendationsService = {
-  get: async (
-    userId: number,
-    forceRegenerate: boolean = false,
-    opts?: { replaceRecommendationId?: number }
-  ) => {
-    const body: Record<string, unknown> = { user_id: userId }
-    if (opts?.replaceRecommendationId) {
-      body.replace_recommendation_id = opts.replaceRecommendationId
-    }
-    const response = await api.post(
-      `/recommendations?force_regenerate=${forceRegenerate}`,
-      body
-    )
+  /** Citire rapidă din DB (fără regenerare) — pentru afișare imediată înainte de POST. */
+  listStored: async (userId: number) => {
+    const response = await api.get(`/recommendations/stored/${userId}`)
     return response.data
+  },
+  /** Pentru polling: compară updated_at profil vs ultima recomandare materializată. */
+  getSyncMeta: async (userId: number) => {
+    const response = await api.get(`/recommendations/sync-meta/${userId}`, { timeout: 15000 })
+    return response.data as {
+      user_updated_at: string | null
+      latest_rec_created_at: string | null
+    }
+  },
+  /** Pornește regenerarea în background; răspuns rapid (nu așteaptă motorul). */
+  startRefreshAsync: async (userId: number, forceRegenerate = false) => {
+    const response = await api.post(
+      `/recommendations/refresh-async/${userId}?force_regenerate=${forceRegenerate}`,
+      {},
+      { timeout: 30000 }
+    )
+    return response.data as { status?: string; recommendations?: unknown[] }
   },
   replace: async (userId: number, recommendationId: number) => {
     const response = await api.post('/recommendations', {
       user_id: userId,
       replace_recommendation_id: recommendationId,
     })
-    return response.data
-  },
-  regenerate: async (userId: number) => {
-    try {
-      await api.delete(`/recommendations/${userId}`)
-    } catch (err) {
-      console.log('Nu există recomandări de șters:', err)
-    }
-    const response = await api.post('/recommendations', { user_id: userId })
     return response.data
   },
 }

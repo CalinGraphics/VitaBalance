@@ -2,7 +2,7 @@
 VitaBalance API – production-ready.
 Data: Supabase only. Auth: JWT middleware (to be added). No SQLite.
 """
-from fastapi import FastAPI, HTTPException, Depends, Query, BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
@@ -13,7 +13,6 @@ import hashlib
 import os
 
 from config import get_settings
-from routers import supabase as supabase_router
 from schemas import (
     UserCreate,
     UserResponse,
@@ -25,7 +24,6 @@ from schemas import (
 )
 from services.recommender import RecommenderService
 from services.deficit_calculator import DeficitCalculator
-from services.explanation_generator import ExplanationGenerator
 from services.auth import authenticate_user, create_user
 from domain.models import UserProfile
 from repositories import (
@@ -35,8 +33,10 @@ from repositories import (
     RecommendationRepository,
     FeedbackRepository,
 )
-from services.auth import request_magic_link, verify_magic_link
+from services.auth import verify_magic_link
 from middleware.auth import get_current_user
+from middleware.rate_limit import RateLimitMiddleware
+from services.recommendation_materialize import materialize_recommendations
 
 app = FastAPI(
     title="VitaBalance API",
@@ -61,17 +61,20 @@ async def global_exception_handler(request, exc):
 
 settings = get_settings()
 
-# CORS foarte permisiv pentru a evita probleme între Vercel și backend.
-# Pentru producție publică se poate restrânge la o listă fixă de origin-uri.
+_cors_origins = ["*"] if settings.cors_allow_all else settings.get_cors_origins_list()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(supabase_router.router)
+app.add_middleware(
+    RateLimitMiddleware,
+    enabled=settings.rate_limit_enabled,
+    auth_max_per_window=settings.rate_limit_auth_per_min,
+    recommendations_max_per_window=settings.rate_limit_recommendations_per_min,
+)
 
 
 def _profile_to_response(p: UserProfile) -> dict:
@@ -89,6 +92,7 @@ def _profile_to_response(p: UserProfile) -> dict:
         "allergies": p.allergies,
         "medical_conditions": p.medical_conditions,
         "created_at": p.created_at or None,
+        "updated_at": getattr(p, "updated_at", None),
     }
 
 
@@ -100,10 +104,24 @@ async def root():
 
 @app.get("/health")
 async def health_check(settings=Depends(get_settings)):
+    checks: Dict[str, str] = {"app": "ok"}
+    checks["supabase"] = "skipped"
+    if settings.supabase_url and settings.supabase_key:
+        try:
+            from supabase_client import get_supabase_client
+
+            client = get_supabase_client()
+            client.table("users").select("id").limit(1).execute()
+            checks["supabase"] = "ok"
+        except Exception as exc:  # noqa: BLE001
+            checks["supabase"] = "error"
+            if settings.debug:
+                checks["supabase_detail"] = str(exc)[:200]
     return {
         "status": "healthy",
         "app_name": settings.app_name,
         "debug": settings.debug,
+        "checks": checks,
     }
 
 
@@ -205,10 +223,12 @@ async def api_request_magic_link(body: MagicLinkRequest, background_tasks: Backg
             )
 
         def _safe_send():
+            import logging
+
             try:
                 send_magic_link_email(email, link_url)
-            except Exception as e:
-                print("[VitaBalance] Eroare la trimitere magic link (background):", e)
+            except Exception:
+                logging.getLogger(__name__).exception("Eroare la trimitere magic link (background)")
 
         background_tasks.add_task(_safe_send)
         ok = True
@@ -265,6 +285,56 @@ def _ensure_user_resource(current_user: dict, user_id: int) -> UserProfile:
     if profile.id != user_id:
         raise HTTPException(status_code=403, detail="Nu ai acces la această resursă")
     return profile
+
+
+def _stored_recommendations_payload(
+    user_id: int,
+    rec_repo: RecommendationRepository,
+    food_repo: FoodRepository,
+    feedback_repo: FeedbackRepository,
+) -> List[dict]:
+    """Recomandări deja salvate în DB, fără regenerare (rapid pentru GET / UX)."""
+    existing_recs = rec_repo.get_by_user_id(user_id, limit=100)
+    if not existing_recs:
+        return []
+    foods = food_repo.get_all()
+    food_by_id = {f.id: f for f in foods}
+    user_feedbacks = feedback_repo.get_by_user_id(user_id)
+    user_feedback_by_rec = {
+        fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None
+    }
+    recommendations: List[dict] = []
+    for rec in existing_recs[:20]:
+        food = food_by_id.get(rec.food_id)
+        if not food:
+            continue
+        expl = {
+            "text": rec.explanation or "",
+            "portion": float(rec.portion_suggested or 0),
+            "reasons": [],
+            "tips": None,
+            "alternatives": None,
+        }
+        recommendations.append(
+            {
+                "food_id": food.id,
+                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                "score": rec.score,
+                "coverage": rec.coverage_percentage or 0,
+                "explanation": expl,
+                "recommendation_id": rec.id,
+                "feedback": {"likes": 0, "dislikes": 0},
+                "my_rating": user_feedback_by_rec.get(rec.id),
+            }
+        )
+    response_food_ids = [int(r["food_id"]) for r in recommendations if r.get("food_id") is not None]
+    if response_food_ids:
+        counts = feedback_repo.get_counts_by_food_ids(response_food_ids)
+        for rec in recommendations:
+            fid = rec.get("food_id")
+            if fid is not None:
+                rec["feedback"] = counts.get(int(fid), {"likes": 0, "dislikes": 0})
+    return recommendations
 
 
 @app.get("/api/profile/by-email/{email}")
@@ -485,393 +555,85 @@ async def extract_lab_values_from_text(
 
 
 # ---------- Recommendations (Supabase) – protejat ----------
+@app.get("/api/recommendations/stored/{user_id}")
+async def list_stored_recommendations(user_id: int, current_user: dict = Depends(get_current_user)):
+    """Listă rapidă din DB (fără motor de reguli). Folosit de frontend înainte de regenerare."""
+    _ensure_user_resource(current_user, user_id)
+    rec_repo = RecommendationRepository()
+    food_repo = FoodRepository()
+    feedback_repo = FeedbackRepository()
+    return _stored_recommendations_payload(user_id, rec_repo, food_repo, feedback_repo)
+
+
 @app.post("/api/recommendations")
 async def get_recommendations(
     request: RecommendationRequest,
     force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor"),
     current_user: dict = Depends(get_current_user),
 ):
-    _ensure_user_resource(current_user, request.user_id)
-    user_repo = UserRepository()
-    food_repo = FoodRepository()
-    lab_repo = LabResultRepository()
-    rec_repo = RecommendationRepository()
-    feedback_repo = FeedbackRepository()
+    return materialize_recommendations(
+        request.user_id,
+        current_user["email"],
+        force_regenerate,
+        request.replace_recommendation_id,
+        request.exclude_food_ids,
+    )
 
-    user = user_repo.get_by_id(request.user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
 
-    foods = food_repo.get_all()
-    if not foods:
-        # Dacă nu există alimente în baza de date, întoarcem o listă goală.
-        # Frontend-ul va afișa un mesaj prietenos, în loc de eroare 404.
-        return []
-    food_by_id = {f.id: f for f in foods}
+@app.get("/api/recommendations/sync-meta/{user_id}")
+async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(get_current_user)):
+    """Pentru polling: compară updated_at utilizator cu created_at la ultima recomandare."""
+    _ensure_user_resource(current_user, user_id)
+    urepo = UserRepository()
+    rrepo = RecommendationRepository()
+    u = urepo.get_by_id(user_id)
+    first = rrepo.get_first_by_user_id(user_id)
 
-    lab_results = lab_repo.get_latest_by_user_id(request.user_id)
-    user_feedbacks = feedback_repo.get_by_user_id(request.user_id)
-    # Calculăm feedback counts doar pentru alimentele returnate, la final.
-    feedback_counts_by_food: Dict[int, Dict[str, int]] = {}
-    user_feedback_by_rec = {fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None}
-
-    # Build feedback_by_food without N+1 calls to Supabase:
-    # fetch recommendations once, then map in-memory.
-    feedback_by_food: dict = {}
-    existing_recs_for_user = rec_repo.get_by_user_id(request.user_id, limit=100)
-    if user_feedbacks:
-        recs = rec_repo.get_by_user_id(request.user_id, limit=1000)
-        rec_by_id = {r.id: r for r in recs}
-        for fb in user_feedbacks:
-            if fb.recommendation_id is None:
-                continue
-            rec = rec_by_id.get(fb.recommendation_id)
-            if not rec:
-                continue
-            if rec.food_id not in feedback_by_food:
-                feedback_by_food[rec.food_id] = []
-            feedback_by_food[rec.food_id].append(fb)
-
-    existing = rec_repo.get_first_by_user_id(request.user_id)
-    should_generate = force_regenerate or (existing is None)
-
-    def _to_dt(v):
+    def iso(v):
         if v is None:
             return None
         if isinstance(v, datetime):
-            return v
-        if isinstance(v, str):
-            s = v.replace("Z", "+00:00")
-            try:
-                return datetime.fromisoformat(s)
-            except Exception:
-                return None
-        return None
+            return v.isoformat()
+        return str(v)
 
-    # Recomandări depășite: analize mai noi decât generarea curentă, sau profil
-    # (updated_at) mai nou decât recomandările – fără nevoie de force_regenerate din client.
-    if not force_regenerate and existing is not None:
-        rec_dt = _to_dt(getattr(existing, "created_at", None))
-        if lab_results is not None:
-            lab_dt = _to_dt(getattr(lab_results, "created_at", None))
-            if lab_dt and (rec_dt is None or lab_dt > rec_dt):
-                should_generate = True
-        user_dt = _to_dt(getattr(user, "updated_at", None))
-        if user_dt and (rec_dt is None or user_dt > rec_dt):
-            should_generate = True
+    return {
+        "user_updated_at": iso(getattr(u, "updated_at", None)) if u else None,
+        "latest_rec_created_at": iso(getattr(first, "created_at", None)) if first else None,
+    }
 
-    # Înlocuire unei recomandări (după dislike + "Da, schimb-o")
-    exclude_ids = set(request.exclude_food_ids or [])
-    is_replace_only = False
-    if request.replace_recommendation_id:
-        rec_to_replace = next(
-            (r for r in existing_recs_for_user if r.id == request.replace_recommendation_id),
-            None
-        )
-        if rec_to_replace:
-            exclude_ids.add(rec_to_replace.food_id)
-            rec_repo.delete_by_id(request.replace_recommendation_id)
-            is_replace_only = True
 
-    # La înlocuire punctuală („Nu prea” + „Da, schimb-o”), evită să recomandăm
-    # din nou un aliment care este deja în lista de recomandări a utilizatorului.
-    # Astfel prevenim duplicatele de tip „același preparat de mai multe ori”.
-    if is_replace_only:
-        for r in existing_recs_for_user:
-            exclude_ids.add(r.food_id)
+@app.post("/api/recommendations/refresh-async/{user_id}")
+async def recommendations_refresh_async(
+    user_id: int,
+    background_tasks: BackgroundTasks,
+    force_regenerate: bool = Query(False, description="Dacă true, forțează regenerarea ca la Încearcă din nou"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Răspunde imediat; regenerarea rulează în fundal (fără timeout lung în browser)."""
+    _ensure_user_resource(current_user, user_id)
+    rec_repo = RecommendationRepository()
+    food_repo = FoodRepository()
+    feedback_repo = FeedbackRepository()
+    stale = _stored_recommendations_payload(user_id, rec_repo, food_repo, feedback_repo)
 
-    # Dacă trebuie să regenerăm recomandările (profil/analize noi) și nu suntem într-un scenariu
-    # de înlocuire punctuală, ștergem toate recomandările vechi pentru a evita duplicatele.
-    if should_generate and existing is not None and not is_replace_only:
-        rec_repo.delete_by_user_id(request.user_id)
+    owner_email = current_user["email"]
 
-    foods_filtered = [f for f in foods if f.id not in exclude_ids] if exclude_ids else foods
-
-    calculator = DeficitCalculator()
-    deficits = calculator.calculate_deficits(user, lab_results)
-    has_lab_data = False
-    if lab_results is not None:
-        for key in [
-            "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
-            "protein", "zinc", "folate", "vitamin_a", "iodine", "vitamin_k", "potassium"
-        ]:
-            if getattr(lab_results, key, None) is not None:
-                has_lab_data = True
-                break
-
-    recommendations: List[dict] = []
-    if is_replace_only:
-        recommender = RecommenderService()
-        rec_list = recommender.generate_recommendations(
-            user=user,
-            deficits=deficits,
-            foods=foods_filtered,
-            lab_results=lab_results,
-            user_feedbacks=user_feedbacks,
-            feedback_by_food=feedback_by_food,
-        )
-        if not rec_list and settings.openfoodfacts_enabled and not settings.openfoodfacts_blocking_mode:
-            # A doua încercare imediată (fără sleep): cache-ul poate fi populat între timp în background.
-            rec_list = recommender.generate_recommendations(
-                user=user,
-                deficits=deficits,
-                foods=foods_filtered,
-                lab_results=lab_results,
-                user_feedbacks=user_feedbacks,
-                feedback_by_food=feedback_by_food,
+    def _job():
+        try:
+            materialize_recommendations(
+                user_id,
+                owner_email,
+                force_regenerate,
+                None,
+                None,
             )
-        if rec_list:
-            food = next((f for f in foods_filtered if f.id == rec_list[0]["food_id"]), None)
-            if food:
-                explanation_gen = ExplanationGenerator()
-                expl = explanation_gen.generate_explanation(
-                    food=food,
-                    user=user,
-                    deficits=deficits,
-                    score=rec_list[0]["score"],
-                    coverage=rec_list[0]["coverage"],
-                    explanations=rec_list[0].get("explanations"),
-                    matched_rules=rec_list[0].get("matched_rules"),
-                    has_lab_data=has_lab_data,
-                )
-                rec_repo.insert_many([{
-                    "user_id": user.id,
-                    "food_id": food.id,
-                    "score": rec_list[0]["score"],
-                    "explanation": expl["text"],
-                    "portion_suggested": expl["portion"],
-                    "coverage_percentage": rec_list[0]["coverage"],
-                }])
-        existing_recs = rec_repo.get_by_user_id(request.user_id, limit=20)
-        food_by_id = {f.id: f for f in foods}
-        explanation_gen = ExplanationGenerator()
-        for rec in existing_recs:
-            food = food_by_id.get(rec.food_id)
-            if not food:
-                continue
-            expl = explanation_gen.generate_explanation(
-                food=food,
-                user=user,
-                deficits=deficits,
-                score=rec.score,
-                coverage=rec.coverage_percentage or 0,
-                explanations=[rec.explanation] if rec.explanation else None,
-                matched_rules=[],
-                has_lab_data=has_lab_data,
-            )
-            counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
-            recommendations.append({
-                "food_id": food.id,
-                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
-                "score": rec.score,
-                "coverage": rec.coverage_percentage or 0,
-                "explanation": expl,
-                "recommendation_id": rec.id,
-                "feedback": counts,
-                "my_rating": user_feedback_by_rec.get(rec.id),
-            })
-    elif should_generate:
-        recommender = RecommenderService()
-        rec_list = recommender.generate_recommendations(
-            user=user,
-            deficits=deficits,
-            foods=foods_filtered,
-            lab_results=lab_results,
-            user_feedbacks=user_feedbacks,
-            feedback_by_food=feedback_by_food,
-        )
-        if not rec_list and settings.openfoodfacts_enabled and not settings.openfoodfacts_blocking_mode:
-            rec_list = recommender.generate_recommendations(
-                user=user,
-                deficits=deficits,
-                foods=foods_filtered,
-                lab_results=lab_results,
-                user_feedbacks=user_feedbacks,
-                feedback_by_food=feedback_by_food,
-            )
-        explanation_gen = ExplanationGenerator()
-        to_insert = []
-        explanation_by_food_id: Dict[int, dict] = {}
-        # Persistăm până la 20 de recomandări, sortate deja descrescător după coverage/score.
-        for rec in rec_list[:20]:
-            food = food_by_id.get(rec["food_id"])
-            if not food:
-                continue
-            explanation = explanation_gen.generate_explanation(
-                food=food,
-                user=user,
-                deficits=deficits,
-                score=rec["score"],
-                coverage=rec["coverage"],
-                explanations=rec.get("explanations"),
-                matched_rules=rec.get("matched_rules"),
-                has_lab_data=has_lab_data,
-            )
-            to_insert.append({
-                "user_id": user.id,
-                "food_id": food.id,
-                "score": rec["score"],
-                "explanation": explanation["text"],
-                "portion_suggested": explanation["portion"],
-                "coverage_percentage": rec["coverage"],
-            })
-            explanation_by_food_id[food.id] = explanation
-        if to_insert:
-            inserted = rec_repo.insert_many(to_insert)
-            # Asigurăm același ranking ca `rec_list` pe primele N poziții.
-            for i, rec in enumerate(inserted):
-                if i >= len(rec_list):
-                    break
-                food = food_by_id.get(rec.food_id)
-                if not food:
-                    continue
-                orig = rec_list[i]
-                expl = explanation_by_food_id.get(food.id) or explanation_gen.generate_explanation(
-                    food=food,
-                    user=user,
-                    deficits=deficits,
-                    score=orig["score"],
-                    coverage=orig["coverage"],
-                    explanations=orig.get("explanations"),
-                    matched_rules=orig.get("matched_rules"),
-                    has_lab_data=has_lab_data,
-                )
-                counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
-                recommendations.append({
-                    "food_id": food.id,
-                    "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
-                    "score": rec.score,
-                    "coverage": rec.coverage_percentage or 0,
-                    "explanation": expl,
-                    "recommendation_id": rec.id,
-                    "feedback": counts,
-                    "my_rating": user_feedback_by_rec.get(rec.id),
-                })
-    else:
-        existing_recs = existing_recs_for_user[:20]
-        food_by_id = {f.id: f for f in foods}
-        explanation_gen = ExplanationGenerator()
-        for rec in existing_recs:
-            food = food_by_id.get(rec.food_id)
-            if not food:
-                continue
-            expl = explanation_gen.generate_explanation(
-                food=food,
-                user=user,
-                deficits=deficits,
-                score=rec.score,
-                coverage=rec.coverage_percentage or 0,
-                explanations=[rec.explanation] if rec.explanation else None,
-                matched_rules=[],
-                has_lab_data=has_lab_data,
-            )
-            counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
-            recommendations.append({
-                "food_id": food.id,
-                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
-                "score": rec.score,
-                "coverage": rec.coverage_percentage or 0,
-                "explanation": expl,
-                "recommendation_id": rec.id,
-                "feedback": counts,
-                "my_rating": user_feedback_by_rec.get(rec.id),
-            })
+        except Exception:
+            import logging
 
-    if not recommendations and should_generate:
-        recommender = RecommenderService()
-        rec_list = recommender.generate_recommendations(
-            user=user,
-            deficits={},
-            foods=foods,
-            lab_results=lab_results,
-            user_feedbacks=user_feedbacks,
-            feedback_by_food=feedback_by_food,
-        )
-        if not rec_list:
-            # Nu s-au găsit alimente compatibile – întoarcem listă goală, nu 404.
-            return []
-        explanation_gen = ExplanationGenerator()
-        to_insert = []
-        explanation_by_food_id: Dict[int, dict] = {}
-        # Persistăm până la 20 de recomandări fallback.
-        for rec in rec_list[:20]:
-            food = food_by_id.get(rec["food_id"])
-            if not food:
-                continue
-            explanation = explanation_gen.generate_explanation(
-                food=food,
-                user=user,
-                deficits=deficits,
-                score=rec["score"],
-                coverage=rec["coverage"],
-                explanations=rec.get("explanations"),
-                matched_rules=rec.get("matched_rules"),
-                has_lab_data=has_lab_data,
-            )
-            to_insert.append({
-                "user_id": user.id,
-                "food_id": food.id,
-                "score": rec["score"],
-                "explanation": explanation["text"],
-                "portion_suggested": explanation["portion"],
-                "coverage_percentage": rec["coverage"],
-            })
-            explanation_by_food_id[food.id] = explanation
-        inserted = rec_repo.insert_many(to_insert)
-        for i, rec in enumerate(inserted):
-            if i >= len(rec_list):
-                break
-            food = food_by_id.get(rec.food_id)
-            if not food:
-                continue
-            orig = rec_list[i]
-            expl = explanation_by_food_id.get(food.id) or explanation_gen.generate_explanation(
-                food=food,
-                user=user,
-                deficits=deficits,
-                score=orig["score"],
-                coverage=orig["coverage"],
-                explanations=orig.get("explanations"),
-                matched_rules=orig.get("matched_rules"),
-                has_lab_data=has_lab_data,
-            )
-            counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
-            recommendations.append({
-                "food_id": food.id,
-                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
-                "score": rec.score,
-                "coverage": rec.coverage_percentage or 0,
-                "explanation": expl,
-                "recommendation_id": rec.id,
-                "feedback": counts,
-                "my_rating": user_feedback_by_rec.get(rec.id),
-            })
-    # Elimină orice duplicate pe baza food_id (ex. aceeași mâncare inserată de mai multe ori
-    # în urma unor regenerări sau înlocuiri anterioare), păstrând doar prima apariție
-    # în ordinea deja sortată (coverage/score).
-    unique_recommendations: List[dict] = []
-    seen_food_ids: set[int] = set()
-    for rec in recommendations:
-        fid = rec.get("food_id")
-        if fid is None:
-            unique_recommendations.append(rec)
-            continue
-        if fid in seen_food_ids:
-            continue
-        seen_food_ids.add(fid)
-        unique_recommendations.append(rec)
+            logging.getLogger(__name__).exception("refresh-async job failed user_id=%s", user_id)
 
-    # Fetch feedback counts doar pentru food_ids din răspuns (max 20), evitând query-uri globale costisitoare.
-    response_food_ids = [int(rec["food_id"]) for rec in unique_recommendations if rec.get("food_id") is not None]
-    if response_food_ids:
-        feedback_counts_by_food = feedback_repo.get_counts_by_food_ids(response_food_ids)
-        for rec in unique_recommendations:
-            fid = rec.get("food_id")
-            if fid is None:
-                continue
-            rec["feedback"] = feedback_counts_by_food.get(int(fid), {"likes": 0, "dislikes": 0})
-
-    return unique_recommendations
+    background_tasks.add_task(_job)
+    return {"status": "accepted", "recommendations": stale}
 
 
 @app.get("/api/recommendations/audit/{user_id}", response_model=RecommendationAuditResponse)

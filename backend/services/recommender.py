@@ -55,11 +55,25 @@ class RecommenderService:
         diabetes_guard_active = self._is_diabetes_guard_needed(effective_user)
         reflux_guard_active = self._is_reflux_guard_needed(effective_user)
 
+        precomputed_restrictions = None
+        if effective_user.medical_conditions:
+            precomputed_restrictions = self.rule_engine._parse_food_restrictions(
+                effective_user.medical_conditions
+            )
+        compatible_foods = [
+            f
+            for f in foods
+            if self.rule_engine._is_compatible(
+                f, effective_user, precomputed_restrictions=precomputed_restrictions
+            )
+        ]
+        search_foods = compatible_foods if compatible_foods else foods
+
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
         has_active_deficits = bool(focus_deficits)
         if focus_deficits:
-            for food in foods:
+            for food in search_foods:
                 recommendation = self.rule_engine.evaluate_food(
                     food=food,
                     user=effective_user,
@@ -118,13 +132,13 @@ class RecommenderService:
         if not recommendations:
             fb = self._generate_fallback_recommendations(
                 user=effective_user,
-                foods=foods,
+                foods=search_foods,
                 target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
             )
-            fb_ok = self._filter_compatible_recommendations(effective_user, foods, fb)
+            fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb)
             balanced_fb = self._rebalance_by_category(
                 user=effective_user,
-                foods=foods,
+                foods=search_foods,
                 recommendations=fb_ok,
                 has_active_deficits=has_active_deficits,
             )
@@ -148,19 +162,19 @@ class RecommenderService:
         recommendations.sort(key=lambda x: (x['coverage'], x['score']), reverse=True)
         balanced = self._rebalance_by_category(
             user=effective_user,
-            foods=foods,
+            foods=search_foods,
             recommendations=recommendations,
             has_active_deficits=has_active_deficits,
         )
-        final = self._filter_compatible_recommendations(effective_user, foods, balanced)
+        final = self._filter_compatible_recommendations(effective_user, search_foods, balanced)
 
         if len(final) < self.MIN_RECOMMENDATIONS_TARGET:
             fb = self._generate_fallback_recommendations(
                 user=effective_user,
-                foods=foods,
+                foods=search_foods,
                 target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
             )
-            fb_ok = self._filter_compatible_recommendations(effective_user, foods, fb)
+            fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb)
             seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
             for r in fb_ok:
                 fid = r.get("food_id")
@@ -171,21 +185,21 @@ class RecommenderService:
             final.sort(key=lambda x: (x["coverage"], x["score"]), reverse=True)
             balanced2 = self._rebalance_by_category(
                 user=effective_user,
-                foods=foods,
+                foods=search_foods,
                 recommendations=final,
                 has_active_deficits=has_active_deficits,
             )
-            final = self._filter_compatible_recommendations(effective_user, foods, balanced2)
+            final = self._filter_compatible_recommendations(effective_user, search_foods, balanced2)
 
         # Dacă focusul clinic este foarte strict (ex. vegan + alergii + puține surse B12/D),
         # completăm lista cu opțiuni secundare compatibile pentru a evita recomandări prea puține.
         if len(final) < self.MIN_RECOMMENDATIONS_TARGET and filtered_deficits:
             fb_secondary = self._generate_fallback_recommendations(
                 user=effective_user,
-                foods=foods,
+                foods=search_foods,
                 target_nutrients=list(filtered_deficits.keys()),
             )
-            fb_secondary_ok = self._filter_compatible_recommendations(effective_user, foods, fb_secondary)
+            fb_secondary_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb_secondary)
             seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
             for r in fb_secondary_ok:
                 fid = r.get("food_id")
@@ -208,11 +222,11 @@ class RecommenderService:
             final.sort(key=lambda x: (x["coverage"], x["score"]), reverse=True)
             balanced3 = self._rebalance_by_category(
                 user=effective_user,
-                foods=foods,
+                foods=search_foods,
                 recommendations=final,
                 has_active_deficits=True,
             )
-            final = self._filter_compatible_recommendations(effective_user, foods, balanced3)
+            final = self._filter_compatible_recommendations(effective_user, search_foods, balanced3)
 
         # Prioritizare finală stabilă: recomandările pe deficitul principal înaintea celor de completare.
         final.sort(

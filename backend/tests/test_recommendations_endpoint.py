@@ -71,6 +71,9 @@ class RecommendationsEndpointTests(unittest.TestCase):
             def get_counts_by_food_id(self):
                 return {}
 
+            def get_counts_by_food_ids(self, food_ids):
+                return {int(fid): {"likes": 0, "dislikes": 0} for fid in food_ids}
+
         class FakeRecRepo:
             def __init__(self):
                 self._rows = []
@@ -167,6 +170,77 @@ class RecommendationsEndpointTests(unittest.TestCase):
         payload = resp.json()
         text_blob = " ".join(rec.get("explanation", {}).get("text", "") for rec in payload).lower()
         self.assertIn("fier", text_blob)
+
+    def test_list_stored_recommendations_returns_db_rows(self):
+        user = make_user_profile()
+        foods = [
+            FoodItem(id=40, name="Ovăz", category="cereale", protein=12, iron=2),
+        ]
+        labs = LabResultItem(id=4, user_id=1)
+
+        class FakeRecRepoWithRows:
+            def get_by_user_id(self, user_id, limit=10):
+                return [
+                    RecommendationItem(
+                        id=99,
+                        user_id=1,
+                        food_id=40,
+                        score=4.2,
+                        explanation="Test explicație",
+                        portion_suggested=150.0,
+                        coverage_percentage=12.5,
+                    )
+                ]
+
+            def get_first_by_user_id(self, user_id):
+                return None
+
+            def insert_many(self, rows):
+                return []
+
+            def delete_by_user_id(self, user_id):
+                pass
+
+            def delete_by_id(self, recommendation_id):
+                pass
+
+        class FakeUserRepo:
+            def get_by_email(self, email):
+                return user if email.lower() == user.email.lower() else None
+
+            def get_by_id(self, user_id):
+                return user if user_id == user.id else None
+
+        class FakeFoodRepo:
+            def get_all(self):
+                return foods
+
+        class FakeLabRepo:
+            def get_latest_by_user_id(self, user_id):
+                return labs if user_id == user.id else None
+
+        class FakeFeedbackRepo:
+            def get_by_user_id(self, user_id):
+                return []
+
+            def get_counts_by_food_ids(self, food_ids):
+                return {int(fid): {"likes": 1, "dislikes": 0} for fid in food_ids}
+
+        with (
+            patch.object(main_module, "UserRepository", FakeUserRepo),
+            patch.object(main_module, "FoodRepository", FakeFoodRepo),
+            patch.object(main_module, "LabResultRepository", FakeLabRepo),
+            patch.object(main_module, "FeedbackRepository", FakeFeedbackRepo),
+            patch.object(main_module, "RecommendationRepository", FakeRecRepoWithRows),
+        ):
+            resp = self.client.get("/api/recommendations/stored/1")
+
+        self.assertEqual(resp.status_code, 200, resp.text)
+        payload = resp.json()
+        self.assertEqual(len(payload), 1)
+        self.assertEqual(payload[0]["food_id"], 40)
+        self.assertEqual(payload[0]["explanation"]["text"], "Test explicație")
+        self.assertEqual(payload[0]["feedback"]["likes"], 1)
 
 
 if __name__ == "__main__":

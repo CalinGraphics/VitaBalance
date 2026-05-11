@@ -1,10 +1,16 @@
 """
 Script pentru rularea serverului FastAPI
 """
-import uvicorn
+import logging
 import os
 
+import uvicorn
+
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
     # reload=True pornește 2 procese și poate păstra cod vechi în caz de conflicte.
     # Pentru debug stabil (și ca să nu mai vezi eroarea cu rule_results dintr-un proces vechi),
     # rulează fără reload.

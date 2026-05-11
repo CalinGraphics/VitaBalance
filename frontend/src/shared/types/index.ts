@@ -10,6 +10,8 @@ export interface User {
   diet_type: string
   allergies?: string
   medical_conditions?: string
+  /** ISO datetime de la API — folosit la polling după regenerare async */
+  updated_at?: string | null
 }
 
 export interface AuthUser {

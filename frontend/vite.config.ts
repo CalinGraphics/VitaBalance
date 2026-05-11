@@ -10,6 +10,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        // Aliniat cu timeout-ul lung pentru POST /recommendations (regenerare)
+        timeout: 130_000,
       },
     },
   },
