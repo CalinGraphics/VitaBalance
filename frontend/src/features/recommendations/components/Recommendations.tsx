@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { isAxiosError } from 'axios'
 import { motion } from 'framer-motion'
 import { UtensilsCrossed, Download, Loader2 } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
@@ -38,6 +39,10 @@ function syncMetaIsFresh(meta: { user_updated_at: string | null; latest_rec_crea
   return (
     new Date(meta.latest_rec_created_at).getTime() >= new Date(meta.user_updated_at).getTime()
   )
+}
+
+function isHttp404(err: unknown): boolean {
+  return isAxiosError(err) && err.response?.status === 404
 }
 
 const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
@@ -85,7 +90,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
           setRegeneratingAfterProfile(true)
         }
       } catch {
-        /* listStored e opțional */
+        /* listStored e opțional la preload (404 sau rețea — fluxul principal continuă) */
       }
 
       if (!preloadedFromDb) {
@@ -93,19 +98,43 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         setRegeneratingAfterProfile(false)
       }
 
-      await recommendationsService.startRefreshAsync(user.id, forceRegenerate)
-      if (fetchId !== latestFetchIdRef.current) return
+      let data: unknown[]
 
-      const pollDeadline = Date.now() + SYNC_POLL_MAX_MS
-      while (Date.now() < pollDeadline) {
+      try {
+        await recommendationsService.startRefreshAsync(user.id, forceRegenerate)
         if (fetchId !== latestFetchIdRef.current) return
-        const meta = await recommendationsService.getSyncMeta(user.id)
-        if (fetchId !== latestFetchIdRef.current) return
-        if (syncMetaIsFresh(meta)) break
-        await sleep(SYNC_POLL_INTERVAL_MS)
+
+        const pollDeadline = Date.now() + SYNC_POLL_MAX_MS
+        while (Date.now() < pollDeadline) {
+          if (fetchId !== latestFetchIdRef.current) return
+          let meta: { user_updated_at: string | null; latest_rec_created_at: string | null }
+          try {
+            meta = await recommendationsService.getSyncMeta(user.id)
+          } catch (metaErr) {
+            if (isHttp404(metaErr)) break
+            throw metaErr
+          }
+          if (fetchId !== latestFetchIdRef.current) return
+          if (syncMetaIsFresh(meta)) break
+          await sleep(SYNC_POLL_INTERVAL_MS)
+        }
+
+        try {
+          data = (await recommendationsService.listStored(user.id)) as unknown[]
+        } catch (listErr) {
+          if (isHttp404(listErr)) {
+            data = (await recommendationsService.materializeSync(user.id, forceRegenerate)) as unknown[]
+          } else {
+            throw listErr
+          }
+        }
+      } catch (asyncPathErr) {
+        if (isHttp404(asyncPathErr)) {
+          data = (await recommendationsService.materializeSync(user.id, forceRegenerate)) as unknown[]
+        } else {
+          throw asyncPathErr
+        }
       }
-
-      const data = await recommendationsService.listStored(user.id)
 
       if (fetchId !== latestFetchIdRef.current) return
       if (Array.isArray(data) && data.length > 0) {

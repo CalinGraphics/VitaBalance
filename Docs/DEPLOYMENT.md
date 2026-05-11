@@ -19,6 +19,24 @@ location /api/recommendations {
 
 În [Render Dashboard](https://dashboard.render.com), serviciul Web poate fi în spatele unui load balancer; pentru cereri lungi, verifică documentația serviciului pentru limitele HTTP. Alternativ: separă API-ul de generare pe un worker cu coadă (vezi `docs/ASYNC_RECOMMENDATIONS.md`).
 
+## Frontend: `VITE_API_URL`
+
+Build-ul Vite trebuie să trimită cereri către prefixul **`/api`** al backend-ului FastAPI. Poți seta:
+
+- `VITE_API_URL=https://numele-serviciului.onrender.com/api` (recomandat, explicit), sau
+- doar `VITE_API_URL=https://numele-serviciului.onrender.com` — în cod, dacă URL-ul are path gol (`/`), se adaugă automat `/api`.
+
+Dacă lipsește `/api`, rutele devin `https://host/recommendations/...` în loc de `https://host/api/recommendations/...` și primești **404 Not Found**.
+
+## Frontend: `VITE_API_URL`
+
+Build-ul Vite trebuie să trimită cereri către prefixul **`/api`** al backend-ului FastAPI. Poți seta:
+
+- `VITE_API_URL=https://numele-serviciului.onrender.com/api` (recomandat, explicit), sau
+- doar `VITE_API_URL=https://numele-serviciului.onrender.com` — în cod, dacă URL-ul are path gol (`/`), se adaugă automat `/api`.
+
+Dacă lipsește `/api`, rutele devin `https://host/recommendations/...` în loc de `https://host/api/recommendations/...` și primești **404 Not Found**.
+
 ## Variabile de mediu recomandate (producție)
 
 | Variabilă | Valoare |

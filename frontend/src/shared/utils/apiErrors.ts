@@ -52,10 +52,19 @@ export function extractErrorMessage(error: unknown): string {
   return 'A apărut o eroare neașteptată'
 }
 
+const msg404Recommendations =
+  'Ruta către API nu există (404). Verifică VITE_API_URL la build (ex. https://backend.com/api) și că serviciul backend este ultima versiune.'
+
 /** Mesaje prietenoase pentru ecranul de recomandări (timeout, gateway, rețea). */
 export function humanizeRecommendationClientError(error: unknown): string {
+  if (isAxiosError(error) && error.response?.status === 404) {
+    return msg404Recommendations
+  }
   const base = extractErrorMessage(error)
   const lower = base.toLowerCase()
+  if (lower === 'not found') {
+    return msg404Recommendations
+  }
   if (lower.includes('timeout') || lower.includes('exceeded')) {
     return 'Serverul a răspuns prea lent (timeout). Reîncearcă sau verifică conexiunea; recomandările se regenerează după modificarea profilului.'
   }

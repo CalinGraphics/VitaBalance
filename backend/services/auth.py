@@ -149,11 +149,12 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         password_hash = get_password_hash(password)
         
         # Construiește datele utilizatorului
+        bio_val_insert = (bio.strip() if bio else "") or ""
         new_user_data = {
             "email": email.strip(),
             "password_hash": password_hash,
             "name": fullName.strip(),
-            # `full_name` și `bio` nu mai există în tabelul `users` din Supabase.
+            "bio": bio_val_insert,
         }
         
         try:
@@ -171,7 +172,7 @@ def create_user(email: str, password: str, fullName: str, bio: Optional[str] = N
         created_user = response.data[0]
         email_val = created_user.get('email') or email.strip()
         full_name_val = created_user.get('name') or fullName.strip()
-        bio_val = (bio.strip() if bio else "") or ""
+        bio_val = created_user.get('bio') or bio_val_insert
         return {
             "email": email_val,
             "fullName": full_name_val,

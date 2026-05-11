@@ -4,7 +4,29 @@ import { extractErrorMessage } from '../shared/utils/apiErrors'
 import type { LabExtractFromApi, LabKey } from '../features/medical/utils/labLocalExtract'
 import { getToken, clearToken } from './authStorage'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+/**
+ * FastAPI expune rutele sub `/api/...`. Dacă în producție setezi doar originea
+ * (ex. `https://api-meu.onrender.com`), fără path, cererile mergeau la `/recommendations/...` și primeai 404.
+ */
+function normalizeApiBaseUrl(raw: string | undefined): string {
+  const fallback = '/api'
+  if (raw == null || String(raw).trim() === '') return fallback
+  const u = String(raw).trim().replace(/\/+$/, '')
+  if (!/^https?:\/\//i.test(u)) return u || fallback
+  try {
+    const parsed = new URL(u)
+    const path = (parsed.pathname || '/').replace(/\/+$/, '') || '/'
+    if (path === '/' || path === '') {
+      parsed.pathname = '/api'
+      return parsed.toString().replace(/\/+$/, '')
+    }
+    return u
+  } catch {
+    return fallback
+  }
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
 
 /** Cereri standard (profil, analize, feedback). */
 const DEFAULT_TIMEOUT_MS = 45_000
@@ -140,6 +162,17 @@ export const recommendationsService = {
       { timeout: 30000 }
     )
     return response.data as { status?: string; recommendations?: unknown[] }
+  },
+  /**
+   * POST sincron clasic — folosit ca fallback dacă serverul nu are încă
+   * `stored` / `refresh-async` / `sync-meta` (deploy vechi).
+   */
+  materializeSync: async (userId: number, forceRegenerate = false) => {
+    const response = await api.post(
+      `/recommendations?force_regenerate=${forceRegenerate}`,
+      { user_id: userId }
+    )
+    return response.data as unknown[]
   },
   replace: async (userId: number, recommendationId: number) => {
     const response = await api.post('/recommendations', {
