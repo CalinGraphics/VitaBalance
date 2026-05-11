@@ -40,7 +40,7 @@ function normalizeSentenceEnd(s: string): string {
 
 export interface RecommendationForPdf {
   food_id: number
-  food: { id: number; name: string; category: string; image_url?: string }
+  food: { id: number; name: string; category: string }
   score: number
   coverage: number
   explanation: {

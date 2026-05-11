@@ -70,7 +70,6 @@ class FoodInfo(BaseModel):
     id: int
     name: str
     category: str
-    image_url: Optional[str] = None
 
 class ExplanationDetail(BaseModel):
     text: str

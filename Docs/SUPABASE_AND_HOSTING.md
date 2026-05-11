@@ -3,30 +3,31 @@
 ## Proiect Supabase (exemplu)
 
 - URL API: `https://kqvxqoptnmoqybcipacy.supabase.co`
-- În **Render** (backend), setează:
+- În **Render** (backend):
   - `SUPABASE_URL` = URL-ul de mai sus
-  - `SUPABASE_KEY` = **`service_role`** (secret), nu cheia `anon` — backend-ul folosește PostgREST cu drepturi complete; cheia `anon` nu trebuie expusă în browser.
+  - `SUPABASE_KEY` = **`service_role`** (secret din Supabase → Settings → API).  
+    **Obligatoriu:** backend-ul trebuie să folosească `service_role`, nu `anon`.
 
-## Date: tabelul `foods`
+## Schema bazei (aliniată la cod)
 
-- Aplicația așteaptă toate coloanele din `domain.models.FoodItem` (inclusiv `carbs`, `fat`, `free_sugar`, `cholesterol`, `allergens`, `image_url`).
-- După import CSV, rulează `backend/migrations/002_users_bio_foods_display.sql` ca să:
-  - adaugi `users.bio` dacă lipsea;
-  - completezi `allergens` cu `nedeclarat` unde lipsea informația;
-  - setezi `image_url` cu placeholder deterministic (Picsum) unde era gol.
+- **`foods`**: nutrienți + `allergens` (opțional, `NULL` = necunoscut în sursă; fără text de umplutură). **Fără** `image_url` — aplicația nu afișează poze la alimente.
+- **`feedback`**: `id`, `user_id`, `recommendation_id`, `rating`, `created_at` — singurele câmpuri folosite de API pentru like/dislike pe recomandare.
+- **`users.bio`**: text opțional profil.
+- Migrări: `002_users_bio_foods_display.sql` (bio), `003_schema_cleanup_rls.sql` (curățenie + RLS + drop view-uri nefolosite).
 
-## Securitate (lint Supabase)
+## Row Level Security (RLS)
 
-Supabase Dashboard raportează **RLS dezactivat** și tabele vizibile pentru `anon` — normal pentru prototip dacă **doar backend-ul** vorbește cu DB folosind `service_role`.
+Pe tabelele `public` este activat **RLS**. Rolul **`service_role`** folosit de FastAPI **ocolește** RLS în Supabase, deci aplicația continuă să funcționeze normal.
 
-Pentru producție dură:
+Acces **direct** la PostgREST din browser cu cheia `anon` către aceste tabele **nu** este suportat de această aplicație (nu există politici pentru `anon`). Dacă ai nevoie de client direct Supabase în frontend, trebuie definite politici RLS dedicate — vezi [Row Level Security](https://supabase.com/docs/guides/auth/row-level-security).
 
-- activezi RLS și definești politici per tabel, **sau**
-- revoci `SELECT`/`INSERT` pentru `anon`/`authenticated` pe tabelele sensibile și lași doar accesul prin API-ul tău (Render).
+### Advisor Supabase după migrare
 
-Nu activa RLS fără politici: blochează tot accesul. Ghid: [Row Level Security](https://supabase.com/docs/guides/auth/row-level-security).
+- **„RLS disabled”** (ERROR) dispare: RLS este activ.
+- Poți vedea **„RLS enabled no policy”** (INFO): e normal cât timp doar backend-ul cu `service_role` accesează tabelele.
+- Avertismente **GraphQL / anon poate face SELECT**: rolurile `anon`/`authenticated` au încă drepturi implicite pe obiecte; aplicația nu le folosește. Opțional, în SQL Editor poți revoca `SELECT` pentru `anon` pe tabelele sensibile dacă vrei zero avertismente (testează înainte pe staging).
 
 ## Vercel
 
-- `vercel.json` (rădăcină) face rewrite `/api/*` → URL-ul backend Render. Actualizează `destination` dacă schimbi domeniul serviciului API.
-- Build frontend: `VITE_API_URL` poate rămâne ne setat în Vercel dacă folosești proxy-ul `/api` din `vercel.json`. Dacă setezi `VITE_API_URL` la originea Render, folosește fie `https://.../api`, fie doar `https://...` (frontend-ul adaugă `/api` automat când path-ul e gol).
+- `vercel.json` face rewrite `/api/*` către backend-ul Render. Actualizează `destination` dacă schimbi URL-ul API.
+- `VITE_API_URL`: vezi `Docs/DEPLOYMENT.md` — poate rămâne gol pe Vercel dacă folosești proxy-ul `/api`.

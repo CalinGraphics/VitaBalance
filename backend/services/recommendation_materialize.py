@@ -204,7 +204,7 @@ def materialize_recommendations(
             recommendations.append(
                 {
                     "food_id": food.id,
-                    "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                    "food": {"id": food.id, "name": food.name, "category": food.category},
                     "score": rec.score,
                     "coverage": rec.coverage_percentage or 0,
                     "explanation": expl,
@@ -283,7 +283,7 @@ def materialize_recommendations(
                 recommendations.append(
                     {
                         "food_id": food.id,
-                        "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                        "food": {"id": food.id, "name": food.name, "category": food.category},
                         "score": rec.score,
                         "coverage": rec.coverage_percentage or 0,
                         "explanation": expl,
@@ -314,7 +314,7 @@ def materialize_recommendations(
             recommendations.append(
                 {
                     "food_id": food.id,
-                    "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                    "food": {"id": food.id, "name": food.name, "category": food.category},
                     "score": rec.score,
                     "coverage": rec.coverage_percentage or 0,
                     "explanation": expl,
@@ -386,7 +386,7 @@ def materialize_recommendations(
             recommendations.append(
                 {
                     "food_id": food.id,
-                    "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                    "food": {"id": food.id, "name": food.name, "category": food.category},
                     "score": rec.score,
                     "coverage": rec.coverage_percentage or 0,
                     "explanation": expl,

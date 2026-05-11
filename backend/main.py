@@ -318,7 +318,7 @@ def _stored_recommendations_payload(
         recommendations.append(
             {
                 "food_id": food.id,
-                "food": {"id": food.id, "name": food.name, "category": food.category, "image_url": food.image_url},
+                "food": {"id": food.id, "name": food.name, "category": food.category},
                 "score": rec.score,
                 "coverage": rec.coverage_percentage or 0,
                 "explanation": expl,
@@ -786,7 +786,6 @@ async def get_foods(current_user: dict = Depends(get_current_user)):
             "free_sugar": f.free_sugar,
             "cholesterol": f.cholesterol,
             "allergens": f.allergens,
-            "image_url": f.image_url,
             "created_at": f.created_at,
         }
         for f in items

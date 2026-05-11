@@ -21,7 +21,6 @@ interface RecommendationCardProps {
       id: number
       name: string
       category: string
-      image_url?: string
     }
     score: number
     coverage: number

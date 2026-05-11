@@ -50,7 +50,6 @@ class FoodItem:
     free_sugar: float = 0     # nou
     cholesterol: float = 0    # nou
     allergens: Optional[str] = None
-    image_url: Optional[str] = None
     created_at: Optional[datetime] = None
 
 
@@ -151,7 +150,6 @@ def row_to_food(row: dict) -> FoodItem:
         free_sugar=_num(row.get("free_sugar")), # nou
         cholesterol=_num(row.get("cholesterol")), # nou
         allergens=row.get("allergens"),
-        image_url=row.get("image_url"),
         created_at=row.get("created_at"),
     )
 
