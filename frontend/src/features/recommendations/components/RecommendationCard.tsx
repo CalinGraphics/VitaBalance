@@ -87,23 +87,26 @@ function ExplanationSections({ rawText }: { rawText: string }) {
   if (parts.length <= 1) {
     return <ReadableParagraphs text={parts[0] ?? normalized} />
   }
-  const sectionTitle = (idx: number) => {
+  const sectionTitle = (idx: number): string | null => {
     if (idx === 0) return 'Rezumat'
-    if (idx === parts.length - 1) return 'Mențiune'
+    if (idx === parts.length - 1) return null
     return 'Detaliu nutrienți'
   }
   return (
     <div className="space-y-3">
       {parts.map((block, idx) => {
         const last = idx === parts.length - 1
+        const title = sectionTitle(idx)
         return (
           <div
             key={idx}
             className={last ? 'rounded-lg border border-white/5 bg-slate-900/35 px-3 py-2.5' : ''}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
-              {sectionTitle(idx)}
-            </p>
+            {title ? (
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
+                {title}
+              </p>
+            ) : null}
             <div
               className={
                 last
@@ -152,14 +155,15 @@ interface RecommendationCardProps {
 
 const RecommendationCard = ({
   recommendation,
-  index,
+  index: _index,
   userId,
   onFeedbackSent,
   onReplaceRequested,
 }: RecommendationCardProps) => {
   const { food, explanation, coverage, feedback } = recommendation
-  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'sent' | 'error'>('idle')
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false)
   const [myRating, setMyRating] = useState<number | undefined | null>(recommendation.my_rating)
   const [localCounts, setLocalCounts] = useState(feedback ? { ...feedback } : { likes: 0, dislikes: 0 })
   const [showDislikeModal, setShowDislikeModal] = useState(false)
@@ -173,37 +177,46 @@ const RecommendationCard = ({
   const counts = localCounts
 
   const sendFeedback = async (rating: number): Promise<boolean> => {
-    if (!userId || !recommendation.recommendation_id) return false
-    setFeedbackStatus('sending')
+    if (!userId || !recommendation.recommendation_id || feedbackSubmitting) return false
+    setFeedbackSubmitting(true)
     setFeedbackError(null)
+
+    const rollbackRating = myRating
+    const rollbackCounts = { ...counts }
+    const prev = myRating
+    let newLikes = counts.likes
+    let newDislikes = counts.dislikes
+    if (prev !== undefined && prev !== null) {
+      if (prev >= 4) newLikes -= 1
+      else if (prev <= 2) newDislikes -= 1
+    }
+    if (rating >= 4) newLikes += 1
+    else if (rating <= 2) newDislikes += 1
+
+    setLocalCounts({ likes: newLikes, dislikes: newDislikes })
+    setMyRating(rating)
+    setFeedbackStatus('sent')
+
     try {
       await feedbackService.create({
         user_id: userId,
         recommendation_id: recommendation.recommendation_id,
         rating,
       })
-      const prev = myRating
-      let newLikes = counts.likes
-      let newDislikes = counts.dislikes
-      if (prev !== undefined && prev !== null) {
-        if (prev >= 4) newLikes -= 1
-        else if (prev <= 2) newDislikes -= 1
-      }
-      if (rating >= 4) newLikes += 1
-      else if (rating <= 2) newDislikes += 1
-      setLocalCounts({ likes: newLikes, dislikes: newDislikes })
-      setMyRating(rating)
-      setFeedbackStatus('sent')
       onFeedbackSent?.(recommendation.recommendation_id, rating, newLikes, newDislikes)
       return true
     } catch (err: unknown) {
+      setMyRating(rollbackRating)
+      setLocalCounts(rollbackCounts)
+      setFeedbackStatus('error')
       const msg =
         (err as { message?: string })?.message ||
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
         'Nu s-a putut trimite feedback-ul. Încearcă din nou.'
       setFeedbackError(msg)
-      setFeedbackStatus('error')
       return false
+    } finally {
+      setFeedbackSubmitting(false)
     }
   }
 
@@ -246,7 +259,7 @@ const RecommendationCard = ({
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: Math.min(index * 0.02, 0.08), duration: 0.2, ease: 'easeOut' }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
         className="h-full"
       >
         <GlassCard className="h-full min-h-[440px] flex flex-col hover:shadow-neon transition-all duration-300">
@@ -269,7 +282,7 @@ const RecommendationCard = ({
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(coverage, 100)}%` }}
-                      transition={{ delay: 0.06, duration: 0.3, ease: 'easeOut' }}
+                      transition={{ duration: 0.22, ease: 'easeOut' }}
                       className="bg-gradient-to-r from-neonCyan via-neonPurple to-neonMagenta h-3 sm:h-2.5 rounded-full shadow-neon"
                     />
                   </div>
@@ -339,7 +352,7 @@ const RecommendationCard = ({
                 <button
                   type="button"
                   onClick={() => sendFeedback(5)}
-                  disabled={feedbackStatus === 'sending' || hasLiked}
+                  disabled={feedbackSubmitting || replaceLoading || hasLiked}
                   className={`min-h-[36px] inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
                     hasLiked
                       ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300 cursor-default'
@@ -352,7 +365,7 @@ const RecommendationCard = ({
                 <button
                   type="button"
                   onClick={handleDislikeClick}
-                  disabled={feedbackStatus === 'sending' || hasDisliked}
+                  disabled={feedbackSubmitting || replaceLoading || hasDisliked}
                   className={`min-h-[36px] inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
                     hasDisliked
                       ? 'border-rose-400 bg-rose-500/20 text-rose-300 cursor-default'

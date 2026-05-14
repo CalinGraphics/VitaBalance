@@ -76,6 +76,51 @@ api.interceptors.response.use(
   }
 )
 
+/** Feedback: timeout dedicat, fără extensia de 120s de la /recommendations. */
+const FEEDBACK_HTTP_TIMEOUT_MS = 18_000
+const feedbackHttp = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: FEEDBACK_HTTP_TIMEOUT_MS,
+})
+feedbackHttp.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+feedbackHttp.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    const url = isAxiosError(error) ? error.config?.url || '' : ''
+    const hasSession = Boolean(getToken())
+    const shouldIgnore401ForAuthFlow =
+      url.includes('/auth/verify-magic-link') || url.includes('/auth/request-magic-link')
+    const protectedRouteMarkers = [
+      '/auth/me',
+      '/profile',
+      '/lab-results',
+      '/recommendations',
+      '/feedback',
+      '/foods',
+    ]
+    const isProtectedRoute = protectedRouteMarkers.some((marker) => url.includes(marker))
+
+    if (status === 401 && hasSession && !shouldIgnore401ForAuthFlow && isProtectedRoute) {
+      clearToken()
+    }
+    const message = extractErrorMessage(error)
+    if (error instanceof Error) {
+      error.message = message
+    }
+    return Promise.reject(error)
+  }
+)
+
 export type LabResultsCreatePayload = {
   user_id: number
   notes?: string | null
@@ -184,7 +229,7 @@ export const recommendationsService = {
 
 export const feedbackService = {
   create: async (data: { user_id: number; recommendation_id: number; rating: number }) => {
-    const response = await api.post('/feedback', data)
+    const response = await feedbackHttp.post('/feedback', data)
     return response.data
   },
 }

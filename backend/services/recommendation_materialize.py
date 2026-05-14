@@ -431,3 +431,82 @@ def materialize_recommendations(
             rec["feedback"] = feedback_counts_by_food.get(int(fid), {"likes": 0, "dislikes": 0})
 
     return unique_recommendations
+
+
+def hydrate_stored_recommendations_for_user(user_id: int) -> List[dict]:
+    """
+    Recomandări deja salvate, cu explicație completă (text + reasons + tips),
+    fără a rerula motorul — pentru GET /recommendations/stored (încărcare la login).
+    """
+    user_repo = UserRepository()
+    food_repo = FoodRepository()
+    lab_repo = LabResultRepository()
+    rec_repo = RecommendationRepository()
+    feedback_repo = FeedbackRepository()
+
+    user = user_repo.get_by_id(user_id)
+    if not user:
+        return []
+    foods = food_repo.get_all()
+    if not foods:
+        return []
+    food_by_id = {f.id: f for f in foods}
+    existing_recs = rec_repo.get_by_user_id(user_id, limit=100)
+    if not existing_recs:
+        return []
+
+    lab_results = lab_repo.get_latest_by_user_id(user_id)
+    user_feedbacks = feedback_repo.get_by_user_id(user_id)
+    user_feedback_by_rec = {
+        fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None
+    }
+
+    calculator = DeficitCalculator()
+    deficits = calculator.calculate_deficits(user, lab_results)
+    has_lab_data = False
+    if lab_results is not None:
+        for key in [
+            "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
+            "protein", "zinc", "folate", "vitamin_a", "vitamin_c", "iodine", "vitamin_k", "potassium",
+        ]:
+            if getattr(lab_results, key, None) is not None:
+                has_lab_data = True
+                break
+
+    explanation_gen = ExplanationGenerator()
+    recommendations: List[dict] = []
+    for rec in existing_recs[:20]:
+        food = food_by_id.get(rec.food_id)
+        if not food:
+            continue
+        expl = explanation_gen.generate_explanation(
+            food=food,
+            user=user,
+            deficits=deficits,
+            score=rec.score,
+            coverage=rec.coverage_percentage or 0,
+            explanations=[rec.explanation] if rec.explanation else None,
+            matched_rules=[],
+            has_lab_data=has_lab_data,
+        )
+        recommendations.append(
+            {
+                "food_id": food.id,
+                "food": {"id": food.id, "name": food.name, "category": food.category},
+                "score": rec.score,
+                "coverage": rec.coverage_percentage or 0,
+                "explanation": expl,
+                "recommendation_id": rec.id,
+                "feedback": {"likes": 0, "dislikes": 0},
+                "my_rating": user_feedback_by_rec.get(rec.id),
+            }
+        )
+
+    response_food_ids = [int(r["food_id"]) for r in recommendations if r.get("food_id") is not None]
+    if response_food_ids:
+        counts = feedback_repo.get_counts_by_food_ids(response_food_ids)
+        for r in recommendations:
+            fid = r.get("food_id")
+            if fid is not None:
+                r["feedback"] = counts.get(int(fid), {"likes": 0, "dislikes": 0})
+    return recommendations

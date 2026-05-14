@@ -282,51 +282,13 @@ def _ensure_user_resource(current_user: dict, user_id: int) -> UserProfile:
 
 def _stored_recommendations_payload(
     user_id: int,
-    rec_repo: RecommendationRepository,
-    food_repo: FoodRepository,
-    feedback_repo: FeedbackRepository,
+    _rec_repo: RecommendationRepository,
+    _food_repo: FoodRepository,
+    _feedback_repo: FeedbackRepository,
 ) -> List[dict]:
-    existing_recs = rec_repo.get_by_user_id(user_id, limit=100)
-    if not existing_recs:
-        return []
-    foods = food_repo.get_all()
-    food_by_id = {f.id: f for f in foods}
-    user_feedbacks = feedback_repo.get_by_user_id(user_id)
-    user_feedback_by_rec = {
-        fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None
-    }
-    recommendations: List[dict] = []
-    for rec in existing_recs[:20]:
-        food = food_by_id.get(rec.food_id)
-        if not food:
-            continue
-        expl = {
-            "text": rec.explanation or "",
-            "portion": float(rec.portion_suggested or 0),
-            "reasons": [],
-            "tips": None,
-            "alternatives": None,
-        }
-        recommendations.append(
-            {
-                "food_id": food.id,
-                "food": {"id": food.id, "name": food.name, "category": food.category},
-                "score": rec.score,
-                "coverage": rec.coverage_percentage or 0,
-                "explanation": expl,
-                "recommendation_id": rec.id,
-                "feedback": {"likes": 0, "dislikes": 0},
-                "my_rating": user_feedback_by_rec.get(rec.id),
-            }
-        )
-    response_food_ids = [int(r["food_id"]) for r in recommendations if r.get("food_id") is not None]
-    if response_food_ids:
-        counts = feedback_repo.get_counts_by_food_ids(response_food_ids)
-        for rec in recommendations:
-            fid = rec.get("food_id")
-            if fid is not None:
-                rec["feedback"] = counts.get(int(fid), {"likes": 0, "dislikes": 0})
-    return recommendations
+    from services.recommendation_materialize import hydrate_stored_recommendations_for_user
+
+    return hydrate_stored_recommendations_for_user(user_id)
 
 
 @app.get("/api/profile/by-email/{email}")
