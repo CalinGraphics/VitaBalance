@@ -556,6 +556,17 @@ async def get_recommendations(
     force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor"),
     current_user: dict = Depends(get_current_user),
 ):
+    _ensure_user_resource(current_user, request.user_id)
+    if request.replace_recommendation_id is not None and request.replace_feedback_rating is not None:
+        r = request.replace_feedback_rating
+        if r < -1 or r > 5:
+            raise HTTPException(status_code=400, detail="Rating de feedback invalid.")
+        feedback_repo = FeedbackRepository()
+        feedback_repo.upsert(
+            request.user_id,
+            request.replace_recommendation_id,
+            r,
+        )
     return materialize_recommendations(
         request.user_id,
         current_user["email"],

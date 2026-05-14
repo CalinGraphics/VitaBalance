@@ -68,6 +68,8 @@ class RecommendationRequest(BaseModel):
     user_id: int
     exclude_food_ids: Optional[List[int]] = None
     replace_recommendation_id: Optional[int] = None
+    # Opțional: înregistrează feedback înainte de înlocuire (un singur round-trip față de POST /feedback + replace).
+    replace_feedback_rating: Optional[int] = None
 
 class FoodInfo(BaseModel):
     id: int

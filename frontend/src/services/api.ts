@@ -161,11 +161,23 @@ export const recommendationsService = {
     )
     return response.data as unknown[]
   },
-  replace: async (userId: number, recommendationId: number) => {
-    const response = await api.post('/recommendations', {
+  replace: async (
+    userId: number,
+    recommendationId: number,
+    options?: { replaceFeedbackRating?: number }
+  ) => {
+    const body: {
+      user_id: number
+      replace_recommendation_id: number
+      replace_feedback_rating?: number
+    } = {
       user_id: userId,
       replace_recommendation_id: recommendationId,
-    })
+    }
+    if (options?.replaceFeedbackRating != null) {
+      body.replace_feedback_rating = options.replaceFeedbackRating
+    }
+    const response = await api.post('/recommendations', body)
     return response.data
   },
 }

@@ -58,6 +58,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | string>('all')
   const [regeneratingAfterProfile, setRegeneratingAfterProfile] = useState(false)
   const latestFetchIdRef = useRef(0)
+  const recommendationsRef = useRef<Recommendation[]>([])
   const prevUserValuesRef = useRef({
     diet_type: user.diet_type,
     activity_level: user.activity_level,
@@ -196,6 +197,10 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   }, [user.id])
 
   useEffect(() => {
+    recommendationsRef.current = recommendations
+  }, [recommendations])
+
+  useEffect(() => {
     const prevUserValues = prevUserValuesRef.current
     const hasProfileChanged =
       prevUserValues.diet_type !== user.diet_type ||
@@ -320,12 +325,46 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     []
   )
   const handleReplaceRequested = useCallback(
-    async (recId: number) => {
+    async (recId: number, opts?: { recordDislikeRating?: number }) => {
       const uid = user.id
       if (uid == null) return
-      const data = await recommendationsService.replace(uid, recId)
+      const prev = recommendationsRef.current
+      const data = await recommendationsService.replace(
+        uid,
+        recId,
+        opts?.recordDislikeRating != null ? { replaceFeedbackRating: opts.recordDislikeRating } : undefined
+      )
       if (Array.isArray(data) && data.length > 0) {
-        setRecommendations(data as Recommendation[])
+        const prevById = new Map(prev.map((r) => [r.recommendation_id, r]))
+        const merged = (data as Recommendation[]).map((r) => {
+          const old = prevById.get(r.recommendation_id)
+          if (!old?.explanation) return r
+          let reasons = r.explanation?.reasons ?? []
+          let tips = r.explanation?.tips
+          let patch = false
+          const or = old.explanation.reasons?.length ?? 0
+          const ot = old.explanation.tips?.length ?? 0
+          const nr = reasons.length
+          const nt = tips?.length ?? 0
+          if (nr === 0 && or > 0) {
+            reasons = old.explanation.reasons ?? []
+            patch = true
+          }
+          if (nt === 0 && ot > 0) {
+            tips = old.explanation.tips
+            patch = true
+          }
+          if (!patch) return r
+          return {
+            ...r,
+            explanation: {
+              ...r.explanation,
+              reasons,
+              tips,
+            },
+          }
+        })
+        setRecommendations(merged)
       } else {
         await fetchRecommendations(false)
       }

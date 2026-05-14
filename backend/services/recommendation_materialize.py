@@ -163,6 +163,7 @@ def materialize_recommendations(
                 user_feedbacks=user_feedbacks,
                 feedback_by_food=feedback_by_food,
             )
+        inserted_row_ids: Dict[int, dict] = {}
         if rec_list:
             food = next((f for f in foods_filtered if f.id == rec_list[0]["food_id"]), None)
             if food:
@@ -178,7 +179,7 @@ def materialize_recommendations(
                     has_lab_data=has_lab_data,
                     nutrients_covered=rec_list[0].get("nutrients_covered"),
                 )
-                rec_repo.insert_many(
+                inserted = rec_repo.insert_many(
                     [
                         {
                             "user_id": user.id,
@@ -190,23 +191,24 @@ def materialize_recommendations(
                         }
                     ]
                 )
+                for ins in inserted:
+                    inserted_row_ids[ins.id] = expl
         existing_recs = rec_repo.get_by_user_id(user_id, limit=20)
         food_by_id = {f.id: f for f in foods}
-        explanation_gen = ExplanationGenerator()
         for rec in existing_recs:
             food = food_by_id.get(rec.food_id)
             if not food:
                 continue
-            expl = explanation_gen.generate_explanation(
-                food=food,
-                user=user,
-                deficits=deficits,
-                score=rec.score,
-                coverage=rec.coverage_percentage or 0,
-                explanations=[rec.explanation] if rec.explanation else None,
-                matched_rules=[],
-                has_lab_data=has_lab_data,
-            )
+            if rec.id in inserted_row_ids:
+                expl = inserted_row_ids[rec.id]
+            else:
+                expl = {
+                    "text": rec.explanation or "",
+                    "portion": float(rec.portion_suggested or 0),
+                    "reasons": [],
+                    "tips": None,
+                    "alternatives": None,
+                }
             counts = feedback_counts_by_food.get(rec.food_id, {"likes": 0, "dislikes": 0})
             recommendations.append(
                 {

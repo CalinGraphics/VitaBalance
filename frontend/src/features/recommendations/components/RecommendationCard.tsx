@@ -5,12 +5,24 @@ import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
 import { feedbackService } from '../../../services/api'
 
-/** Elimină prefixul [context: ...] sau [Context: ...] din textele de recomandare. */
+/** Elimină prefixul [context: ...] și normalizează spațiile pe un singur rând (motivații, sfaturi). */
 function faraPrefixContext(s: string): string {
   if (!s || typeof s !== 'string') return ''
-  return s
-    .replace(/\s*\[[Cc]ontext:\s*[^\]]*\]\s*/g, ' ')
-    .replace(/\s+/g, ' ')
+  return stripContextMarker(s).replace(/[ \t]+/g, ' ').replace(/\n+/g, ' ').trim()
+}
+
+function stripContextMarker(s: string): string {
+  return s.replace(/\s*\[[Cc]ontext:\s*[^\]]*\]\s*/g, ' ')
+}
+
+/** Păstrează rândurile utile pentru mesajul principal; comprimă doar spațiile orizontale. */
+function normalizeExplanationRaw(s: string): string {
+  if (!s || typeof s !== 'string') return ''
+  return stripContextMarker(s)
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
 
@@ -29,15 +41,51 @@ function renderInlineBold(text: string): ReactNode[] {
   })
 }
 
-function ExplanationSections({ rawText }: { rawText: string }) {
-  const clean = faraPrefixContext(rawText)
-  const parts = clean.split(EXPL_SECTION_SEP).map((p) => p.trim()).filter(Boolean)
-  if (parts.length <= 1) {
+/** Împarte un bloc dens în segmente ușor de parcurs (rânduri, punct și virgulă, propoziții). */
+function splitReadableChunks(text: string): string[] {
+  const t = text.trim()
+  if (!t) return []
+  const byNewline = t
+    .split(/\n+/)
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+  if (byNewline.length >= 2) return byNewline
+
+  const bySemi = t.split(/;\s+/).map((s) => s.trim()).filter(Boolean)
+  if (bySemi.length >= 2) return bySemi
+
+  const sentences = t.split(/(?<=[.!?])\s+(?=[A-ZĂÂÎȘȚ])/u).map((s) => s.trim()).filter(Boolean)
+  if (sentences.length >= 2) return sentences
+
+  return [t]
+}
+
+function ReadableParagraphs({ text }: { text: string }) {
+  const chunks = splitReadableChunks(text)
+  if (chunks.length <= 1) {
     return (
-      <p className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
-        {renderInlineBold(clean)}
+      <p className="text-slate-200 text-base sm:text-sm leading-relaxed break-words whitespace-pre-line">
+        {renderInlineBold(chunks[0] ?? '')}
       </p>
     )
+  }
+  return (
+    <ul className="space-y-2.5 list-none pl-0 m-0">
+      {chunks.map((chunk, idx) => (
+        <li key={idx} className="flex gap-2.5 text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neonCyan/90" aria-hidden />
+          <span className="min-w-0">{renderInlineBold(chunk)}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function ExplanationSections({ rawText }: { rawText: string }) {
+  const normalized = normalizeExplanationRaw(rawText)
+  const parts = normalized.split(EXPL_SECTION_SEP).map((p) => p.trim()).filter(Boolean)
+  if (parts.length <= 1) {
+    return <ReadableParagraphs text={parts[0] ?? normalized} />
   }
   const sectionTitle = (idx: number) => {
     if (idx === 0) return 'Rezumat'
@@ -56,15 +104,15 @@ function ExplanationSections({ rawText }: { rawText: string }) {
             <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
               {sectionTitle(idx)}
             </p>
-            <p
+            <div
               className={
                 last
                   ? 'text-xs text-slate-400 leading-relaxed break-words'
                   : 'text-slate-200 text-base sm:text-sm leading-relaxed break-words'
               }
             >
-              {renderInlineBold(block)}
-            </p>
+              <ReadableParagraphs text={block} />
+            </div>
           </div>
         )
       })}
@@ -99,7 +147,7 @@ interface RecommendationCardProps {
   index: number
   userId?: number
   onFeedbackSent?: (recId: number, rating: number, newLikes: number, newDislikes: number) => void
-  onReplaceRequested?: (recId: number) => Promise<void>
+  onReplaceRequested?: (recId: number, options?: { recordDislikeRating?: number }) => Promise<void>
 }
 
 const RecommendationCard = ({
@@ -167,10 +215,20 @@ const RecommendationCard = ({
     setReplaceLoading(true)
     setShowDislikeModal(false)
     try {
-      const ok = await sendFeedback(1)
-      if (ok && replace && onReplaceRequested) {
-        await onReplaceRequested(recommendation.recommendation_id)
+      if (replace && onReplaceRequested) {
+        await onReplaceRequested(recommendation.recommendation_id, { recordDislikeRating: 1 })
+        setFeedbackStatus('sent')
+        setFeedbackError(null)
+      } else {
+        await sendFeedback(1)
       }
+    } catch (err: unknown) {
+      const msg =
+        (err as { message?: string })?.message ||
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Nu s-a putut înlocui recomandarea. Încearcă din nou.'
+      setFeedbackError(msg)
+      setFeedbackStatus('error')
     } finally {
       setReplaceLoading(false)
     }
@@ -188,7 +246,7 @@ const RecommendationCard = ({
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.04, duration: 0.22, ease: 'easeOut' }}
+        transition={{ delay: Math.min(index * 0.02, 0.08), duration: 0.2, ease: 'easeOut' }}
         className="h-full"
       >
         <GlassCard className="h-full min-h-[440px] flex flex-col hover:shadow-neon transition-all duration-300">
@@ -211,7 +269,7 @@ const RecommendationCard = ({
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(coverage, 100)}%` }}
-                      transition={{ delay: index * 0.04 + 0.15, duration: 0.35, ease: 'easeOut' }}
+                      transition={{ delay: 0.06, duration: 0.3, ease: 'easeOut' }}
                       className="bg-gradient-to-r from-neonCyan via-neonPurple to-neonMagenta h-3 sm:h-2.5 rounded-full shadow-neon"
                     />
                   </div>
@@ -235,16 +293,13 @@ const RecommendationCard = ({
                 </p>
                 <ul className="space-y-2">
                   {explanation.reasons.map((reason, idx) => (
-                    <motion.li
+                    <li
                       key={idx}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.02 + idx * 0.03, duration: 0.18, ease: 'easeOut' }}
                       className="flex items-start gap-2 text-base sm:text-sm text-slate-300 leading-relaxed break-words"
                     >
                       <CheckCircle2 className="w-4 h-4 text-neonCyan mt-0.5 flex-shrink-0" />
-                      <span className="leading-relaxed">{faraPrefixContext(reason)}</span>
-                    </motion.li>
+                      <span className="leading-relaxed whitespace-pre-line">{faraPrefixContext(reason)}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
