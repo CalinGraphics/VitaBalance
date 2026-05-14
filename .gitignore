@@ -1,5 +1,7 @@
 # Python
 __pycache__/
+.venv/
+*.bin
 *.py[cod]
 *$py.class
 *.so

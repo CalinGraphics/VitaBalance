@@ -1,7 +1,4 @@
-"""
-VitaBalance API – production-ready.
-Data: Supabase only. Auth: JWT middleware (to be added). No SQLite.
-"""
+"""API FastAPI VitaBalance."""
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
@@ -47,7 +44,6 @@ app = FastAPI(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Asigură că orice excepție neprinsă returnează JSON cu detail, nu HTML."""
     from fastapi.responses import JSONResponse
     import traceback
 
@@ -63,7 +59,13 @@ async def global_exception_handler(request, exc):
     return JSONResponse(status_code=500, content={"detail": detail})
 
 
-settings = get_settings()
+try:
+    settings = get_settings()
+except Exception as exc:  # noqa: BLE001
+    import sys
+
+    sys.stderr.write(f"\n[FATAL] Config: {type(exc).__name__}: {exc}\n")
+    raise
 
 _cors_origins = ["*"] if settings.cors_allow_all else settings.get_cors_origins_list()
 app.add_middleware(
@@ -82,7 +84,6 @@ app.add_middleware(
 
 
 def _profile_to_response(p: UserProfile) -> dict:
-    """Map UserProfile to API response shape."""
     return {
         "id": p.id,
         "email": p.email,
@@ -100,7 +101,6 @@ def _profile_to_response(p: UserProfile) -> dict:
     }
 
 
-# ---------- Public / health ----------
 @app.get("/")
 async def root():
     return {"message": "VitaBalance API - Sistem de recomandare nutrițională"}
@@ -110,7 +110,7 @@ async def root():
 async def health_check(settings=Depends(get_settings)):
     checks: Dict[str, str] = {"app": "ok"}
     checks["supabase"] = "skipped"
-    if settings.supabase_url and settings.supabase_key:
+    if settings.supabase_url and settings.effective_supabase_secret_key():
         try:
             from supabase_client import get_supabase_client
 
@@ -153,7 +153,6 @@ async def get_config(settings=Depends(get_settings)):
     return {"app_name": settings.app_name, "debug": settings.debug}
 
 
-# ---------- Auth (legacy password – will be replaced by magic link) ----------
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -174,7 +173,7 @@ class AuthResponse(BaseModel):
 
 class MagicLinkRequest(BaseModel):
     email: EmailStr
-    fullName: Optional[str] = None  # pentru înregistrare prin magic link
+    fullName: Optional[str] = None
 
 
 class MagicLinkVerifyRequest(BaseModel):
@@ -206,13 +205,11 @@ class RecommendationAuditResponse(BaseModel):
 
 @app.post("/api/auth/request-magic-link", response_model=MagicLinkResponse)
 async def api_request_magic_link(body: MagicLinkRequest, background_tasks: BackgroundTasks):
-    """Trimite link magic pe email. Opțional fullName pentru înregistrare."""
     if not body.email or not str(body.email).strip():
         raise HTTPException(status_code=400, detail="Email obligatoriu")
+    ok = False
     try:
         email = str(body.email).strip().lower()
-        # Generăm tokenul imediat (rapid), iar trimiterea efectivă a emailului o facem în background
-        # ca să nu blocăm UX-ul pentru apelul extern către providerul de email.
         from repositories.magic_link_repository import create_token
         from services.email_service import send_magic_link_email
 
@@ -237,10 +234,8 @@ async def api_request_magic_link(body: MagicLinkRequest, background_tasks: Backg
         background_tasks.add_task(_safe_send)
         ok = True
     except RuntimeError as e:
-        # Propagăm mesajul exact (de ex. lipsă RESEND_API_KEY sau eroare Resend)
         raise HTTPException(status_code=500, detail=str(e))
     if not ok:
-        # Fallback generic, dacă pentru vreun motiv funcția întoarce False.
         raise HTTPException(
             status_code=500,
             detail="Nu am putut trimite emailul de autentificare. Încearcă din nou sau contactează administratorul.",
@@ -250,7 +245,6 @@ async def api_request_magic_link(body: MagicLinkRequest, background_tasks: Backg
 
 @app.post("/api/auth/verify-magic-link", response_model=VerifyMagicLinkResponse)
 async def api_verify_magic_link(body: MagicLinkVerifyRequest):
-    """Validează tokenul magic, invalidează tokenul, returnează user + JWT."""
     if not body.token or not body.token.strip():
         raise HTTPException(status_code=400, detail="Token obligatoriu")
     result = verify_magic_link(body.token.strip())
@@ -266,7 +260,6 @@ async def api_verify_magic_link(body: MagicLinkVerifyRequest):
 
 @app.get("/api/auth/me", response_model=AuthResponse)
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
-    """Returnează utilizatorul curent din JWT (pentru restabilire sesiune)."""
     from repositories import UserRepository
     repo = UserRepository()
     profile = repo.get_by_email(current_user["email"])
@@ -278,7 +271,6 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
 
 
 def _ensure_user_resource(current_user: dict, user_id: int) -> UserProfile:
-    """Verifică că resursa aparține utilizatorului autentificat. Returnează UserProfile."""
     repo = UserRepository()
     profile = repo.get_by_email(current_user["email"])
     if not profile:
@@ -294,7 +286,6 @@ def _stored_recommendations_payload(
     food_repo: FoodRepository,
     feedback_repo: FeedbackRepository,
 ) -> List[dict]:
-    """Recomandări deja salvate în DB, fără regenerare (rapid pentru GET / UX)."""
     existing_recs = rec_repo.get_by_user_id(user_id, limit=100)
     if not existing_recs:
         return []
@@ -385,7 +376,6 @@ async def register(user_data: RegisterRequest):
         )
         from services.auth import create_access_token
         access_token = create_access_token({"sub": new_user["email"], "email": new_user["email"]})
-        # Asigură că toate câmpurile sunt string (niciodată None) pentru AuthResponse
         return AuthResponse(
             email=new_user.get("email") or user_data.email,
             fullName=new_user.get("fullName") or user_data.fullName,
@@ -401,7 +391,6 @@ async def register(user_data: RegisterRequest):
         raise HTTPException(status_code=500, detail=f"Eroare la crearea contului: {err_msg}")
 
 
-# ---------- Profile (Supabase) – protejat ----------
 @app.post("/api/profile", response_model=UserResponse)
 async def create_profile(user: UserCreate, current_user: dict = Depends(get_current_user)):
     if current_user.get("email", "").lower() != user.email.lower():
@@ -412,8 +401,6 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
         allergies_val = user.allergies or ""
         medical_val = user.medical_conditions or ""
         if existing:
-            # Date care influențează motorul de recomandări – la schimbare setăm updated_at
-            # (vezi POST /recommendations) fără a bloca acest request cu ștergeri/regenerări.
             old_snapshot = {
                 "age": existing.age,
                 "sex": existing.sex,
@@ -435,8 +422,6 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
                 "medical_conditions": medical_val,
             }
             snapshot_changed = old_snapshot != new_snapshot
-            # Nu ștergem recomandările aici (răspuns API rapid). Regenerarea se face în
-            # POST /recommendations când updated_at e mai nou decât created_at la recomandări.
             updated = repo.upsert(
                 user.email,
                 name=user.name,
@@ -484,7 +469,6 @@ async def get_profile(user_id: int, current_user: dict = Depends(get_current_use
     return _profile_to_response(user)
 
 
-# ---------- Lab results (Supabase) – protejat ----------
 @app.post("/api/lab-results", response_model=LabResultResponse)
 async def create_lab_results(lab_result: LabResultCreate, current_user: dict = Depends(get_current_user)):
     _ensure_user_resource(current_user, lab_result.user_id)
@@ -552,16 +536,13 @@ async def extract_lab_values_from_text(
     body: LabResultExtractFromTextRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    """Extrage valorile analizelor medicale din textul unui raport (ex. din PDF)."""
     from services.lab_text_extractor import extract_lab_values_from_text
     extracted = extract_lab_values_from_text(body.text)
     return extracted
 
 
-# ---------- Recommendations (Supabase) – protejat ----------
 @app.get("/api/recommendations/stored/{user_id}")
 async def list_stored_recommendations(user_id: int, current_user: dict = Depends(get_current_user)):
-    """Listă rapidă din DB (fără motor de reguli). Folosit de frontend înainte de regenerare."""
     _ensure_user_resource(current_user, user_id)
     rec_repo = RecommendationRepository()
     food_repo = FoodRepository()
@@ -586,7 +567,6 @@ async def get_recommendations(
 
 @app.get("/api/recommendations/sync-meta/{user_id}")
 async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(get_current_user)):
-    """Pentru polling: compară profil + analize (max created/updated la labs) cu created_at la recomandări."""
     _ensure_user_resource(current_user, user_id)
     urepo = UserRepository()
     rrepo = RecommendationRepository()
@@ -637,7 +617,6 @@ async def recommendations_refresh_async(
     force_regenerate: bool = Query(False, description="Dacă true, forțează regenerarea ca la Încearcă din nou"),
     current_user: dict = Depends(get_current_user),
 ):
-    """Răspunde imediat; regenerarea rulează în fundal (fără timeout lung în browser)."""
     _ensure_user_resource(current_user, user_id)
     rec_repo = RecommendationRepository()
     food_repo = FoodRepository()
@@ -670,9 +649,6 @@ async def audit_recommendations_quality(
     top_n: int = Query(20, ge=1, le=50),
     current_user: dict = Depends(get_current_user),
 ):
-    """
-    Audit intern: verifică dacă top recomandări acoperă deficitele active.
-    """
     _ensure_user_resource(current_user, user_id)
     user_repo = UserRepository()
     food_repo = FoodRepository()
@@ -767,7 +743,6 @@ async def delete_recommendations(user_id: int, current_user: dict = Depends(get_
     return {"message": "Recomandări șterse"}
 
 
-# ---------- Feedback (Supabase) – protejat ----------
 @app.post("/api/feedback")
 async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends(get_current_user)):
     _ensure_user_resource(current_user, feedback.user_id)
@@ -784,7 +759,6 @@ async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends
     return {"message": "Feedback salvat cu succes", "id": result.id}
 
 
-# ---------- Foods (Supabase) – protejat (catalog public dar API consistent) ----------
 @app.get("/api/foods")
 async def get_foods(current_user: dict = Depends(get_current_user)):
     repo = FoodRepository()
@@ -821,4 +795,5 @@ async def get_foods(current_user: dict = Depends(get_current_user)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    _port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=_port)

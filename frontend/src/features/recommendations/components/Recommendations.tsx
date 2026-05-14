@@ -32,7 +32,6 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
-/** Recomandările din DB sunt la zi față de profil și/sau analize (GET sync-meta). */
 function syncMetaIsFresh(meta: {
   user_updated_at: string | null
   latest_rec_created_at: string | null

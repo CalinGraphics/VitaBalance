@@ -187,7 +187,9 @@ export const RecommendationReportDocument: React.FC<RecommendationReportDocument
       <Text style={styles.sectionTitle}>{faraDiacritice('RECOMANDĂRI NUTRIȚIONALE')}</Text>
 
       {recommendations.map((rec, index) => {
-        const descriere = faraDiacritice(faraPrefixContext(rec.explanation.text))
+        const descriere = faraDiacritice(
+          faraPrefixContext(rec.explanation.text.replace(/\n\n---\n\n/g, '\n\n'))
+        )
         const motive = (rec.explanation.reasons || [])
           .map((r) => normalizeSentenceEnd(faraDiacritice(faraPrefixContext(r))))
           .filter(Boolean)

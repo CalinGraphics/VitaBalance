@@ -4,10 +4,6 @@ import { extractErrorMessage } from '../shared/utils/apiErrors'
 import type { LabExtractFromApi, LabKey } from '../features/medical/utils/labLocalExtract'
 import { getToken, clearToken } from './authStorage'
 
-/**
- * FastAPI expune rutele sub `/api/...`. Dacă în producție setezi doar originea
- * (ex. `https://api-meu.onrender.com`), fără path, cererile mergeau la `/recommendations/...` și primeai 404.
- */
 function normalizeApiBaseUrl(raw: string | undefined): string {
   const fallback = '/api'
   if (raw == null || String(raw).trim() === '') return fallback
@@ -28,9 +24,7 @@ function normalizeApiBaseUrl(raw: string | undefined): string {
 
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
 
-/** Cereri standard (profil, analize, feedback). */
 const DEFAULT_TIMEOUT_MS = 45_000
-/** POST sincron la /recommendations (ex. înlocuire aliment) poate dura mai mult. */
 const LONG_OPERATION_TIMEOUT_MS = 120_000
 
 const api = axios.create({
@@ -87,7 +81,6 @@ export type LabResultsCreatePayload = {
   notes?: string | null
 } & Partial<Record<LabKey, number | null>>
 
-// Auth (magic link + JWT)
 export const authService = {
   requestMagicLink: async (email: string, fullName?: string) => {
     const response = await api.post('/auth/request-magic-link', {
@@ -141,22 +134,18 @@ export const labResultsService = {
 }
 
 export const recommendationsService = {
-  /** Citire rapidă din DB (fără regenerare) — pentru afișare imediată înainte de POST. */
   listStored: async (userId: number) => {
     const response = await api.get(`/recommendations/stored/${userId}`)
     return response.data
   },
-  /** Pentru polling: compară updated_at profil vs ultima recomandare materializată. */
   getSyncMeta: async (userId: number) => {
     const response = await api.get(`/recommendations/sync-meta/${userId}`, { timeout: 15000 })
     return response.data as {
       user_updated_at: string | null
       latest_rec_created_at: string | null
-      /** max(created_at, updated_at) la ultimul rând lab_results — pentru polling după salvare analize */
       labs_fresh_at: string | null
     }
   },
-  /** Pornește regenerarea în background; răspuns rapid (nu așteaptă motorul). */
   startRefreshAsync: async (userId: number, forceRegenerate = false) => {
     const response = await api.post(
       `/recommendations/refresh-async/${userId}?force_regenerate=${forceRegenerate}`,
@@ -165,10 +154,6 @@ export const recommendationsService = {
     )
     return response.data as { status?: string; recommendations?: unknown[] }
   },
-  /**
-   * POST sincron clasic — folosit ca fallback dacă serverul nu are încă
-   * `stored` / `refresh-async` / `sync-meta` (deploy vechi).
-   */
   materializeSync: async (userId: number, forceRegenerate = false) => {
     const response = await api.post(
       `/recommendations?force_regenerate=${forceRegenerate}`,

@@ -5,6 +5,9 @@ from domain.models import FoodItem, UserProfile
 from services.medical_rules_loader import normalize_clinical_text
 from services.deficit_calculator import DeficitCalculator
 
+# Separă blocurile afișate în UI (Rezumat / detaliu / mențiune) — trebuie să coincidă cu frontend.
+EXPL_SECTION_SEP = "\n\n---\n\n"
+
 
 class ExplanationGenerator:
     """Generează explicații pentru recomandări: text principal + detalii cu valori per porție și VNR (model)."""
@@ -80,7 +83,7 @@ class ExplanationGenerator:
                     continue
                 seen.add(t)
                 unique_explanations.append(t)
-            main_text = " ".join(unique_explanations)
+            main_text = ". ".join(unique_explanations)
         else:
             main_text = f"Am recomandat {food.name.lower()} pentru valoarea sa nutrițională."
         if not has_lab_data and "deficit" in main_text.lower():
@@ -92,11 +95,17 @@ class ExplanationGenerator:
         factual = self._rdi_portion_sentence(
             food, user, portion, nutrients_covered, deficits or {}
         )
+        disclaim = "Valorile sunt orientative (catalog + model); nu înlocuiesc consultul medical."
+        blocks = [main_text.rstrip().rstrip(".")]
         if factual:
-            main_text = main_text.rstrip().rstrip(".")
-            main_text = f"{main_text}. {factual}"
+            blocks.append(factual.rstrip().rstrip("."))
+        blocks.append(disclaim)
+        main_text_out = EXPL_SECTION_SEP.join(blocks)
 
         reasons = []
+        dt = (user.diet_type or "").strip()
+        if dt:
+            reasons.append(f"Adaptat profilului tău (dietă: {dt}).")
         if is_fallback_profile_based:
             if has_lab_data:
                 reasons.append(
@@ -120,7 +129,7 @@ class ExplanationGenerator:
         alternatives = self._generate_alternatives(food, user)
 
         return {
-            "text": main_text,
+            "text": main_text_out,
             "portion": portion,
             "reasons": reasons,
             "tips": tips,
@@ -230,15 +239,11 @@ class ExplanationGenerator:
             label = self.NUTRIENT_LABELS_RO.get(n, n)
             amt = self._format_amount_for_nutrient(n, at_portion)
             parts.append(
-                f"**{label}**: la ~{portion} g aprox. **{amt}** (~**{pct:.0f}%** din reperul zilnic folosit în model pentru {label})"
+                f"{label}: ~{amt} (~{pct:.0f}% din reperul zilnic din model pentru {label})"
             )
         if not parts:
             return ""
-        return (
-            "La porția orientativă din catalog (raportat la deficitele estimate în model pentru tine): "
-            + "; ".join(parts)
-            + ". Valorile per 100 g provin din baza de date a aplicației (orientativ, nu înlocuiesc sfatul medical)."
-        )
+        return "La porția estimată (~" + str(portion) + " g): " + " · ".join(parts) + "."
 
     def _generate_traditional_explanation(
         self,

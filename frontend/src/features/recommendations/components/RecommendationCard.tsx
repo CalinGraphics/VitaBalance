@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Info, ThumbsUp, ThumbsDown, X } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
@@ -12,6 +12,64 @@ function faraPrefixContext(s: string): string {
     .replace(/\s*\[[Cc]ontext:\s*[^\]]*\]\s*/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+const EXPL_SECTION_SEP = '\n\n---\n\n'
+
+function renderInlineBold(text: string): ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} className="font-semibold text-slate-50">
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
+}
+
+function ExplanationSections({ rawText }: { rawText: string }) {
+  const clean = faraPrefixContext(rawText)
+  const parts = clean.split(EXPL_SECTION_SEP).map((p) => p.trim()).filter(Boolean)
+  if (parts.length <= 1) {
+    return (
+      <p className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+        {renderInlineBold(clean)}
+      </p>
+    )
+  }
+  const sectionTitle = (idx: number) => {
+    if (idx === 0) return 'Rezumat'
+    if (idx === parts.length - 1) return 'Mențiune'
+    return 'Detaliu nutrienți'
+  }
+  return (
+    <div className="space-y-3">
+      {parts.map((block, idx) => {
+        const last = idx === parts.length - 1
+        return (
+          <div
+            key={idx}
+            className={last ? 'rounded-lg border border-white/5 bg-slate-900/35 px-3 py-2.5' : ''}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
+              {sectionTitle(idx)}
+            </p>
+            <p
+              className={
+                last
+                  ? 'text-xs text-slate-400 leading-relaxed break-words'
+                  : 'text-slate-200 text-base sm:text-sm leading-relaxed break-words'
+              }
+            >
+              {renderInlineBold(block)}
+            </p>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 interface RecommendationCardProps {
@@ -133,7 +191,7 @@ const RecommendationCard = ({
         transition={{ delay: index * 0.04, duration: 0.22, ease: 'easeOut' }}
         className="h-full"
       >
-        <GlassCard className="h-full min-h-[520px] flex flex-col hover:shadow-neon transition-all duration-300">
+        <GlassCard className="h-full min-h-[440px] flex flex-col hover:shadow-neon transition-all duration-300">
           {/* Conținut principal */}
           <div className="flex-1">
             {/* Header */}
@@ -166,7 +224,7 @@ const RecommendationCard = ({
 
             {/* Explanation */}
             <div className="mb-5 p-4 rounded-xl bg-slate-800/50 border border-neonCyan/20">
-              <p className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">{faraPrefixContext(explanation.text)}</p>
+              <ExplanationSections rawText={explanation.text} />
             </div>
 
             {explanation.reasons && explanation.reasons.length > 0 && (
