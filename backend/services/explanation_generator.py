@@ -5,7 +5,7 @@ from domain.models import FoodItem, UserProfile
 from services.medical_rules_loader import normalize_clinical_text
 from services.deficit_calculator import DeficitCalculator
 
-# Separă blocurile afișate în UI (Rezumat / detaliu / mențiune) — trebuie să coincidă cu frontend.
+# Separă blocurile afișate în UI (Rezumat / detaliu) — trebuie să coincidă cu frontend.
 EXPL_SECTION_SEP = "\n\n---\n\n"
 
 
@@ -27,6 +27,63 @@ class ExplanationGenerator:
         "vitamin_k": "vitamina K",
         "potassium": "potasiu",
     }
+
+    @staticmethod
+    def _norm_ws_key(text: str) -> str:
+        return " ".join((text or "").lower().split())
+
+    def _dedupe_expl_sections(self, text: str) -> str:
+        parts = [p.strip() for p in text.split(EXPL_SECTION_SEP) if p.strip()]
+        seen: set[str] = set()
+        out: List[str] = []
+        for p in parts:
+            key = self._norm_ws_key(p)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(p)
+        return EXPL_SECTION_SEP.join(out) if out else text
+
+    def _segment_is_disclaimer_only(self, p: str) -> bool:
+        pl = self._norm_ws_key(p)
+        if "valorile sunt orientative" in pl and ("consultul medical" in pl or "nu înlocuiesc" in pl):
+            return True
+        if "nu înlocuiesc consultul medical" in pl and len(pl) < 220:
+            return True
+        if "valorile per 100 g provin" in pl and ("medical" in pl or "orientativ" in pl):
+            return True
+        return False
+
+    def _remove_disclaimer_phrases_from_block(self, p: str) -> str:
+        lines = p.split("\n")
+        kept: List[str] = []
+        for ln in lines:
+            l = ln.strip().lower()
+            if not l:
+                continue
+            if "valorile sunt orientative" in l and ("catalog" in l or "model" in l):
+                continue
+            if "nu înlocuiesc consultul medical" in l:
+                continue
+            if "valorile per 100 g provin" in l and "orientativ" in l:
+                continue
+            if l.startswith("•") or l.startswith("-") or l.startswith("·"):
+                inner = l.lstrip("•-· \t").strip().lower()
+                if "valorile sunt orientative" in inner or "nu înlocuiesc consultul medical" in inner:
+                    continue
+            kept.append(ln)
+        return "\n".join(kept).strip()
+
+    def _strip_disclaimer_from_explanation_text(self, text: str) -> str:
+        parts = [p.strip() for p in text.split(EXPL_SECTION_SEP) if p.strip()]
+        out: List[str] = []
+        for p in parts:
+            if self._segment_is_disclaimer_only(p):
+                continue
+            cleaned = self._remove_disclaimer_phrases_from_block(p)
+            if cleaned:
+                out.append(cleaned)
+        return EXPL_SECTION_SEP.join(out) if out else text
 
     def generate_explanation(
         self,
@@ -74,15 +131,17 @@ class ExplanationGenerator:
         portion = self._estimate_portion_by_category(food, user)
         is_fallback_profile_based = "fallback_profile_based" in matched_rules
 
+        unique_explanations: List[str] = []
         if explanations:
             seen: set[str] = set()
-            unique_explanations: List[str] = []
             for ex in explanations:
                 t = (ex or "").strip()
                 if not t or t in seen:
                     continue
                 seen.add(t)
                 unique_explanations.append(t)
+
+        if unique_explanations:
             main_text = ". ".join(unique_explanations)
         else:
             main_text = f"Am recomandat {food.name.lower()} pentru valoarea sa nutrițională."
@@ -92,15 +151,33 @@ class ExplanationGenerator:
                 "și compatibilitatea cu nevoile tale generale."
             )
 
-        factual = self._rdi_portion_sentence(
-            food, user, portion, nutrients_covered, deficits or {}
-        )
-        disclaim = "Valorile sunt orientative (catalog + model); nu înlocuiesc consultul medical."
-        blocks = [main_text.rstrip().rstrip(".")]
-        if factual:
-            blocks.append(factual.rstrip().rstrip("."))
-        blocks.append(disclaim)
-        main_text_out = EXPL_SECTION_SEP.join(blocks)
+        main_text_for_clinical = main_text
+
+        if (
+            unique_explanations
+            and len(unique_explanations) == 1
+            and EXPL_SECTION_SEP in unique_explanations[0]
+        ):
+            # Text deja materializat (cu ---): nu mai adăuga porțiune factuală / evită duplicate la hidratare.
+            main_text_out = self._dedupe_expl_sections(
+                self._strip_disclaimer_from_explanation_text(unique_explanations[0])
+            )
+            segs = [s for s in main_text_out.split(EXPL_SECTION_SEP) if s.strip()]
+            if segs:
+                main_text_for_clinical = segs[0]
+        else:
+            factual = self._rdi_portion_sentence(
+                food, user, portion, nutrients_covered, deficits or {}
+            )
+            blocks = [main_text.rstrip().rstrip(".")]
+            if factual:
+                ft = factual.rstrip().rstrip(".")
+                if ft.lower() not in main_text.lower():
+                    blocks.append(ft)
+            main_text_out = EXPL_SECTION_SEP.join(blocks)
+            main_text_out = self._dedupe_expl_sections(
+                self._strip_disclaimer_from_explanation_text(main_text_out)
+            )
 
         reasons = []
         dt = (user.diet_type or "").strip()
@@ -122,7 +199,7 @@ class ExplanationGenerator:
             reasons.append("Recomandare bazată pe profilul tău și modelul estimativ de necesar nutrițional.")
 
         tips = self._generate_tips_from_rules(matched_rules, food, user)
-        tips.extend(self._clinical_priority_tips(user, main_text))
+        tips.extend(self._clinical_priority_tips(user, main_text_for_clinical))
         tips = list(dict.fromkeys(tips))
         if not tips:
             tips = ["Poți integra acest aliment în mesele zilnice pentru un echilibru nutrițional mai bun."]

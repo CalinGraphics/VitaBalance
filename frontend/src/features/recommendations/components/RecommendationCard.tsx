@@ -28,6 +28,31 @@ function normalizeExplanationRaw(s: string): string {
 
 const EXPL_SECTION_SEP = '\n\n---\n\n'
 
+/** Scoate formulările legale de tip disclaimer din textul afișat la aliment (inclusiv date vechi din DB). */
+function stripMedicalDisclaimersFromExplanation(s: string): string {
+  let t = s.replace(
+    /\s*Valorile sunt orientative\s*\([^)]*\)\s*;\s*nu\s+înlocuiesc consultul medical\.?\s*/gi,
+    '\n'
+  )
+  t = t.replace(/\s*Valorile sunt orientative[^.\n]*(?:catalog|model)[^.\n]*\.?\s*/gi, '\n')
+  t = t.replace(/\s*nu\s+înlocuiesc consultul medical\.?\s*/gi, '\n')
+  t = t.replace(/\s*Valorile per 100 g provin[^.\n]*\.?\s*/gi, '\n')
+  return t
+    .split('\n')
+    .filter((ln) => {
+      const l = ln.toLowerCase().trim()
+      if (!l) return false
+      if (l.includes('valorile sunt orientative') && (l.includes('catalog') || l.includes('model')))
+        return false
+      if (l.includes('nu înlocuiesc consultul medical')) return false
+      if (l.includes('valorile per 100 g provin') && l.includes('orientativ')) return false
+      return true
+    })
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 function renderInlineBold(text: string): ReactNode[] {
   return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -82,43 +107,64 @@ function ReadableParagraphs({ text }: { text: string }) {
 }
 
 function ExplanationSections({ rawText }: { rawText: string }) {
-  const normalized = normalizeExplanationRaw(rawText)
+  const normalized = stripMedicalDisclaimersFromExplanation(normalizeExplanationRaw(rawText))
   const parts = normalized.split(EXPL_SECTION_SEP).map((p) => p.trim()).filter(Boolean)
   if (parts.length <= 1) {
     return <ReadableParagraphs text={parts[0] ?? normalized} />
   }
-  const sectionTitle = (idx: number): string | null => {
-    if (idx === 0) return 'Rezumat'
-    if (idx === parts.length - 1) return null
-    return 'Detaliu nutrienți'
+  const first = parts[0] ?? ''
+  const last = parts[parts.length - 1]
+  const middleText = parts
+    .slice(1, -1)
+    .join('\n\n')
+    .trim()
+
+  if (parts.length === 2) {
+    return (
+      <div className="space-y-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">Rezumat</p>
+          <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+            <ReadableParagraphs text={first} />
+          </div>
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
+            Detaliu nutrienți
+          </p>
+          <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+            <ReadableParagraphs text={last} />
+          </div>
+        </div>
+      </div>
+    )
   }
+
   return (
     <div className="space-y-3">
-      {parts.map((block, idx) => {
-        const last = idx === parts.length - 1
-        const title = sectionTitle(idx)
-        return (
-          <div
-            key={idx}
-            className={last ? 'rounded-lg border border-white/5 bg-slate-900/35 px-3 py-2.5' : ''}
-          >
-            {title ? (
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
-                {title}
-              </p>
-            ) : null}
-            <div
-              className={
-                last
-                  ? 'text-xs text-slate-400 leading-relaxed break-words'
-                  : 'text-slate-200 text-base sm:text-sm leading-relaxed break-words'
-              }
-            >
-              <ReadableParagraphs text={block} />
-            </div>
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">Rezumat</p>
+        <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+          <ReadableParagraphs text={first} />
+        </div>
+      </div>
+      {middleText ? (
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
+            Detaliu nutrienți
+          </p>
+          <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+            <ReadableParagraphs text={middleText} />
           </div>
-        )
-      })}
+        </div>
+      ) : null}
+      {parts.length >= 2 ? (
+        <div className="rounded-lg border border-white/5 bg-slate-900/35 px-3 py-2.5">
+          <div className="text-xs text-slate-400 leading-relaxed break-words">
+            <ReadableParagraphs text={last} />
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
