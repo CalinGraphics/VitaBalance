@@ -200,7 +200,7 @@ export const recommendationsService = {
     const response = await api.post(
       `/recommendations/refresh-async/${userId}?force_regenerate=${forceRegenerate}`,
       {},
-      { timeout: 30_000 }
+      { timeout: 12_000 }
     )
     return response.data as {
       status?: string
@@ -235,6 +235,15 @@ export const recommendationsService = {
     const response = await api.post('/recommendations', body, { timeout: REC_REPLACE_TIMEOUT_MS })
     return response.data
   },
+}
+
+/** Pornește regenerarea în fundal (non-blocking) după salvare profil/analize. */
+export function prefetchRecommendationsRefresh(
+  userId: number | undefined | null,
+  forceRegenerate = true
+): void {
+  if (userId == null || userId <= 0) return
+  void recommendationsService.startRefreshAsync(userId, forceRegenerate).catch(() => {})
 }
 
 export const feedbackService = {

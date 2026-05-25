@@ -599,13 +599,16 @@ async def recommendations_refresh_async(
     current_user: dict = Depends(get_current_user),
 ):
     _ensure_user_resource(current_user, user_id)
-    rec_repo = RecommendationRepository()
-    food_repo = FoodRepository()
-    feedback_repo = FeedbackRepository()
-    stale = _stored_recommendations_payload(user_id, rec_repo, food_repo, feedback_repo)
-
     owner_email = current_user["email"]
     user_repo = UserRepository()
+    existing = user_repo.get_by_id(user_id)
+    if existing and getattr(existing, "rec_refresh_status", None) == "pending":
+        return {
+            "status": "already_pending",
+            "recommendations": [],
+            "refresh_status": "pending",
+        }
+
     user_repo.set_rec_refresh_status(user_id, "pending", error=None)
 
     def _job():
@@ -629,7 +632,7 @@ async def recommendations_refresh_async(
             )
 
     background_tasks.add_task(_job)
-    return {"status": "accepted", "recommendations": stale, "refresh_status": "pending"}
+    return {"status": "accepted", "recommendations": [], "refresh_status": "pending"}
 
 
 @app.get("/api/recommendations/audit/{user_id}", response_model=RecommendationAuditResponse)

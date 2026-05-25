@@ -245,9 +245,6 @@ def materialize_recommendations(
         for r in existing_recs_for_user:
             exclude_ids.add(r.food_id)
 
-    if should_generate and existing is not None and not is_replace_only:
-        rec_repo.delete_by_user_id(user_id)
-
     foods_filtered = [f for f in foods if f.id not in exclude_ids] if exclude_ids else foods
 
     calculator = DeficitCalculator()
@@ -353,6 +350,8 @@ def materialize_recommendations(
             to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
             explanation_by_food_id[food.id] = explanation
         if to_insert:
+            if existing is not None and not is_replace_only:
+                rec_repo.delete_by_user_id(user_id)
             inserted = rec_repo.insert_many(to_insert)
             for i, rec in enumerate(inserted):
                 if i >= len(rec_list):

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { isAxiosError } from 'axios'
 import { motion } from 'framer-motion'
 import { UtensilsCrossed, Download, Loader2 } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
@@ -11,6 +10,17 @@ import UserProfileInfo from './UserProfileInfo'
 import type { Recommendation } from '../types'
 import { humanizeRecommendationClientError } from '../../../shared/utils/apiErrors'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
+import {
+  loadStoredRecommendations,
+  pollRecommendationRefresh,
+  runRecommendationRefreshPipeline,
+  shouldSkipBackgroundRefresh,
+  startRecommendationRefreshJob,
+} from '../utils/recommendationFetchFlow'
+import {
+  readRecommendationsSessionCache,
+  writeRecommendationsSessionCache,
+} from '../utils/recommendationsSessionCache'
 
 interface RecommendationsProps {
   user: User
@@ -25,41 +35,18 @@ interface ApiErrorDetail {
   }
 }
 
-const FETCH_DEBOUNCE_MS = 320
 const PROFILE_REGEN_DEBOUNCE_MS = 80
-const SYNC_POLL_INITIAL_MS = 1000
-const SYNC_POLL_MAX_INTERVAL_MS = 8000
-const SYNC_POLL_MAX_MS = 45_000
 
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms))
-}
-
-function syncPollDelayMs(attempt: number): number {
-  return Math.min(SYNC_POLL_INITIAL_MS * 2 ** attempt, SYNC_POLL_MAX_INTERVAL_MS)
-}
-
-function syncMetaIsFresh(meta: {
-  user_updated_at: string | null
-  latest_rec_created_at: string | null
-  labs_fresh_at?: string | null
-}) {
-  if (!meta.latest_rec_created_at) return false
-  const rec = new Date(meta.latest_rec_created_at).getTime()
-  const profileT = meta.user_updated_at ? new Date(meta.user_updated_at).getTime() : 0
-  const labT = meta.labs_fresh_at ? new Date(meta.labs_fresh_at).getTime() : 0
-  const needRefreshIfAfter = Math.max(profileT, labT)
-  if (needRefreshIfAfter === 0) return true
-  return rec >= needRefreshIfAfter
-}
-
-function isHttp404(err: unknown): boolean {
-  return isAxiosError(err) && err.response?.status === 404
+function initialRecommendationsForUser(userId: number | undefined): Recommendation[] {
+  if (userId == null || userId <= 0) return []
+  return readRecommendationsSessionCache(userId) ?? []
 }
 
 const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
-  const [loading, setLoading] = useState(true)
+  const [recommendations, setRecommendations] = useState<Recommendation[]>(() =>
+    initialRecommendationsForUser(user.id)
+  )
+  const [loading, setLoading] = useState(() => initialRecommendationsForUser(user.id).length === 0)
   const [error, setError] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(10)
   const [selectedCategory, setSelectedCategory] = useState<'all' | string>('all')
@@ -80,9 +67,70 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const previousRefreshKeyRef = useRef<number | undefined>(refreshKey)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const applyRecommendationList = useCallback((data: unknown[], fetchId: number) => {
+    if (fetchId !== latestFetchIdRef.current) return
+    if (!Array.isArray(data) || data.length === 0) return
+    const list = data as Recommendation[]
+    setRecommendations(list)
+    setSelectedCategory('all')
+    setVisibleCount(Math.min(10, list.length))
+    setError(null)
+    if (user.id) writeRecommendationsSessionCache(user.id, list)
+  }, [user.id])
+
+  const runBackgroundRefresh = useCallback(
+    async (forceRegenerate: boolean, fetchId: number) => {
+      const uid = user.id
+      if (uid == null) return
+      try {
+        await startRecommendationRefreshJob(uid, forceRegenerate)
+        if (fetchId !== latestFetchIdRef.current) return
+
+        await pollRecommendationRefresh(uid, {
+          forceRegenerate,
+          isCancelled: () => fetchId !== latestFetchIdRef.current,
+          onFailed: (message) => {
+            if (fetchId === latestFetchIdRef.current) {
+              setBackgroundRefreshNote(message)
+            }
+          },
+          onTimeout: () => {
+            if (fetchId === latestFetchIdRef.current) {
+              setBackgroundRefreshNote(
+                'Lista se actualizează în fundal; cardurile noi apar automat când sunt gata.'
+              )
+            }
+          },
+        })
+
+        if (fetchId !== latestFetchIdRef.current) return
+
+        let data: unknown[]
+        try {
+          data = await loadStoredRecommendations(uid)
+        } catch (listErr) {
+          data = []
+        }
+        if (Array.isArray(data) && data.length > 0) {
+          applyRecommendationList(data, fetchId)
+        }
+      } catch (err: unknown) {
+        console.error('Eroare la actualizarea recomandărilor în fundal:', err)
+        if (fetchId === latestFetchIdRef.current && recommendationsRef.current.length === 0) {
+          setError(humanizeRecommendationClientError(err))
+        }
+      } finally {
+        if (fetchId === latestFetchIdRef.current) {
+          setRegeneratingAfterProfile(false)
+        }
+      }
+    },
+    [applyRecommendationList, user.id]
+  )
+
   const fetchRecommendations = useCallback(async (forceRegenerate: boolean = false) => {
     const fetchId = ++latestFetchIdRef.current
-    let preloadedFromDb = false
+    let hasVisibleList = recommendationsRef.current.length > 0
     try {
       if (!user.id) {
         if (fetchId !== latestFetchIdRef.current) return
@@ -95,131 +143,72 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       setError(null)
       setBackgroundRefreshNote(null)
 
-      if (forceRegenerate) {
-        setRegeneratingAfterProfile(true)
-        setLoading(true)
-        try {
-          const data = (await recommendationsService.materializeSync(user.id, true)) as unknown[]
-          if (fetchId !== latestFetchIdRef.current) return
-          if (Array.isArray(data) && data.length > 0) {
-            setRecommendations(data as Recommendation[])
-            setSelectedCategory('all')
-            setVisibleCount(Math.min(10, data.length))
-          } else {
-            setRecommendations([])
-            setError('Nu s-au găsit recomandări. Verifică profilul și analizele medicale.')
-          }
-        } catch (err: unknown) {
-          if (fetchId !== latestFetchIdRef.current) return
-          setError(humanizeRecommendationClientError(err))
-        } finally {
-          if (fetchId === latestFetchIdRef.current) {
-            setLoading(false)
-            setRegeneratingAfterProfile(false)
-          }
-        }
-        return
+      const sessionCached = readRecommendationsSessionCache(user.id)
+      if (sessionCached?.length) {
+        setRecommendations(sessionCached)
+        hasVisibleList = true
+        setLoading(false)
       }
 
-      let storedPreload: Recommendation[] = []
       try {
-        const stored = await recommendationsService.listStored(user.id)
+        const stored = await loadStoredRecommendations(user.id)
         if (fetchId !== latestFetchIdRef.current) return
         if (Array.isArray(stored) && stored.length > 0) {
-          storedPreload = stored as Recommendation[]
-          setRecommendations(storedPreload)
-          preloadedFromDb = true
+          applyRecommendationList(stored, fetchId)
+          hasVisibleList = true
           setLoading(false)
         }
       } catch {
-        /* listStored e opțional la preload (404 sau rețea — fluxul principal continuă) */
+        /* listStored — continuăm cu refresh în fundal dacă e cazul */
       }
 
-      if (!forceRegenerate && preloadedFromDb) {
+      if (!forceRegenerate && hasVisibleList) {
         try {
           const meta = await recommendationsService.getSyncMeta(user.id)
           if (fetchId !== latestFetchIdRef.current) return
-          const alreadyFresh =
-            syncMetaIsFresh(meta) &&
-            meta.refresh_status !== 'pending' &&
-            meta.refresh_status !== 'failed'
-          if (alreadyFresh) {
+          if (shouldSkipBackgroundRefresh(meta, false)) {
             setRegeneratingAfterProfile(false)
-            setError(null)
             return
           }
         } catch {
-          /* continuă cu refresh dacă meta e indisponibil */
-        }
-        setRegeneratingAfterProfile(true)
-      } else if (!preloadedFromDb) {
-        setLoading(true)
-        setRegeneratingAfterProfile(false)
-      } else {
-        setRegeneratingAfterProfile(true)
-      }
-
-      let data: unknown[]
-
-      try {
-        await recommendationsService.startRefreshAsync(user.id, forceRegenerate)
-        if (fetchId !== latestFetchIdRef.current) return
-
-        const pollDeadline = Date.now() + SYNC_POLL_MAX_MS
-        let pollAttempt = 0
-        while (Date.now() < pollDeadline) {
-          if (fetchId !== latestFetchIdRef.current) return
-          let meta: Awaited<ReturnType<typeof recommendationsService.getSyncMeta>>
-          try {
-            meta = await recommendationsService.getSyncMeta(user.id)
-          } catch (metaErr) {
-            if (isHttp404(metaErr)) break
-            throw metaErr
-          }
-          if (fetchId !== latestFetchIdRef.current) return
-          if (meta.refresh_status === 'failed') {
-            setBackgroundRefreshNote(
-              meta.refresh_error?.trim() ||
-                'Actualizarea recomandărilor a eșuat. Poți reîncerca din „Încearcă din nou”.'
-            )
-            break
-          }
-          if (syncMetaIsFresh(meta) && meta.refresh_status !== 'pending') break
-          if (syncMetaIsFresh(meta) && !meta.refresh_status) break
-          await sleep(syncPollDelayMs(pollAttempt))
-          pollAttempt += 1
-        }
-        if (Date.now() >= pollDeadline && fetchId === latestFetchIdRef.current) {
-          setBackgroundRefreshNote(
-            'Procesarea continuă în fundal. Reîmprospătează pagina peste câteva momente dacă lista nu s-a actualizat.'
-          )
-        }
-
-        try {
-          data = (await recommendationsService.listStored(user.id)) as unknown[]
-        } catch (listErr) {
-          if (isHttp404(listErr)) {
-            data = (await recommendationsService.materializeSync(user.id, forceRegenerate)) as unknown[]
-          } else {
-            throw listErr
-          }
-        }
-      } catch (asyncPathErr) {
-        if (isHttp404(asyncPathErr)) {
-          data = (await recommendationsService.materializeSync(user.id, forceRegenerate)) as unknown[]
-        } else {
-          throw asyncPathErr
+          /* meta indisponibil — verificăm refresh în fundal */
         }
       }
+
+      if (hasVisibleList) {
+        setRegeneratingAfterProfile(true)
+        void runBackgroundRefresh(forceRegenerate, fetchId)
+        return
+      }
+
+      setLoading(true)
+      setRegeneratingAfterProfile(true)
+      const data = await runRecommendationRefreshPipeline(
+        user.id,
+        forceRegenerate,
+        () => fetchId !== latestFetchIdRef.current,
+        {
+          onFailedNote: (message) => {
+            if (fetchId === latestFetchIdRef.current) {
+              setBackgroundRefreshNote(message)
+            }
+          },
+          onTimeoutNote: () => {
+            if (fetchId === latestFetchIdRef.current) {
+              setBackgroundRefreshNote(
+                'Lista se actualizează în fundal; cardurile noi apar automat când sunt gata.'
+              )
+            }
+          },
+        }
+      )
 
       if (fetchId !== latestFetchIdRef.current) return
       if (Array.isArray(data) && data.length > 0) {
-        setRecommendations(data as Recommendation[])
-        setSelectedCategory('all')
-        setVisibleCount(Math.min(10, data.length))
-        setError(null)
+        applyRecommendationList(data, fetchId)
+        hasVisibleList = true
       } else {
-        setError('Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele medicale.')
+        setError('Nu s-au găsit recomandări. Verifică profilul și analizele medicale.')
         setRecommendations([])
       }
     } catch (err: unknown) {
@@ -250,17 +239,21 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       }
 
       if (fetchId !== latestFetchIdRef.current) return
-      setError(errorMessage)
-      if (!preloadedFromDb) {
+      if (!hasVisibleList) {
+        setError(errorMessage)
         setRecommendations([])
+      } else {
+        setBackgroundRefreshNote(errorMessage)
       }
     } finally {
       if (fetchId === latestFetchIdRef.current) {
         setLoading(false)
-        setRegeneratingAfterProfile(false)
+        if (!hasVisibleList) {
+          setRegeneratingAfterProfile(false)
+        }
       }
     }
-  }, [user.id])
+  }, [applyRecommendationList, runBackgroundRefresh, user.id])
 
   useEffect(() => {
     recommendationsRef.current = recommendations
@@ -286,9 +279,10 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       clearTimeout(debounceRef.current)
     }
     const mustRegenerate = hasProfileChanged || refreshKeyChanged
+    const debounceMs = hasProfileChanged && !refreshKeyChanged ? PROFILE_REGEN_DEBOUNCE_MS : 0
     debounceRef.current = setTimeout(() => {
       void fetchRecommendations(mustRegenerate)
-    }, mustRegenerate ? PROFILE_REGEN_DEBOUNCE_MS : FETCH_DEBOUNCE_MS)
+    }, debounceMs)
 
     if (hasProfileChanged) {
       prevUserValuesRef.current = {
@@ -603,16 +597,13 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         </GlassCard>
       )}
 
-      {!loading && error && (
+      {!loading && error && recommendations.length === 0 && (
         <GlassCard className="text-center py-12">
           <p className="text-red-400 text-lg mb-4">{error}</p>
-          <button
-            type="button"
-            onClick={() => void fetchRecommendations(true)}
-            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-3 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition touch-manipulation"
-          >
-            Încearcă din nou
-          </button>
+          <p className="text-slate-400 text-sm">
+            Se încearcă generarea automată. Dacă nu apare nimic în câteva secunde, verifică profilul și
+            analizele medicale.
+          </p>
         </GlassCard>
       )}
 

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { UserCog, Save, FlaskConical, ArrowLeft } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
-import { profileService } from '../../../services/api'
+import { profileService, prefetchRecommendationsRefresh } from '../../../services/api'
 import { parseOptionalDecimal, parseOptionalInt, sanitizeDecimalInput, sanitizeIntInput } from '../../../shared/utils/numberParsing'
 import type { User } from '../../../shared/types'
 
@@ -92,6 +92,7 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
         height,
       }
       const response = await profileService.update(user.id || 0, payload)
+      prefetchRecommendationsRefresh(user.id, true)
       setSuccess(true)
       
       // Actualizează utilizatorul cu datele noi

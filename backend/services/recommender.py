@@ -71,10 +71,10 @@ class RecommenderService:
         search_foods = compatible_foods if compatible_foods else foods
         if focus_deficits:
             search_foods = self._prefilter_foods_for_deficits(
-                search_foods, focus_deficits, max_candidates=160
+                search_foods, focus_deficits, max_candidates=100
             )
         else:
-            search_foods = search_foods[:120]
+            search_foods = search_foods[:80]
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []

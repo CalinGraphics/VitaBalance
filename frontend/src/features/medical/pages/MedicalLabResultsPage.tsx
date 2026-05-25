@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft, Trash2 } from 'lucide-react'
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
-import { labResultsService, type LabResultsCreatePayload } from '../../../services/api'
+import {
+  labResultsService,
+  prefetchRecommendationsRefresh,
+  type LabResultsCreatePayload,
+} from '../../../services/api'
 import {
   LAB_KEYS,
   coerceLabNumeric,
@@ -141,6 +145,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
       }
 
       await labResultsService.create(payload)
+      prefetchRecommendationsRefresh(user.id, true)
       onComplete()
     } catch (err: unknown) {
       console.error('Eroare la salvarea analizelor:', err)

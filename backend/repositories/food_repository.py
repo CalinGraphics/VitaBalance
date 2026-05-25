@@ -17,7 +17,7 @@ class FoodRepository:
     TABLE = "foods"
     _cache_lock = threading.Lock()
     _foods_cache: Optional[Tuple[float, List[FoodItem]]] = None
-    _CACHE_TTL_SEC = 180.0
+    _CACHE_TTL_SEC = 600.0
 
     def __init__(self, client: Optional[Client] = None):
         self._client = client or get_supabase_client()
