@@ -96,4 +96,5 @@ class FeedbackCreate(BaseModel):
     user_id: int
     recommendation_id: int
     rating: int
+    food_id: Optional[int] = None
 

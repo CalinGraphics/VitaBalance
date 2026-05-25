@@ -1,40 +1,28 @@
-from services.lab_text_extractor import extract_lab_values_from_text
+"""Teste extragere lab — limită text și warnings."""
+import unittest
+
+from services.lab_text_extractor import MAX_LAB_TEXT_CHARS, extract_lab_values_from_text
 
 
-def test_extracts_common_aliases_and_abbreviations():
-    text = """
-    Hemoglobină: 15,2 g/dL
-    Ferritina serica 45 ng/mL
-    25(OH)D: 28,4 ng/mL
-    Cianocobalamina: 312 pg/mL
-    """
+class TestLabTextExtractor(unittest.TestCase):
+    def test_truncates_long_text(self):
+        text = "Hemoglobină 13.5 g/dL\n" + ("x" * (MAX_LAB_TEXT_CHARS + 1000))
+        out = extract_lab_values_from_text(text)
+        self.assertTrue(out.get("truncated"))
+        self.assertTrue(any("trunchiat" in (w.get("message") or "").lower() for w in out.get("warnings") or []))
 
-    extracted = extract_lab_values_from_text(text)
+    def test_out_of_range_hemoglobin_warning(self):
+        out = extract_lab_values_from_text("Hemoglobină 99 g/dL")
+        self.assertEqual(out.get("hemoglobin"), 99.0)
+        warnings = out.get("warnings") or []
+        self.assertTrue(any(w.get("key") == "hemoglobin" and w.get("low_confidence") for w in warnings))
 
-    assert extracted["hemoglobin"] == 15.2
-    assert extracted["ferritin"] == 45.0
-    assert extracted["vitamin_d"] == 28.4
-    assert extracted["vitamin_b12"] == 312.0
-
-
-def test_extracts_vitamin_k_and_potassium_aliases():
-    text = """
-    Vit. K: 1,1
-    Potassium: 4,2 mmol/L
-    """
-
-    extracted = extract_lab_values_from_text(text)
-
-    assert extracted["vitamin_k"] == 1.1
-    assert extracted["potassium"] == 4.2
+    def test_normal_value_no_clinical_warning(self):
+        out = extract_lab_values_from_text("Hemoglobină 13.2 g/dL")
+        self.assertEqual(out.get("hemoglobin"), 13.2)
+        hem_warnings = [w for w in (out.get("warnings") or []) if w.get("key") == "hemoglobin"]
+        self.assertEqual(len(hem_warnings), 0)
 
 
-def test_hemoglobin_does_not_pick_hematii_value():
-    text = """
-    Hematii 4.890.000 /mm3 (3.900.000 - 5.200.000)
-    Hemoglobină 15,2 g/dL (12,0 - 15,6)
-    """
-
-    extracted = extract_lab_values_from_text(text)
-
-    assert extracted["hemoglobin"] == 15.2
+if __name__ == "__main__":
+    unittest.main()

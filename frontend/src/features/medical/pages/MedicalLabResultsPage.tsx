@@ -198,6 +198,11 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
       }
       const localExtracted = extractLabValuesFromTextLocal(text)
       const extracted = await labResultsService.extractFromText(text)
+      const extractWarnings = Array.isArray(
+        (extracted as { warnings?: unknown }).warnings
+      )
+        ? ((extracted as { warnings?: { message?: string; low_confidence?: boolean }[] }).warnings ?? [])
+        : []
       const merged: Partial<Record<LabKey, number>> = {}
       for (const k of LAB_KEYS) {
         const backendVal = coerceLabNumeric(extracted[k])
@@ -225,6 +230,18 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
         return v != null && v !== undefined
       })
       const count = extractedKnownKeys.length
+      if (extractWarnings.length > 0) {
+        const lowConf = extractWarnings.filter((w) => w.low_confidence).length
+        const suffix =
+          lowConf > 0
+            ? ` ${lowConf} valori au încredere scăzută — verifică înainte de salvare.`
+            : ' Verifică valorile înainte de salvare.'
+        setExtractPdfMessage(
+          (prev) =>
+            (prev ? `${prev} ` : '') +
+            `Extragere completă (${count} parametri).${suffix}`
+        )
+      }
       setInputs(prev => ({
         ...prev,
         hemoglobin: merged.hemoglobin != null ? String(merged.hemoglobin) : prev.hemoglobin,

@@ -223,7 +223,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
             def get_by_user_id(self, user_id):
                 return []
 
-            def get_counts_by_food_ids(self, food_ids):
+            def get_counts_by_food_ids(self, food_ids, user_id=None):
                 return {int(fid): {"likes": 1, "dislikes": 0} for fid in food_ids}
 
         with (

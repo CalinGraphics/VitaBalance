@@ -25,7 +25,9 @@ function normalizeApiBaseUrl(raw: string | undefined): string {
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
 
 const DEFAULT_TIMEOUT_MS = 45_000
-const LONG_OPERATION_TIMEOUT_MS = 120_000
+const REC_STORED_TIMEOUT_MS = 30_000
+const REC_REPLACE_TIMEOUT_MS = 60_000
+const REC_MATERIALIZE_TIMEOUT_MS = 90_000
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -39,10 +41,6 @@ api.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
-  }
-  const url = typeof config.url === 'string' ? config.url : ''
-  if (url.includes('/recommendations')) {
-    config.timeout = LONG_OPERATION_TIMEOUT_MS
   }
   return config
 })
@@ -178,31 +176,43 @@ export const labResultsService = {
   },
 }
 
+export type RecommendationsSyncMeta = {
+  user_updated_at: string | null
+  latest_rec_created_at: string | null
+  labs_fresh_at: string | null
+  refresh_status?: 'idle' | 'pending' | 'done' | 'failed' | string
+  refresh_error?: string | null
+  refresh_at?: string | null
+}
+
 export const recommendationsService = {
   listStored: async (userId: number) => {
-    const response = await api.get(`/recommendations/stored/${userId}`)
+    const response = await api.get(`/recommendations/stored/${userId}`, {
+      timeout: REC_STORED_TIMEOUT_MS,
+    })
     return response.data
   },
   getSyncMeta: async (userId: number) => {
-    const response = await api.get(`/recommendations/sync-meta/${userId}`, { timeout: 15000 })
-    return response.data as {
-      user_updated_at: string | null
-      latest_rec_created_at: string | null
-      labs_fresh_at: string | null
-    }
+    const response = await api.get(`/recommendations/sync-meta/${userId}`, { timeout: 15_000 })
+    return response.data as RecommendationsSyncMeta
   },
   startRefreshAsync: async (userId: number, forceRegenerate = false) => {
     const response = await api.post(
       `/recommendations/refresh-async/${userId}?force_regenerate=${forceRegenerate}`,
       {},
-      { timeout: 30000 }
+      { timeout: 30_000 }
     )
-    return response.data as { status?: string; recommendations?: unknown[] }
+    return response.data as {
+      status?: string
+      recommendations?: unknown[]
+      refresh_status?: string
+    }
   },
   materializeSync: async (userId: number, forceRegenerate = false) => {
     const response = await api.post(
       `/recommendations?force_regenerate=${forceRegenerate}`,
-      { user_id: userId }
+      { user_id: userId },
+      { timeout: REC_MATERIALIZE_TIMEOUT_MS }
     )
     return response.data as unknown[]
   },
@@ -222,13 +232,18 @@ export const recommendationsService = {
     if (options?.replaceFeedbackRating != null) {
       body.replace_feedback_rating = options.replaceFeedbackRating
     }
-    const response = await api.post('/recommendations', body, { timeout: 90_000 })
+    const response = await api.post('/recommendations', body, { timeout: REC_REPLACE_TIMEOUT_MS })
     return response.data
   },
 }
 
 export const feedbackService = {
-  create: async (data: { user_id: number; recommendation_id: number; rating: number }) => {
+  create: async (data: {
+    user_id: number
+    recommendation_id: number
+    rating: number
+    food_id?: number
+  }) => {
     const response = await feedbackHttp.post('/feedback', data)
     return response.data
   },

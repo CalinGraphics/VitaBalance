@@ -27,6 +27,20 @@ class UserRepository:
             return None
         return row_to_user(resp.data[0])
 
+    def set_rec_refresh_status(
+        self,
+        user_id: int,
+        status: str,
+        *,
+        error: Optional[str] = None,
+    ) -> None:
+        row = {
+            "rec_refresh_status": status,
+            "rec_refresh_error": error,
+            "rec_refresh_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._client.table(self.TABLE).update(row).eq("id", user_id).execute()
+
     def upsert(
         self,
         email: str,

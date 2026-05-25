@@ -25,11 +25,16 @@ interface ApiErrorDetail {
 }
 
 const FETCH_DEBOUNCE_MS = 320
-const SYNC_POLL_INTERVAL_MS = 1200
-const SYNC_POLL_MAX_MS = 120000
+const SYNC_POLL_INITIAL_MS = 1000
+const SYNC_POLL_MAX_INTERVAL_MS = 8000
+const SYNC_POLL_MAX_MS = 45_000
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+function syncPollDelayMs(attempt: number): number {
+  return Math.min(SYNC_POLL_INITIAL_MS * 2 ** attempt, SYNC_POLL_MAX_INTERVAL_MS)
 }
 
 function syncMetaIsFresh(meta: {
@@ -57,6 +62,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const [visibleCount, setVisibleCount] = useState(10)
   const [selectedCategory, setSelectedCategory] = useState<'all' | string>('all')
   const [regeneratingAfterProfile, setRegeneratingAfterProfile] = useState(false)
+  const [backgroundRefreshNote, setBackgroundRefreshNote] = useState<string | null>(null)
   const latestFetchIdRef = useRef(0)
   const recommendationsRef = useRef<Recommendation[]>([])
   const prevUserValuesRef = useRef({
@@ -85,6 +91,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       }
 
       setError(null)
+      setBackgroundRefreshNote(null)
 
       try {
         const stored = await recommendationsService.listStored(user.id)
@@ -111,13 +118,10 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         if (fetchId !== latestFetchIdRef.current) return
 
         const pollDeadline = Date.now() + SYNC_POLL_MAX_MS
+        let pollAttempt = 0
         while (Date.now() < pollDeadline) {
           if (fetchId !== latestFetchIdRef.current) return
-          let meta: {
-            user_updated_at: string | null
-            latest_rec_created_at: string | null
-            labs_fresh_at?: string | null
-          }
+          let meta: Awaited<ReturnType<typeof recommendationsService.getSyncMeta>>
           try {
             meta = await recommendationsService.getSyncMeta(user.id)
           } catch (metaErr) {
@@ -125,8 +129,22 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
             throw metaErr
           }
           if (fetchId !== latestFetchIdRef.current) return
-          if (syncMetaIsFresh(meta)) break
-          await sleep(SYNC_POLL_INTERVAL_MS)
+          if (meta.refresh_status === 'failed') {
+            setBackgroundRefreshNote(
+              meta.refresh_error?.trim() ||
+                'Actualizarea recomandărilor a eșuat. Poți reîncerca din „Încearcă din nou”.'
+            )
+            break
+          }
+          if (syncMetaIsFresh(meta) && meta.refresh_status !== 'pending') break
+          if (syncMetaIsFresh(meta) && !meta.refresh_status) break
+          await sleep(syncPollDelayMs(pollAttempt))
+          pollAttempt += 1
+        }
+        if (Date.now() >= pollDeadline && fetchId === latestFetchIdRef.current) {
+          setBackgroundRefreshNote(
+            'Procesarea continuă în fundal. Reîmprospătează pagina peste câteva momente dacă lista nu s-a actualizat.'
+          )
         }
 
         try {
@@ -380,13 +398,24 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         <UserProfileInfo user={user} />
       </motion.div>
 
-      {showInlineRegenerating && (
+      {(showInlineRegenerating || backgroundRefreshNote) && (
         <GlassCard className="border border-neonCyan/30 bg-neonCyan/5">
           <div className="flex flex-wrap items-center gap-3 text-slate-200 text-sm">
-            <Loader2 className="w-5 h-5 text-neonCyan shrink-0 animate-spin" aria-hidden />
+            {showInlineRegenerating && (
+              <Loader2 className="w-5 h-5 text-neonCyan shrink-0 animate-spin" aria-hidden />
+            )}
             <p>
-              <span className="font-semibold text-neonCyan">Se actualizează recomandările</span> după modificarea
-              profilului sau analizelor. Poți vedea mai jos lista anterioară până la finalizare.
+              {showInlineRegenerating && (
+                <>
+                  <span className="font-semibold text-neonCyan">Se actualizează recomandările</span> după
+                  modificarea profilului sau analizelor. Poți vedea mai jos lista anterioară până la finalizare.
+                </>
+              )}
+              {backgroundRefreshNote && (
+                <span className={showInlineRegenerating ? 'block mt-2 text-slate-300' : ''}>
+                  {backgroundRefreshNote}
+                </span>
+              )}
             </p>
           </div>
         </GlassCard>

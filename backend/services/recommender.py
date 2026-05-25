@@ -68,6 +68,9 @@ class RecommenderService:
             )
         ]
         search_foods = compatible_foods if compatible_foods else foods
+        max_full_scan = 250
+        if focus_deficits and len(search_foods) > max_full_scan:
+            search_foods = self._sort_foods_for_deficits(search_foods, focus_deficits)[:max_full_scan]
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
@@ -246,6 +249,176 @@ class RecommenderService:
             min_per_required=1,
         )
         return final
+
+    def generate_single_recommendation(
+        self,
+        user: UserProfile,
+        deficits: Dict[str, float],
+        foods: List[FoodItem],
+        lab_results: Optional[LabResultItem] = None,
+        user_feedbacks: Optional[List[FeedbackItem]] = None,
+        feedback_by_food: Optional[Dict[int, List]] = None,
+        max_foods_to_scan: int = 120,
+    ) -> List[Dict]:
+        """
+        Top-1 pentru înlocuire: evaluează un subset de alimente (fără rebalance / MIN_TARGET / secondary fill).
+        """
+        effective_user = user
+        if lab_results and lab_results.notes:
+            merged_conditions = f"{user.medical_conditions or ''} {lab_results.notes or ''}".strip()
+            if merged_conditions:
+                effective_user = replace(user, medical_conditions=merged_conditions)
+
+        filtered_deficits = {k: v for k, v in deficits.items() if k in self.nutrients and v > 0}
+        focus_deficits = self._build_focus_deficits(filtered_deficits, effective_user)
+        required_focus_nutrients = self._clinical_required_focus_nutrients(
+            effective_user, filtered_deficits
+        )
+        weight_goal_active = self._is_weight_management_goal(effective_user)
+        renal_guard_active = self._is_renal_guard_needed(effective_user)
+        diabetes_guard_active = self._is_diabetes_guard_needed(effective_user)
+        reflux_guard_active = self._is_reflux_guard_needed(effective_user)
+        has_active_deficits = bool(focus_deficits)
+
+        precomputed_restrictions = None
+        if effective_user.medical_conditions:
+            precomputed_restrictions = self.rule_engine._parse_food_restrictions(
+                effective_user.medical_conditions
+            )
+        compatible_foods = [
+            f
+            for f in foods
+            if self.rule_engine._is_compatible(
+                f, effective_user, precomputed_restrictions=precomputed_restrictions
+            )
+        ]
+        search_foods = compatible_foods if compatible_foods else foods
+
+        if focus_deficits:
+            search_foods = self._sort_foods_for_deficits(search_foods, focus_deficits)[:max_foods_to_scan]
+        else:
+            search_foods = search_foods[:max_foods_to_scan]
+
+        best: Optional[Dict] = None
+        best_key: Optional[tuple] = None
+
+        if focus_deficits:
+            for food in search_foods:
+                recommendation = self.rule_engine.evaluate_food(
+                    food=food,
+                    user=effective_user,
+                    deficits=focus_deficits,
+                    lab_results=lab_results,
+                )
+                if not recommendation:
+                    continue
+                adjusted_score = self._apply_feedback_adjustments(
+                    score=recommendation.score,
+                    food=food,
+                    user=user,
+                    user_feedbacks=user_feedbacks,
+                    feedback_by_food=feedback_by_food,
+                )
+                adjusted_score *= self._deficit_priority_multiplier(
+                    deficits=focus_deficits,
+                    nutrients_covered=recommendation.nutrients_covered,
+                    user=effective_user,
+                    required_nutrients=required_focus_nutrients,
+                )
+                adjusted_score *= self._active_deficit_quality_factor(
+                    food_category=food.category,
+                    food_name=food.name,
+                    has_active_deficits=has_active_deficits,
+                )
+                adjusted_score *= self._medical_goal_quality_factor(
+                    food=food,
+                    user=effective_user,
+                    weight_goal_active=weight_goal_active,
+                )
+                adjusted_score *= self._renal_potassium_safety_factor(
+                    food=food,
+                    user=effective_user,
+                    renal_guard_active=renal_guard_active,
+                )
+                adjusted_score *= self._metabolic_clinical_quality_factor(
+                    food=food,
+                    user=effective_user,
+                    diabetes_guard_active=diabetes_guard_active,
+                    reflux_guard_active=reflux_guard_active,
+                )
+                item = {
+                    "food_id": recommendation.food_id,
+                    "score": adjusted_score,
+                    "coverage": recommendation.coverage,
+                    "explanations": recommendation.explanations,
+                    "matched_rules": recommendation.matched_rules,
+                    "nutrients_covered": recommendation.nutrients_covered,
+                    "is_secondary_fill": False,
+                }
+                key = (
+                    -self._required_nutrient_hits(rec=item, required_nutrients=required_focus_nutrients),
+                    -(item.get("coverage") or 0.0),
+                    -(item.get("score") or 0.0),
+                )
+                if best_key is None or key < best_key:
+                    best_key = key
+                    best = item
+
+        if best:
+            return [best]
+
+        fb = self._generate_fallback_recommendations(
+            user=effective_user,
+            foods=search_foods,
+            target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
+        )
+        fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb)
+        if not fb_ok:
+            return []
+        fb_ok.sort(key=lambda x: (x.get("coverage") or 0, x.get("score") or 0), reverse=True)
+        return [fb_ok[0]]
+
+    def _sort_foods_for_deficits(
+        self, foods: List[FoodItem], deficits: Dict[str, float]
+    ) -> List[FoodItem]:
+        """Heuristică rapidă: sortează alimentele după relevanță pentru deficitele active."""
+
+        def quick_score(f: FoodItem) -> float:
+            total = 0.0
+            for nutrient, deficit in deficits.items():
+                if deficit <= 0:
+                    continue
+                val = 0.0
+                if nutrient == "iron":
+                    val = f.iron or 0
+                elif nutrient == "calcium":
+                    val = f.calcium or 0
+                elif nutrient == "vitamin_d":
+                    val = f.vitamin_d or 0
+                elif nutrient == "vitamin_b12":
+                    val = f.vitamin_b12 or 0
+                elif nutrient == "protein":
+                    val = f.protein or 0
+                elif nutrient == "zinc":
+                    val = f.zinc or 0
+                elif nutrient == "magnesium":
+                    val = f.magnesium or 0
+                elif nutrient == "folate":
+                    val = getattr(f, "folate", 0) or 0
+                elif nutrient == "vitamin_a":
+                    val = getattr(f, "vitamin_a", 0) or 0
+                elif nutrient == "vitamin_c":
+                    val = f.vitamin_c or 0
+                elif nutrient == "iodine":
+                    val = getattr(f, "iodine", 0) or 0
+                elif nutrient == "vitamin_k":
+                    val = getattr(f, "vitamin_k", 0) or 0
+                elif nutrient == "potassium":
+                    val = getattr(f, "potassium", 0) or 0
+                total += float(val) * float(deficit)
+            return total
+
+        return sorted(foods, key=quick_score, reverse=True)
 
     def _build_focus_deficits(self, deficits: Dict[str, float], user: UserProfile) -> Dict[str, float]:
         if not deficits:

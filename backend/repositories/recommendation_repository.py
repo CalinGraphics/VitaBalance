@@ -44,6 +44,24 @@ class RecommendationRepository:
             raise ValueError("Insert recommendations returned no data")
         return [row_to_recommendation(r) for r in resp.data]
 
+    def update_explanation_fields(self, recommendation_id: int, fields: dict) -> None:
+        if not fields:
+            return
+        self._client.table(self.TABLE).update(fields).eq("id", recommendation_id).execute()
+
+    def list_needing_explanation_backfill(self, limit: int = 500) -> List[RecommendationItem]:
+        """Rânduri fără explanation_json populat (pentru script backfill)."""
+        resp = (
+            self._client.table(self.TABLE)
+            .select("*")
+            .is_("explanation_json", "null")
+            .limit(limit)
+            .execute()
+        )
+        if not resp.data:
+            return []
+        return [row_to_recommendation(r) for r in resp.data]
+
     def get_first_by_user_id(self, user_id: int) -> Optional[RecommendationItem]:
         resp = (
             self._client.table(self.TABLE)

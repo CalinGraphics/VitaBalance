@@ -4,7 +4,7 @@ No DB dependency; populated from Supabase repositories.
 """
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 
 @dataclass
@@ -20,6 +20,9 @@ class UserProfile:
     diet_type: str
     allergies: Optional[str] = None
     medical_conditions: Optional[str] = None
+    rec_refresh_status: Optional[str] = "idle"
+    rec_refresh_error: Optional[str] = None
+    rec_refresh_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -85,6 +88,9 @@ class RecommendationItem:
     explanation: str
     portion_suggested: float
     coverage_percentage: Optional[float] = None
+    explanation_json: Optional[Any] = None
+    reasons: Optional[List[str]] = None
+    tips: Optional[List[str]] = None
     created_at: Optional[datetime] = None
 
 
@@ -94,6 +100,7 @@ class FeedbackItem:
     user_id: int
     recommendation_id: int
     rating: int = 0
+    food_id: Optional[int] = None
     created_at: Optional[datetime] = None
 
 
@@ -121,6 +128,9 @@ def row_to_user(row: dict) -> UserProfile:
         diet_type=row.get("diet_type") or "omnivore",
         allergies=row.get("allergies"),
         medical_conditions=row.get("medical_conditions"),
+        rec_refresh_status=row.get("rec_refresh_status") or "idle",
+        rec_refresh_error=row.get("rec_refresh_error"),
+        rec_refresh_at=row.get("rec_refresh_at"),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
     )
@@ -191,16 +201,21 @@ def row_to_recommendation(row: dict) -> RecommendationItem:
         explanation=row.get("explanation") or "",
         portion_suggested=_num(row.get("portion_suggested"), 150),
         coverage_percentage=row.get("coverage_percentage"),
+        explanation_json=row.get("explanation_json"),
+        reasons=row.get("reasons"),
+        tips=row.get("tips"),
         created_at=row.get("created_at"),
     )
 
 
 def row_to_feedback(row: dict) -> FeedbackItem:
     """Build FeedbackItem from Supabase/DB row."""
+    fid = row.get("food_id")
     return FeedbackItem(
         id=row["id"],
         user_id=row["user_id"],
         recommendation_id=row["recommendation_id"],
         rating=row.get("rating", 0),
+        food_id=int(fid) if fid is not None else None,
         created_at=row.get("created_at"),
     )

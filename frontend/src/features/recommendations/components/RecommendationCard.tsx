@@ -288,6 +288,7 @@ const RecommendationCard = ({
         user_id: userId,
         recommendation_id: recommendation.recommendation_id,
         rating,
+        food_id: recommendation.food_id,
       })
       onFeedbackSent?.(recommendation.recommendation_id, rating, newLikes, newDislikes)
       return true
@@ -340,6 +341,7 @@ const RecommendationCard = ({
           user_id: userId,
           recommendation_id: recommendation.recommendation_id,
           rating: 1,
+          food_id: recommendation.food_id,
         })
       } catch (err: unknown) {
         setMyRating(prev)
@@ -368,6 +370,7 @@ const RecommendationCard = ({
         user_id: userId,
         recommendation_id: recommendation.recommendation_id,
         rating: 1,
+        food_id: recommendation.food_id,
       })
       if (onReplaceRequested) {
         await onReplaceRequested(recommendation.recommendation_id)

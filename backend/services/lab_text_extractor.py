@@ -4,7 +4,27 @@ Suportă formate comune: Hemoglobină 13.2 g/dL, Hb: 13.2, Feritină 45 ng/mL, t
 """
 import re
 import unicodedata
-from typing import Optional, Dict, Callable
+from typing import Any, Dict, List, Optional, Callable, Tuple
+
+MAX_LAB_TEXT_CHARS = 50_000
+
+# Intervale clinice orientative (unități ca în LabResultItem)
+_CLINICAL_RANGES: Dict[str, Tuple[float, float]] = {
+    "hemoglobin": (3.0, 25.0),
+    "ferritin": (1.0, 2000.0),
+    "vitamin_d": (1.0, 200.0),
+    "vitamin_b12": (50.0, 5000.0),
+    "calcium": (4.0, 20.0),
+    "magnesium": (0.5, 10.0),
+    "zinc": (10.0, 500.0),
+    "protein": (2.0, 20.0),
+    "folate": (1.0, 100.0),
+    "vitamin_a": (5.0, 500.0),
+    "vitamin_c": (1.0, 300.0),
+    "iodine": (10.0, 500.0),
+    "vitamin_k": (0.05, 50.0),
+    "potassium": (2.0, 10.0),
+}
 
 
 def _collapse_spaced_letters(text: str) -> str:
@@ -58,13 +78,50 @@ def _normalize_text(text: str) -> str:
     return t
 
 
-def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
+def _validate_extracted_values(result: Dict[str, Optional[float]]) -> List[Dict[str, Any]]:
+    warnings: List[Dict[str, Any]] = []
+    for key, val in result.items():
+        if val is None:
+            continue
+        bounds = _CLINICAL_RANGES.get(key)
+        if not bounds:
+            continue
+        lo, hi = bounds
+        if val < lo or val > hi:
+            warnings.append(
+                {
+                    "key": key,
+                    "value": val,
+                    "message": f"Valoarea pentru {key} ({val}) este în afara intervalului așteptat ({lo}–{hi}).",
+                    "low_confidence": True,
+                }
+            )
+    return warnings
+
+
+def extract_lab_values_from_text(text: str) -> Dict[str, Any]:
     """
     Parsează textul unui raport medical și extrage valorile pentru câmpurile cunoscute.
-    Returnează un dict cu chei ca în LabResultItem (hemoglobin, ferritin, vitamin_d, etc.)
+    Returnează chei ca în LabResultItem + ``warnings`` (listă) și ``truncated`` (bool).
     """
+    warnings: List[Dict[str, Any]] = []
+    truncated = False
     if not text or not isinstance(text, str):
-        return _empty_result()
+        out = _empty_result()
+        out["warnings"] = warnings
+        out["truncated"] = truncated
+        return out
+
+    if len(text) > MAX_LAB_TEXT_CHARS:
+        text = text[:MAX_LAB_TEXT_CHARS]
+        truncated = True
+        warnings.append(
+            {
+                "key": None,
+                "message": f"Textul a fost trunchiat la {MAX_LAB_TEXT_CHARS} caractere pentru procesare.",
+                "low_confidence": False,
+            }
+        )
 
     normalized = _normalize_text(text)
     # Pentru fallback pe linii, păstrăm delimitarea inițială de linii (altfel putem amesteca valori din parametri diferiți).
@@ -265,6 +322,9 @@ def extract_lab_values_from_text(text: str) -> Dict[str, Optional[float]]:
                     result[key] = val
                     break
 
+    warnings.extend(_validate_extracted_values(result))
+    result["warnings"] = warnings
+    result["truncated"] = truncated
     return result
 
 

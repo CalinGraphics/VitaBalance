@@ -286,9 +286,9 @@ def _stored_recommendations_payload(
     _food_repo: FoodRepository,
     _feedback_repo: FeedbackRepository,
 ) -> List[dict]:
-    from services.recommendation_materialize import hydrate_stored_recommendations_for_user
+    from services.recommendation_materialize import list_stored_recommendations_fast
 
-    return hydrate_stored_recommendations_for_user(user_id)
+    return list_stored_recommendations_fast(user_id)
 
 
 @app.get("/api/profile/by-email/{email}")
@@ -528,6 +528,7 @@ async def get_recommendations(
             request.user_id,
             request.replace_recommendation_id,
             r,
+            food_id=None,
         )
     return materialize_recommendations(
         request.user_id,
@@ -576,10 +577,17 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
         if candidates:
             labs_fresh_at = max(candidates)
 
+    refresh_status = getattr(u, "rec_refresh_status", None) or "idle" if u else "idle"
+    refresh_error = getattr(u, "rec_refresh_error", None) if u else None
+    refresh_at = iso(getattr(u, "rec_refresh_at", None)) if u else None
+
     return {
         "user_updated_at": iso(getattr(u, "updated_at", None)) if u else None,
         "latest_rec_created_at": iso(getattr(first, "created_at", None)) if first else None,
         "labs_fresh_at": iso(labs_fresh_at) if labs_fresh_at else None,
+        "refresh_status": refresh_status,
+        "refresh_error": refresh_error,
+        "refresh_at": refresh_at,
     }
 
 
@@ -597,6 +605,8 @@ async def recommendations_refresh_async(
     stale = _stored_recommendations_payload(user_id, rec_repo, food_repo, feedback_repo)
 
     owner_email = current_user["email"]
+    user_repo = UserRepository()
+    user_repo.set_rec_refresh_status(user_id, "pending", error=None)
 
     def _job():
         try:
@@ -607,13 +617,19 @@ async def recommendations_refresh_async(
                 None,
                 None,
             )
-        except Exception:
+            user_repo.set_rec_refresh_status(user_id, "done", error=None)
+        except Exception as exc:
             import logging
 
             logging.getLogger(__name__).exception("refresh-async job failed user_id=%s", user_id)
+            user_repo.set_rec_refresh_status(
+                user_id,
+                "failed",
+                error=str(exc)[:500],
+            )
 
     background_tasks.add_task(_job)
-    return {"status": "accepted", "recommendations": stale}
+    return {"status": "accepted", "recommendations": stale, "refresh_status": "pending"}
 
 
 @app.get("/api/recommendations/audit/{user_id}", response_model=RecommendationAuditResponse)
@@ -728,6 +744,7 @@ async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends
         feedback.user_id,
         feedback.recommendation_id,
         feedback.rating,
+        food_id=getattr(feedback, "food_id", None),
     )
     return {"message": "Feedback salvat cu succes", "id": result.id}
 
