@@ -93,22 +93,42 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       setError(null)
       setBackgroundRefreshNote(null)
 
+      let storedPreload: Recommendation[] = []
       try {
         const stored = await recommendationsService.listStored(user.id)
         if (fetchId !== latestFetchIdRef.current) return
         if (Array.isArray(stored) && stored.length > 0) {
-          setRecommendations(stored as Recommendation[])
+          storedPreload = stored as Recommendation[]
+          setRecommendations(storedPreload)
           preloadedFromDb = true
           setLoading(false)
-          setRegeneratingAfterProfile(true)
         }
       } catch {
         /* listStored e opțional la preload (404 sau rețea — fluxul principal continuă) */
       }
 
-      if (!preloadedFromDb) {
+      if (!forceRegenerate && preloadedFromDb) {
+        try {
+          const meta = await recommendationsService.getSyncMeta(user.id)
+          if (fetchId !== latestFetchIdRef.current) return
+          const alreadyFresh =
+            syncMetaIsFresh(meta) &&
+            meta.refresh_status !== 'pending' &&
+            meta.refresh_status !== 'failed'
+          if (alreadyFresh) {
+            setRegeneratingAfterProfile(false)
+            setError(null)
+            return
+          }
+        } catch {
+          /* continuă cu refresh dacă meta e indisponibil */
+        }
+        setRegeneratingAfterProfile(true)
+      } else if (!preloadedFromDb) {
         setLoading(true)
         setRegeneratingAfterProfile(false)
+      } else {
+        setRegeneratingAfterProfile(true)
       }
 
       let data: unknown[]

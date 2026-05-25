@@ -10,6 +10,7 @@ from services.medical_rules_loader import (
     normalize_clinical_text,
 )
 from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
+from services.portion_calculator import suggest_portion_grams
 
 
 class NutrientType(str, Enum):
@@ -101,30 +102,8 @@ class NutritionalRuleEngine:
         return any(m in conditions_norm for m in markers)
 
     def _portion_for_food(self, food: FoodItem, user: UserProfile) -> int:
-        cat = self._normalize_text(food.category or "")
-        portions = {
-            "peste & fructe de mare": 130,
-            "carne": 130,
-            "oua": 120,
-            "leguminoase": 170,
-            "legume": 200,
-            "fructe": 180,
-            "lactate": 200,
-            "nuci & seminte": 40,
-            "cereale": 150,
-            "alte": 140,
-            "altele": 140,
-        }
-        base = float(portions.get(cat, 150))
-        activity_factor = {
-            "sedentary": 0.95,
-            "moderate": 1.0,
-            "active": 1.1,
-            "very_active": 1.2,
-        }.get((user.activity_level or "moderate").lower(), 1.0)
-        adjusted = int(round(base * activity_factor))
-        return max(30, adjusted)
-    
+        return suggest_portion_grams(food, user)
+
     def evaluate_food(
         self,
         food: FoodItem,

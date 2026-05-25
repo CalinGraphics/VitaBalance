@@ -5,6 +5,7 @@ from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
 from services.deficit_calculator import DeficitCalculator
 from services.medical_rules_loader import normalize_clinical_text, normalize_diet_type
+from services.portion_calculator import suggest_portion_for_category, suggest_portion_grams
 
 class RecommenderService:
     # Dacă regulile pe deficite lasă prea puține variante (ex. vegan + alergii stricte),
@@ -68,9 +69,12 @@ class RecommenderService:
             )
         ]
         search_foods = compatible_foods if compatible_foods else foods
-        max_full_scan = 250
-        if focus_deficits and len(search_foods) > max_full_scan:
-            search_foods = self._sort_foods_for_deficits(search_foods, focus_deficits)[:max_full_scan]
+        if focus_deficits:
+            search_foods = self._prefilter_foods_for_deficits(
+                search_foods, focus_deficits, max_candidates=160
+            )
+        else:
+            search_foods = search_foods[:120]
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
@@ -258,7 +262,7 @@ class RecommenderService:
         lab_results: Optional[LabResultItem] = None,
         user_feedbacks: Optional[List[FeedbackItem]] = None,
         feedback_by_food: Optional[Dict[int, List]] = None,
-        max_foods_to_scan: int = 120,
+        max_foods_to_scan: int = 72,
     ) -> List[Dict]:
         """
         Top-1 pentru înlocuire: evaluează un subset de alimente (fără rebalance / MIN_TARGET / secondary fill).
@@ -301,9 +305,11 @@ class RecommenderService:
 
         best: Optional[Dict] = None
         best_key: Optional[tuple] = None
+        evaluated = 0
 
         if focus_deficits:
             for food in search_foods:
+                evaluated += 1
                 recommendation = self.rule_engine.evaluate_food(
                     food=food,
                     user=effective_user,
@@ -363,6 +369,13 @@ class RecommenderService:
                 if best_key is None or key < best_key:
                     best_key = key
                     best = item
+                if (
+                    best is not None
+                    and evaluated >= 18
+                    and float(best.get("score") or 0) >= 6.0
+                    and float(best.get("coverage") or 0) >= 12.0
+                ):
+                    break
 
         if best:
             return [best]
@@ -377,6 +390,70 @@ class RecommenderService:
             return []
         fb_ok.sort(key=lambda x: (x.get("coverage") or 0, x.get("score") or 0), reverse=True)
         return [fb_ok[0]]
+
+    def _food_nutrient_value(self, food: FoodItem, nutrient: str) -> float:
+        if nutrient == "iron":
+            return float(food.iron or 0)
+        if nutrient == "calcium":
+            return float(food.calcium or 0)
+        if nutrient == "vitamin_d":
+            return float(food.vitamin_d or 0)
+        if nutrient == "vitamin_b12":
+            return float(food.vitamin_b12 or 0)
+        if nutrient == "protein":
+            return float(food.protein or 0)
+        if nutrient == "zinc":
+            return float(food.zinc or 0)
+        if nutrient == "magnesium":
+            return float(food.magnesium or 0)
+        if nutrient == "folate":
+            return float(getattr(food, "folate", 0) or 0)
+        if nutrient == "vitamin_a":
+            return float(getattr(food, "vitamin_a", 0) or 0)
+        if nutrient == "vitamin_c":
+            return float(food.vitamin_c or 0)
+        if nutrient == "iodine":
+            return float(getattr(food, "iodine", 0) or 0)
+        if nutrient == "vitamin_k":
+            return float(getattr(food, "vitamin_k", 0) or 0)
+        if nutrient == "potassium":
+            return float(getattr(food, "potassium", 0) or 0)
+        return 0.0
+
+    def _prefilter_foods_for_deficits(
+        self,
+        foods: List[FoodItem],
+        deficits: Dict[str, float],
+        *,
+        max_candidates: int = 160,
+    ) -> List[FoodItem]:
+        """Reduce evaluările: păstrează alimente relevante pentru deficitele active."""
+        if not deficits or len(foods) <= max_candidates:
+            return self._sort_foods_for_deficits(foods, deficits)[:max_candidates]
+
+        sorted_foods = self._sort_foods_for_deficits(foods, deficits)
+        active = [n for n, d in deficits.items() if d and d > 0]
+        picked: List[FoodItem] = []
+        seen: set[int] = set()
+        for food in sorted_foods:
+            if food.id in seen:
+                continue
+            for nutrient in active:
+                if self._food_nutrient_value(food, nutrient) > 0:
+                    picked.append(food)
+                    seen.add(food.id)
+                    break
+            if len(picked) >= max_candidates:
+                break
+        if len(picked) < min(50, max_candidates):
+            for food in sorted_foods:
+                if food.id in seen:
+                    continue
+                picked.append(food)
+                seen.add(food.id)
+                if len(picked) >= max_candidates:
+                    break
+        return picked
 
     def _sort_foods_for_deficits(
         self, foods: List[FoodItem], deficits: Dict[str, float]
@@ -769,30 +846,7 @@ class RecommenderService:
         return folded
 
     def _portion_for_category(self, category: str, user: Optional[UserProfile] = None) -> int:
-        cat = self._normalize_category(category)
-        portions = {
-            "peste & fructe de mare": 130,
-            "carne": 130,
-            "oua": 120,
-            "leguminoase": 170,
-            "legume": 200,
-            "fructe": 180,
-            "lactate": 200,
-            "nuci & seminte": 40,
-            "cereale": 150,
-            "alte": 140,
-            "altele": 140,
-        }
-        base = float(portions.get(cat, 150))
-        if user:
-            activity_factor = {
-                "sedentary": 0.95,
-                "moderate": 1.0,
-                "active": 1.1,
-                "very_active": 1.2,
-            }.get((user.activity_level or "moderate").lower(), 1.0)
-            base *= activity_factor
-        return max(30, int(round(base)))
+        return suggest_portion_for_category(category, user)
 
     def _category_quality_factor(self, category: str) -> float:
         cat = self._normalize_category(category)

@@ -4,6 +4,7 @@ import unicodedata
 from domain.models import FoodItem, UserProfile
 from services.medical_rules_loader import normalize_clinical_text
 from services.deficit_calculator import DeficitCalculator
+from services.portion_calculator import suggest_portion_grams
 
 # Separă blocurile afișate în UI (Rezumat / detaliu) — nu folosi „---” (vizibil în card).
 EXPL_SECTION_SEP = "\x1e"
@@ -96,6 +97,7 @@ class ExplanationGenerator:
         matched_rules: Optional[List[str]] = None,
         has_lab_data: bool = False,
         nutrients_covered: Optional[List[str]] = None,
+        portion_grams: Optional[int] = None,
     ) -> Dict:
         if explanations and len(explanations) > 0:
             return self._generate_from_rule_explanations(
@@ -107,6 +109,7 @@ class ExplanationGenerator:
                 has_lab_data=has_lab_data,
                 deficits=deficits,
                 nutrients_covered=nutrients_covered,
+                portion_grams=portion_grams,
             )
 
         return self._generate_traditional_explanation(
@@ -115,6 +118,7 @@ class ExplanationGenerator:
             deficits=deficits,
             score=score,
             coverage=coverage,
+            portion_grams=portion_grams,
         )
 
     def _generate_from_rule_explanations(
@@ -127,8 +131,9 @@ class ExplanationGenerator:
         has_lab_data: bool = False,
         deficits: Optional[Dict[str, float]] = None,
         nutrients_covered: Optional[List[str]] = None,
+        portion_grams: Optional[int] = None,
     ) -> Dict:
-        portion = self._estimate_portion_by_category(food, user)
+        portion = portion_grams if portion_grams is not None else suggest_portion_grams(food, user)
         is_fallback_profile_based = "fallback_profile_based" in matched_rules
 
         unique_explanations: List[str] = []
@@ -339,8 +344,9 @@ class ExplanationGenerator:
         deficits: Dict[str, float],
         score: float,
         coverage: float,
+        portion_grams: Optional[int] = None,
     ) -> Dict:
-        portion = self._estimate_portion_by_category(food, user)
+        portion = portion_grams if portion_grams is not None else suggest_portion_grams(food, user)
         reasons: List[str] = []
         tips: List[str] = []
         alternatives: List[str] = []
@@ -404,32 +410,6 @@ class ExplanationGenerator:
             "tips": tips if tips else None,
             "alternatives": alternatives if alternatives else None,
         }
-
-    def _estimate_portion_by_category(self, food: FoodItem, user: Optional[UserProfile] = None) -> int:
-        category = self._normalize_category(food.category or "")
-        portions = {
-            "peste & fructe de mare": 130,
-            "carne": 130,
-            "oua": 120,
-            "leguminoase": 170,
-            "legume": 200,
-            "fructe": 180,
-            "lactate": 200,
-            "nuci & seminte": 40,
-            "cereale": 150,
-            "alte": 140,
-            "altele": 140,
-        }
-        base = float(portions.get(category, 150))
-        if user:
-            activity_factor = {
-                "sedentary": 0.95,
-                "moderate": 1.0,
-                "active": 1.1,
-                "very_active": 1.2,
-            }.get((user.activity_level or "moderate").lower(), 1.0)
-            base *= activity_factor
-        return max(30, int(round(base)))
 
     def _normalize_category(self, value: str) -> str:
         raw = (value or "").strip().lower()
