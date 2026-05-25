@@ -64,19 +64,9 @@ def materialize_recommendations(
     }
 
     feedback_by_food: dict = {}
+    feedback_food_by_rec_id: Dict[int, int] = {}
     all_user_recommendation_rows = rec_repo.get_by_user_id(user_id, limit=1000)
     existing_recs_for_user = all_user_recommendation_rows[:100]
-    if user_feedbacks:
-        rec_by_id = {r.id: r for r in all_user_recommendation_rows}
-        for fb in user_feedbacks:
-            if fb.recommendation_id is None:
-                continue
-            rec = rec_by_id.get(fb.recommendation_id)
-            if not rec:
-                continue
-            if rec.food_id not in feedback_by_food:
-                feedback_by_food[rec.food_id] = []
-            feedback_by_food[rec.food_id].append(fb)
 
     existing = rec_repo.get_first_by_user_id(user_id)
     should_generate = force_regenerate or (existing is None)
@@ -118,9 +108,23 @@ def materialize_recommendations(
             None,
         )
         if rec_to_replace:
+            feedback_food_by_rec_id[replace_recommendation_id] = rec_to_replace.food_id
             exclude_ids.add(rec_to_replace.food_id)
             rec_repo.delete_by_id(replace_recommendation_id)
             is_replace_only = True
+
+    if user_feedbacks:
+        rec_by_id = {r.id: r for r in all_user_recommendation_rows}
+        for fb in user_feedbacks:
+            if fb.recommendation_id is None:
+                continue
+            rec = rec_by_id.get(fb.recommendation_id)
+            fid: Optional[int] = rec.food_id if rec else feedback_food_by_rec_id.get(fb.recommendation_id)
+            if fid is None:
+                continue
+            if fid not in feedback_by_food:
+                feedback_by_food[fid] = []
+            feedback_by_food[fid].append(fb)
 
     if is_replace_only:
         for r in existing_recs_for_user:

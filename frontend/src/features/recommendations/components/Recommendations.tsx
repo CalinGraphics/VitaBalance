@@ -309,7 +309,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     [visibleRecommendations, mainCount]
   )
   const handleFeedbackSent = useCallback(
-    (recId: number, rating: number, newLikes: number, newDislikes: number) => {
+    (recId: number, rating: number | null, newLikes: number, newDislikes: number) => {
       setRecommendations((prev) =>
         prev.map((r) =>
           r.recommendation_id === recId
@@ -325,15 +325,11 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     []
   )
   const handleReplaceRequested = useCallback(
-    async (recId: number, opts?: { recordDislikeRating?: number }) => {
+    async (recId: number) => {
       const uid = user.id
       if (uid == null) return
       const prev = recommendationsRef.current
-      const data = await recommendationsService.replace(
-        uid,
-        recId,
-        opts?.recordDislikeRating != null ? { replaceFeedbackRating: opts.recordDislikeRating } : undefined
-      )
+      const data = await recommendationsService.replace(uid, recId)
       if (Array.isArray(data) && data.length > 0) {
         const prevById = new Map(prev.map((r) => [r.recommendation_id, r]))
         const merged = (data as Recommendation[]).map((r) => {

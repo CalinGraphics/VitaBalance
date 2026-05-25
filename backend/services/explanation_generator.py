@@ -5,8 +5,8 @@ from domain.models import FoodItem, UserProfile
 from services.medical_rules_loader import normalize_clinical_text
 from services.deficit_calculator import DeficitCalculator
 
-# Separă blocurile afișate în UI (Rezumat / detaliu) — trebuie să coincidă cu frontend.
-EXPL_SECTION_SEP = "\n\n---\n\n"
+# Separă blocurile afișate în UI (Rezumat / detaliu) — nu folosi „---” (vizibil în card).
+EXPL_SECTION_SEP = "\x1e"
 
 
 class ExplanationGenerator:
@@ -142,7 +142,11 @@ class ExplanationGenerator:
                 unique_explanations.append(t)
 
         if unique_explanations:
-            main_text = ". ".join(unique_explanations)
+            main_text = (
+                unique_explanations[0]
+                if len(unique_explanations) == 1
+                else ". ".join(unique_explanations)
+            )
         else:
             main_text = f"Am recomandat {food.name.lower()} pentru valoarea sa nutrițională."
         if not has_lab_data and "deficit" in main_text.lower():
@@ -153,18 +157,24 @@ class ExplanationGenerator:
 
         main_text_for_clinical = main_text
 
-        if (
-            unique_explanations
-            and len(unique_explanations) == 1
-            and EXPL_SECTION_SEP in unique_explanations[0]
-        ):
-            # Text deja materializat (cu ---): nu mai adăuga porțiune factuală / evită duplicate la hidratare.
+        stored_blob = unique_explanations[0] if len(unique_explanations) == 1 else ""
+        legacy_sep = "\n\n---\n\n"
+        has_stored_sections = bool(
+            stored_blob
+            and (EXPL_SECTION_SEP in stored_blob or legacy_sep in stored_blob)
+        )
+        profile_summary = "contribuții nutriționale dominante" in main_text.lower()
+
+        if has_stored_sections:
+            blob = stored_blob.replace(legacy_sep, EXPL_SECTION_SEP)
             main_text_out = self._dedupe_expl_sections(
-                self._strip_disclaimer_from_explanation_text(unique_explanations[0])
+                self._strip_disclaimer_from_explanation_text(blob)
             )
             segs = [s for s in main_text_out.split(EXPL_SECTION_SEP) if s.strip()]
             if segs:
                 main_text_for_clinical = segs[0]
+        elif profile_summary:
+            main_text_out = self._strip_disclaimer_from_explanation_text(main_text.rstrip().rstrip("."))
         else:
             factual = self._rdi_portion_sentence(
                 food, user, portion, nutrients_covered, deficits or {}

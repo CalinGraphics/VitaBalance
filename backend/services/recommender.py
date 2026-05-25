@@ -560,8 +560,8 @@ class RecommenderService:
 
             explanation = (
                 f"{food.name} a fost selectat pe baza compatibilității clinico-nutriționale "
-                "cu profilul tău, pentru porția alimentară orientativă recomandată. "
-                f"Contribuții nutriționale dominante: {'; '.join(highlight_parts)}. "
+                "cu profilul tău, pentru porția alimentară recomandată.\n"
+                f"Contribuții nutriționale dominante: {'; '.join(highlight_parts)}.\n"
                 f"Acoperirea globală estimată vizează în principal: {nutrients_text}."
             )
 

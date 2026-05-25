@@ -26,7 +26,21 @@ function normalizeExplanationRaw(s: string): string {
     .trim()
 }
 
-const EXPL_SECTION_SEP = '\n\n---\n\n'
+const EXPL_SECTION_SEP = '\x1e'
+const LEGACY_EXPL_SECTION_SEP = '\n\n---\n\n'
+
+function isSeparatorOnlyChunk(s: string): boolean {
+  const t = s.trim()
+  return t === '---' || /^-+$/.test(t) || t === '\x1e'
+}
+
+function splitExplanationSections(raw: string): string[] {
+  const withLegacy = raw.split(LEGACY_EXPL_SECTION_SEP).join(EXPL_SECTION_SEP)
+  return withLegacy
+    .split(EXPL_SECTION_SEP)
+    .map((p) => p.trim())
+    .filter((p) => p && !isSeparatorOnlyChunk(p))
+}
 
 /** Scoate formulările legale de tip disclaimer din textul afișat la aliment (inclusiv date vechi din DB). */
 function stripMedicalDisclaimersFromExplanation(s: string): string {
@@ -66,20 +80,46 @@ function renderInlineBold(text: string): ReactNode[] {
   })
 }
 
-/** Împarte un bloc dens în segmente ușor de parcurs (rânduri, punct și virgulă, propoziții). */
+/** Împarte rezumatul: intro, contribuții, acoperire — pe linii separate când e posibil. */
 function splitReadableChunks(text: string): string[] {
   const t = text.trim()
   if (!t) return []
+
+  const markerRes = [/Contribuții nutriționale dominante:/i, /Acoperirea globală estimată/i]
+  const hitIdx = markerRes
+    .map((re) => t.search(re))
+    .filter((idx) => idx >= 0)
+    .sort((a, b) => a - b)
+  const uniqueHits = hitIdx.filter((idx, i) => i === 0 || idx !== hitIdx[i - 1])
+
+  if (uniqueHits.length > 0) {
+    const chunks: string[] = []
+    let pos = 0
+    for (const idx of uniqueHits) {
+      if (idx > pos) {
+        const slice = t.slice(pos, idx).trim()
+        if (slice && !isSeparatorOnlyChunk(slice)) chunks.push(slice)
+      }
+      pos = idx
+    }
+    const tail = t.slice(pos).trim()
+    if (tail && !isSeparatorOnlyChunk(tail)) chunks.push(tail)
+    if (chunks.length >= 2) return chunks
+  }
+
   const byNewline = t
     .split(/\n+/)
     .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-    .filter(Boolean)
+    .filter((line) => line && !isSeparatorOnlyChunk(line))
   if (byNewline.length >= 2) return byNewline
 
-  const bySemi = t.split(/;\s+/).map((s) => s.trim()).filter(Boolean)
+  const bySemi = t.split(/;\s+/).map((s) => s.trim()).filter((s) => s && !isSeparatorOnlyChunk(s))
   if (bySemi.length >= 2) return bySemi
 
-  const sentences = t.split(/(?<=[.!?])\s+(?=[A-ZĂÂÎȘȚ])/u).map((s) => s.trim()).filter(Boolean)
+  const sentences = t
+    .split(/(?<=[.!?])\s+(?=[A-ZĂÂÎȘȚ])/u)
+    .map((s) => s.trim())
+    .filter((s) => s && !isSeparatorOnlyChunk(s))
   if (sentences.length >= 2) return sentences
 
   return [t]
@@ -108,7 +148,7 @@ function ReadableParagraphs({ text }: { text: string }) {
 
 function ExplanationSections({ rawText }: { rawText: string }) {
   const normalized = stripMedicalDisclaimersFromExplanation(normalizeExplanationRaw(rawText))
-  const parts = normalized.split(EXPL_SECTION_SEP).map((p) => p.trim()).filter(Boolean)
+  const parts = splitExplanationSections(normalized)
   if (parts.length <= 1) {
     return <ReadableParagraphs text={parts[0] ?? normalized} />
   }
@@ -195,8 +235,8 @@ interface RecommendationCardProps {
   }
   index: number
   userId?: number
-  onFeedbackSent?: (recId: number, rating: number, newLikes: number, newDislikes: number) => void
-  onReplaceRequested?: (recId: number, options?: { recordDislikeRating?: number }) => Promise<void>
+  onFeedbackSent?: (recId: number, rating: number | null, newLikes: number, newDislikes: number) => void
+  onReplaceRequested?: (recId: number) => Promise<void>
 }
 
 const RecommendationCard = ({
@@ -270,22 +310,73 @@ const RecommendationCard = ({
     setShowDislikeModal(true)
   }
 
+  const applyDislikeOptimistic = () => {
+    const prev = myRating
+    let newLikes = counts.likes
+    let newDislikes = counts.dislikes
+    if (prev !== undefined && prev !== null) {
+      if (prev >= 4) newLikes -= 1
+      else if (prev <= 2) newDislikes -= 1
+    }
+    newDislikes += 1
+    setLocalCounts({ likes: newLikes, dislikes: newDislikes })
+    setMyRating(1)
+    setFeedbackStatus('sent')
+    setFeedbackError(null)
+    onFeedbackSent?.(recommendation.recommendation_id, 1, newLikes, newDislikes)
+    return { prev, rollbackCounts: { ...counts } }
+  }
+
   const handleDislikeConfirm = async (replace: boolean) => {
-    setReplaceLoading(true)
     setShowDislikeModal(false)
+    if (!userId || !recommendation.recommendation_id) return
+
+    const { prev, rollbackCounts } = applyDislikeOptimistic()
+
+    if (!replace) {
+      setFeedbackSubmitting(true)
+      try {
+        await feedbackService.create({
+          user_id: userId,
+          recommendation_id: recommendation.recommendation_id,
+          rating: 1,
+        })
+      } catch (err: unknown) {
+        setMyRating(prev)
+        setLocalCounts(rollbackCounts)
+        setFeedbackStatus('error')
+        const msg =
+          (err as { message?: string })?.message ||
+          (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+          'Nu s-a putut salva dislike-ul. Încearcă din nou.'
+        setFeedbackError(msg)
+        onFeedbackSent?.(
+          recommendation.recommendation_id,
+          prev ?? null,
+          rollbackCounts.likes,
+          rollbackCounts.dislikes
+        )
+      } finally {
+        setFeedbackSubmitting(false)
+      }
+      return
+    }
+
+    setReplaceLoading(true)
     try {
-      if (replace && onReplaceRequested) {
-        await onReplaceRequested(recommendation.recommendation_id, { recordDislikeRating: 1 })
-        setFeedbackStatus('sent')
-        setFeedbackError(null)
-      } else {
-        await sendFeedback(1)
+      await feedbackService.create({
+        user_id: userId,
+        recommendation_id: recommendation.recommendation_id,
+        rating: 1,
+      })
+      if (onReplaceRequested) {
+        await onReplaceRequested(recommendation.recommendation_id)
       }
     } catch (err: unknown) {
       const msg =
         (err as { message?: string })?.message ||
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Nu s-a putut înlocui recomandarea. Încearcă din nou.'
+        'Nu s-a putut înlocui recomandarea. Dislike-ul a fost înregistrat.'
       setFeedbackError(msg)
       setFeedbackStatus('error')
     } finally {

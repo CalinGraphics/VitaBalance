@@ -222,7 +222,7 @@ export const recommendationsService = {
     if (options?.replaceFeedbackRating != null) {
       body.replace_feedback_rating = options.replaceFeedbackRating
     }
-    const response = await api.post('/recommendations', body)
+    const response = await api.post('/recommendations', body, { timeout: 90_000 })
     return response.data
   },
 }
