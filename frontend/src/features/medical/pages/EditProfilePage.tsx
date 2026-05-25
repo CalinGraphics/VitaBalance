@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { UserCog, Save, FlaskConical, ArrowLeft } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
-import { profileService, prefetchRecommendationsRefresh } from '../../../services/api'
+import { profileService } from '../../../services/api'
+import { regenerateRecommendationsAfterSave } from '../../recommendations/utils/regenerateAfterSave'
 import { parseOptionalDecimal, parseOptionalInt, sanitizeDecimalInput, sanitizeIntInput } from '../../../shared/utils/numberParsing'
 import type { User } from '../../../shared/types'
 
@@ -29,6 +30,7 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
   const [heightText, setHeightText] = useState(user.height != null ? String(user.height) : '')
 
   const [loading, setLoading] = useState(false)
+  const [loadingNote, setLoadingNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
@@ -92,7 +94,11 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
         height,
       }
       const response = await profileService.update(user.id || 0, payload)
-      prefetchRecommendationsRefresh(user.id, true)
+      if (user.id) {
+        setLoadingNote('Se generează recomandările actualizate…')
+        await regenerateRecommendationsAfterSave(user.id)
+      }
+      setLoadingNote(null)
       setSuccess(true)
       
       // Actualizează utilizatorul cu datele noi
@@ -288,7 +294,7 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
                       transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full"
                     />
-                    <span>Se salvează...</span>
+                    <span>{loadingNote || 'Se salvează...'}</span>
                   </>
                 ) : (
                   <>

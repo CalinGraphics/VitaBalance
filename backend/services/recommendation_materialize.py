@@ -22,9 +22,59 @@ from services.explanation_generator import ExplanationGenerator
 from services.explanation_storage import explanation_from_db_row, explanation_to_db_fields
 from services.portion_calculator import suggest_portion
 from services.recommender import RecommenderService
+from services.recommendation_fast_context import enter_fast_bulk_mode, exit_fast_bulk_mode
 
 ACTIVE_REC_LIMIT = 20
-FEEDBACK_REC_LOOKUP_LIMIT = 50
+FEEDBACK_REC_LOOKUP_LIMIT = 25
+
+
+def _build_explanation_for_insert(
+    food: FoodItem,
+    user: UserProfile,
+    rec_dict: dict,
+    has_lab_data: bool,
+    *,
+    fast: bool,
+) -> dict:
+    ps = suggest_portion(food, user)
+    if fast:
+        texts = rec_dict.get("explanations") or []
+        main = ""
+        if texts:
+            main = str(texts[0]).strip()
+            if len(texts) > 1:
+                main = ". ".join(str(t).strip() for t in texts[:2] if str(t).strip())
+        if not main:
+            main = f"Recomandat pentru profilul tău: {food.name}."
+        reasons = (
+            ["Adaptat profilului și analizelor tale."]
+            if has_lab_data
+            else ["Adaptat profilului tău."]
+        )
+        return {
+            "text": main[:1200],
+            "portion": ps.amount,
+            "portion_unit": ps.unit,
+            "reasons": reasons,
+            "tips": ["Folosește porția sugerată în mesele zilnice."],
+            "alternatives": None,
+        }
+    explanation_gen = ExplanationGenerator()
+    explanation = explanation_gen.generate_explanation(
+        food=food,
+        user=user,
+        deficits={},
+        score=rec_dict["score"],
+        coverage=rec_dict["coverage"],
+        explanations=rec_dict.get("explanations"),
+        matched_rules=rec_dict.get("matched_rules"),
+        has_lab_data=has_lab_data,
+        nutrients_covered=rec_dict.get("nutrients_covered"),
+        portion_grams=ps.grams_equivalent,
+    )
+    explanation["portion"] = ps.amount
+    explanation["portion_unit"] = ps.unit
+    return explanation
 
 
 def _has_lab_data(lab_results) -> bool:
@@ -316,55 +366,48 @@ def materialize_recommendations(
                 _api_item_from_rec(rec, food, expl, feedback_counts_by_food, user_feedback_by_rec)
             )
     elif should_generate:
-        recommender = RecommenderService()
-        rec_list = recommender.generate_recommendations(
-            user=user,
-            deficits=deficits,
-            foods=foods_filtered,
-            lab_results=lab_results,
-            user_feedbacks=user_feedbacks,
-            feedback_by_food=feedback_by_food,
-        )
-        explanation_gen = ExplanationGenerator()
-        to_insert = []
-        explanation_by_food_id: Dict[int, dict] = {}
-        for rec in rec_list[:20]:
-            food = food_by_id.get(rec["food_id"])
-            if not food:
-                continue
-            ps = suggest_portion(food, user)
-            explanation = explanation_gen.generate_explanation(
-                food=food,
+        fast_token = enter_fast_bulk_mode()
+        try:
+            recommender = RecommenderService()
+            rec_list = recommender.generate_recommendations(
                 user=user,
                 deficits=deficits,
-                score=rec["score"],
-                coverage=rec["coverage"],
-                explanations=rec.get("explanations"),
-                matched_rules=rec.get("matched_rules"),
-                has_lab_data=has_lab_data,
-                nutrients_covered=rec.get("nutrients_covered"),
-                portion_grams=ps.grams_equivalent,
+                foods=foods_filtered,
+                lab_results=lab_results,
+                user_feedbacks=user_feedbacks,
+                feedback_by_food=feedback_by_food,
             )
-            explanation["portion"] = ps.amount
-            explanation["portion_unit"] = ps.unit
-            to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
-            explanation_by_food_id[food.id] = explanation
-        if to_insert:
-            if existing is not None and not is_replace_only:
-                rec_repo.delete_by_user_id(user_id)
-            inserted = rec_repo.insert_many(to_insert)
-            for i, rec in enumerate(inserted):
-                if i >= len(rec_list):
-                    break
-                food = food_by_id.get(rec.food_id)
+            to_insert = []
+            explanation_by_food_id: Dict[int, dict] = {}
+            for rec in rec_list[:20]:
+                food = food_by_id.get(rec["food_id"])
                 if not food:
                     continue
-                expl = explanation_by_food_id.get(food.id)
-                if not expl:
-                    continue
-                recommendations.append(
-                    _api_item_from_rec(rec, food, expl, feedback_counts_by_food, user_feedback_by_rec)
+                explanation = _build_explanation_for_insert(
+                    food, user, rec, has_lab_data, fast=True
                 )
+                to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
+                explanation_by_food_id[food.id] = explanation
+            if to_insert:
+                if existing is not None and not is_replace_only:
+                    rec_repo.delete_by_user_id(user_id)
+                inserted = rec_repo.insert_many(to_insert)
+                for i, rec in enumerate(inserted):
+                    if i >= len(rec_list):
+                        break
+                    food = food_by_id.get(rec.food_id)
+                    if not food:
+                        continue
+                    expl = explanation_by_food_id.get(food.id)
+                    if not expl:
+                        continue
+                    recommendations.append(
+                        _api_item_from_rec(
+                            rec, food, expl, feedback_counts_by_food, user_feedback_by_rec
+                        )
+                    )
+        finally:
+            exit_fast_bulk_mode(fast_token)
     else:
         existing_recs = existing_recs_for_user[:ACTIVE_REC_LIMIT]
         food_by_id = {f.id: f for f in foods}
@@ -388,54 +431,47 @@ def materialize_recommendations(
             )
 
     if not recommendations and should_generate:
-        recommender = RecommenderService()
-        rec_list = recommender.generate_recommendations(
-            user=user,
-            deficits={},
-            foods=foods,
-            lab_results=lab_results,
-            user_feedbacks=user_feedbacks,
-            feedback_by_food=feedback_by_food,
-        )
-        if not rec_list:
-            return []
-        explanation_gen = ExplanationGenerator()
-        to_insert = []
-        explanation_by_food_id: Dict[int, dict] = {}
-        for rec in rec_list[:20]:
-            food = food_by_id.get(rec["food_id"])
-            if not food:
-                continue
-            ps = suggest_portion(food, user)
-            explanation = explanation_gen.generate_explanation(
-                food=food,
+        fast_token = enter_fast_bulk_mode()
+        try:
+            recommender = RecommenderService()
+            rec_list = recommender.generate_recommendations(
                 user=user,
-                deficits=deficits,
-                score=rec["score"],
-                coverage=rec["coverage"],
-                explanations=rec.get("explanations"),
-                matched_rules=rec.get("matched_rules"),
-                has_lab_data=has_lab_data,
-                nutrients_covered=rec.get("nutrients_covered"),
-                portion_grams=ps.grams_equivalent,
+                deficits={},
+                foods=foods,
+                lab_results=lab_results,
+                user_feedbacks=user_feedbacks,
+                feedback_by_food=feedback_by_food,
             )
-            explanation["portion"] = ps.amount
-            explanation["portion_unit"] = ps.unit
-            to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
-            explanation_by_food_id[food.id] = explanation
-        inserted = rec_repo.insert_many(to_insert)
-        for i, rec in enumerate(inserted):
-            if i >= len(rec_list):
-                break
-            food = food_by_id.get(rec.food_id)
-            if not food:
-                continue
-            expl = explanation_by_food_id.get(food.id)
-            if not expl:
-                continue
-            recommendations.append(
-                _api_item_from_rec(rec, food, expl, feedback_counts_by_food, user_feedback_by_rec)
-            )
+            if not rec_list:
+                return []
+            to_insert = []
+            explanation_by_food_id: Dict[int, dict] = {}
+            for rec in rec_list[:20]:
+                food = food_by_id.get(rec["food_id"])
+                if not food:
+                    continue
+                explanation = _build_explanation_for_insert(
+                    food, user, rec, has_lab_data, fast=True
+                )
+                to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
+                explanation_by_food_id[food.id] = explanation
+            inserted = rec_repo.insert_many(to_insert)
+            for i, rec in enumerate(inserted):
+                if i >= len(rec_list):
+                    break
+                food = food_by_id.get(rec.food_id)
+                if not food:
+                    continue
+                expl = explanation_by_food_id.get(food.id)
+                if not expl:
+                    continue
+                recommendations.append(
+                    _api_item_from_rec(
+                        rec, food, expl, feedback_counts_by_food, user_feedback_by_rec
+                    )
+                )
+        finally:
+            exit_fast_bulk_mode(fast_token)
 
     unique_recommendations: List[dict] = []
     seen_food_ids: set[int] = set()

@@ -2,11 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft, Trash2 } from 'lucide-react'
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
-import {
-  labResultsService,
-  prefetchRecommendationsRefresh,
-  type LabResultsCreatePayload,
-} from '../../../services/api'
+import { labResultsService, type LabResultsCreatePayload } from '../../../services/api'
+import { regenerateRecommendationsAfterSave } from '../../recommendations/utils/regenerateAfterSave'
 import {
   LAB_KEYS,
   coerceLabNumeric,
@@ -92,6 +89,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
   }))
 
   const [loading, setLoading] = useState(false)
+  const [loadingNote, setLoadingNote] = useState<string | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [extractPdfLoading, setExtractPdfLoading] = useState(false)
@@ -145,7 +143,11 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
       }
 
       await labResultsService.create(payload)
-      prefetchRecommendationsRefresh(user.id, true)
+      if (user.id) {
+        setLoadingNote('Se generează recomandările actualizate…')
+        await regenerateRecommendationsAfterSave(user.id)
+      }
+      setLoadingNote(null)
       onComplete()
     } catch (err: unknown) {
       console.error('Eroare la salvarea analizelor:', err)
@@ -566,7 +568,7 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
               </button>
               <div className="w-full sm:flex-1">
                 <PrimaryButton type="submit" disabled={loading} full={true}>
-                  {loading ? 'Se salvează...' : 'Continuă'}
+                  {loading ? loadingNote || 'Se salvează...' : 'Continuă'}
                   {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
                 </PrimaryButton>
               </div>

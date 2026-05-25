@@ -4,7 +4,7 @@ import {
   type RecommendationsSyncMeta,
 } from '../../../services/api'
 
-export const SYNC_POLL_INITIAL_MS = 800
+export const SYNC_POLL_INITIAL_MS = 400
 export const SYNC_POLL_MAX_INTERVAL_MS = 5000
 export const SYNC_POLL_MAX_MS = 120_000
 

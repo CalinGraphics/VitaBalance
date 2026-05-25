@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { UserPlus, ArrowRight } from 'lucide-react'
 import React from 'react'
 import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
-import { profileService, prefetchRecommendationsRefresh } from '../../../services/api'
+import { profileService } from '../../../services/api'
 import { parseOptionalDecimal, parseOptionalInt, sanitizeDecimalInput, sanitizeIntInput } from '../../../shared/utils/numberParsing'
 import type { User, AuthUser } from '../../../shared/types'
 
@@ -60,7 +60,6 @@ const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) =
       }
 
       const response = await profileService.create(payload)
-      prefetchRecommendationsRefresh(response?.id ?? undefined, true)
       onComplete(response)
     } catch (err: unknown) {
       console.error('Eroare la salvarea profilului:', err)

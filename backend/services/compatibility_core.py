@@ -8,6 +8,7 @@ from services.food_intelligence_api import (
     assess_hidden_soy_risk_from_api,
     assess_hidden_allergen_risk_from_api,
 )
+from services.recommendation_fast_context import is_fast_bulk_mode
 from services.medical_rules_loader import (
     normalize_clinical_text,
     normalize_diet_type,
@@ -181,6 +182,8 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
                 if token == "soia":
                     # Soia are deja flux dedicat mai jos (păstrăm compatibilitatea existentă).
                     continue
+                if is_fast_bulk_mode():
+                    continue
                 verdict = assess_hidden_allergen_risk_from_api(
                     food_name=food.name or "",
                     food_category=food.category or "",
@@ -205,6 +208,8 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
         )
         if any(m in combined_norm for m in hidden_soy_risk_markers):
             if not any(m in combined_norm for m in soy_free_markers):
+                if is_fast_bulk_mode():
+                    return False
                 api_verdict = assess_hidden_soy_risk_from_api(food.name or "", food.category or "")
                 if api_verdict is not False:
                     return False

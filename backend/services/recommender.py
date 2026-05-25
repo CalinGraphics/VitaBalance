@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import replace
+from concurrent.futures import ThreadPoolExecutor
 import unicodedata
 from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
@@ -11,6 +12,8 @@ class RecommenderService:
     # Dacă regulile pe deficite lasă prea puține variante (ex. vegan + alergii stricte),
     # completăm din recomandări de profil compatibile, fără a dubla food_id.
     MIN_RECOMMENDATIONS_TARGET = 10
+    MAX_FOODS_TO_SCORE = 45
+    PARALLEL_EVAL_WORKERS = 6
 
     def __init__(self):
         self.rule_engine = NutritionalRuleEngine()
@@ -71,23 +74,34 @@ class RecommenderService:
         search_foods = compatible_foods if compatible_foods else foods
         if focus_deficits:
             search_foods = self._prefilter_foods_for_deficits(
-                search_foods, focus_deficits, max_candidates=100
+                search_foods, focus_deficits, max_candidates=self.MAX_FOODS_TO_SCORE
             )
         else:
-            search_foods = search_foods[:80]
+            search_foods = search_foods[: self.MAX_FOODS_TO_SCORE]
 
         # 1) Caz normal: există deficite relevante -> folosește rule engine
         recommendations: List[Dict] = []
         has_active_deficits = bool(focus_deficits)
         if focus_deficits:
-            for food in search_foods:
-                recommendation = self.rule_engine.evaluate_food(
+            foods_to_score = search_foods[: self.MAX_FOODS_TO_SCORE]
+
+            def _eval_pair(food: FoodItem):
+                rec = self.rule_engine.evaluate_food(
                     food=food,
                     user=effective_user,
                     deficits=focus_deficits,
-                    lab_results=lab_results
+                    lab_results=lab_results,
+                    precomputed_restrictions=precomputed_restrictions,
                 )
+                return food, rec
 
+            if len(foods_to_score) > 12:
+                with ThreadPoolExecutor(max_workers=self.PARALLEL_EVAL_WORKERS) as pool:
+                    scored = list(pool.map(_eval_pair, foods_to_score))
+            else:
+                scored = [_eval_pair(f) for f in foods_to_score]
+
+            for food, recommendation in scored:
                 if recommendation:
                     adjusted_score = self._apply_feedback_adjustments(
                         score=recommendation.score,
@@ -315,6 +329,7 @@ class RecommenderService:
                     user=effective_user,
                     deficits=focus_deficits,
                     lab_results=lab_results,
+                    precomputed_restrictions=precomputed_restrictions,
                 )
                 if not recommendation:
                     continue

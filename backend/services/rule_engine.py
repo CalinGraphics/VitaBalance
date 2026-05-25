@@ -112,11 +112,11 @@ class NutritionalRuleEngine:
         food: FoodItem,
         user: UserProfile,
         deficits: Dict[str, float],
-        lab_results: Optional[LabResultItem] = None
+        lab_results: Optional[LabResultItem] = None,
+        precomputed_restrictions: Optional[Dict[str, List[str]]] = None,
     ) -> Optional[FoodRecommendation]:
         """Evaluează un aliment folosind toate regulile disponibile"""
-        precomputed_restrictions = None
-        if user.medical_conditions:
+        if precomputed_restrictions is None and user.medical_conditions:
             precomputed_restrictions = self._parse_food_restrictions(user.medical_conditions)
         if not self._is_compatible(food, user, precomputed_restrictions=precomputed_restrictions):
             return None

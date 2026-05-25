@@ -162,12 +162,13 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         /* listStored — continuăm cu refresh în fundal dacă e cazul */
       }
 
-      if (!forceRegenerate && hasVisibleList) {
+      if (hasVisibleList) {
         try {
           const meta = await recommendationsService.getSyncMeta(user.id)
           if (fetchId !== latestFetchIdRef.current) return
           if (shouldSkipBackgroundRefresh(meta, false)) {
             setRegeneratingAfterProfile(false)
+            setError(null)
             return
           }
         } catch {

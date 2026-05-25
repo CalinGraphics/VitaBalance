@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Route, AuthUser, User } from '../types'
 import { isAxiosError } from 'axios'
-import { profileService, authService, prefetchRecommendationsRefresh } from '../../services/api'
+import { profileService, authService } from '../../services/api'
 import { getToken, setToken, clearToken } from '../../services/authStorage'
 
 // Un profil medical este considerat "complet" doar dacă are valorile de bază setate.
@@ -40,7 +40,6 @@ export const useAppNavigation = () => {
         if (hasCompleteMedicalProfile(existingProfile)) {
           // Are deja profil complet, merge direct la recomandări
           setMedicalUser(existingProfile)
-          prefetchRecommendationsRefresh(existingProfile.id, false)
           setRoute('recommendations')
         } else {
           // Nu are profil complet (sau e utilizator nou creat automat) – merge la crearea profilului
@@ -86,7 +85,6 @@ export const useAppNavigation = () => {
 
   const handleProfileUpdate = useCallback((updatedUser: User) => {
     setMedicalUser(updatedUser)
-    prefetchRecommendationsRefresh(updatedUser.id, true)
     setRecommendationsRefreshKey((k) => k + 1)
     setRoute('recommendations')
   }, [])
@@ -133,7 +131,6 @@ export const useAppNavigation = () => {
       .then((existingProfile: User) => {
         if (hasCompleteMedicalProfile(existingProfile)) {
           setMedicalUser(existingProfile)
-          prefetchRecommendationsRefresh(existingProfile.id, false)
           setRoute('recommendations')
         } else {
           setMedicalUser(null)
