@@ -4,6 +4,7 @@ import { CheckCircle2, Info, ThumbsUp, ThumbsDown, X } from 'lucide-react'
 import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
 import { feedbackService } from '../../../services/api'
+import { formatPortionSuggestion } from '../utils/formatPortion'
 
 /** Elimină prefixul [context: ...] și normalizează spațiile pe un singur rând (motivații, sfaturi). */
 function faraPrefixContext(s: string): string {
@@ -222,6 +223,7 @@ interface RecommendationCardProps {
     explanation: {
       text: string
       portion: number
+      portion_unit?: 'g' | 'ml' | string
       reasons: string[]
       tips?: string[]
       alternatives?: string[]
@@ -415,7 +417,10 @@ const RecommendationCard = ({
                   </span>
                 </div>
                 <p className="text-base sm:text-sm text-slate-300 mb-3">
-                  Porție sugerată: <strong className="text-neonCyan">{explanation.portion}g</strong>
+                  Porție sugerată:{' '}
+                  <strong className="text-neonCyan">
+                    {formatPortionSuggestion(explanation.portion, explanation.portion_unit, food.category)}
+                  </strong>
                 </p>
                 <div className="flex items-center gap-2 mb-4 min-w-0">
                   <div className="flex-1 min-w-0 bg-slate-800 rounded-full h-3 sm:h-2.5 overflow-hidden">

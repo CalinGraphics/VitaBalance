@@ -11,6 +11,9 @@ def explanation_to_db_fields(expl: Dict[str, Any]) -> Dict[str, Any]:
     """Câmpuri pentru insert/update Supabase recommendations."""
     text = str(expl.get("text") or "")
     portion = float(expl.get("portion") or 150)
+    portion_unit = str(expl.get("portion_unit") or "g").lower().strip() or "g"
+    if portion_unit not in ("g", "ml"):
+        portion_unit = "g"
     reasons: List[str] = list(expl.get("reasons") or [])
     tips_raw = expl.get("tips")
     tips: List[str] = list(tips_raw) if tips_raw else []
@@ -18,6 +21,7 @@ def explanation_to_db_fields(expl: Dict[str, Any]) -> Dict[str, Any]:
     payload = {
         "text": text,
         "portion": portion,
+        "portion_unit": portion_unit,
         "reasons": reasons,
         "tips": tips if tips else None,
         "alternatives": list(alts) if alts else None,
@@ -46,9 +50,13 @@ def explanation_from_db_row(
             expl_json = None
 
     if isinstance(expl_json, dict) and expl_json.get("text"):
+        unit = str(expl_json.get("portion_unit") or "g").lower().strip() or "g"
+        if unit not in ("g", "ml"):
+            unit = "g"
         return {
             "text": str(expl_json.get("text") or ""),
             "portion": float(expl_json.get("portion") or fallback_portion),
+            "portion_unit": unit,
             "reasons": list(expl_json.get("reasons") or []),
             "tips": list(expl_json["tips"]) if expl_json.get("tips") else None,
             "alternatives": list(expl_json["alternatives"])
@@ -70,6 +78,7 @@ def explanation_from_db_row(
         return {
             "text": text,
             "portion": portion,
+            "portion_unit": "g",
             "reasons": list(reasons or []),
             "tips": list(tips) if tips else None,
             "alternatives": None,
@@ -78,6 +87,7 @@ def explanation_from_db_row(
     return {
         "text": text,
         "portion": portion,
+        "portion_unit": "g",
         "reasons": [],
         "tips": None,
         "alternatives": None,

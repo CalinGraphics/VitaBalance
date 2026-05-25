@@ -11,6 +11,8 @@ export interface Recommendation {
   explanation: {
     text: string
     portion: number
+    /** Unitate afișare: "g" (implicit) sau "ml" pentru băuturi. */
+    portion_unit?: 'g' | 'ml' | string
     reasons: string[]
     tips?: string[]
     alternatives?: string[]

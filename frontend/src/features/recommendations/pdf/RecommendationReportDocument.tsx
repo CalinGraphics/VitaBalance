@@ -46,6 +46,7 @@ export interface RecommendationForPdf {
   explanation: {
     text: string
     portion: number
+    portion_unit?: 'g' | 'ml' | string
     reasons: string[]
     tips?: string[]
     alternatives?: string[]
@@ -200,7 +201,12 @@ export const RecommendationReportDocument: React.FC<RecommendationReportDocument
             </Text>
             <View style={styles.meta}>
               <Text style={styles.metaItem}>Categorie: {faraDiacritice(rec.food.category)}</Text>
-              <Text style={styles.metaItem}>Portie sugerata: {rec.explanation.portion}g</Text>
+              <Text style={styles.metaItem}>
+                Portie sugerata:{' '}
+                {rec.explanation.portion_unit === 'ml'
+                  ? `${rec.explanation.portion} ml`
+                  : `${rec.explanation.portion} g`}
+              </Text>
               <Text style={styles.metaItem}>Acoperire deficit: {rec.coverage.toFixed(1)}%</Text>
             </View>
             <Text style={styles.explanationLabel}>Descriere:</Text>

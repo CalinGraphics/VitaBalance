@@ -2,7 +2,12 @@
 import unittest
 
 from domain.models import FoodItem, UserProfile
-from services.portion_calculator import suggest_portion_grams, normalized_sex
+from services.portion_calculator import (
+    suggest_portion,
+    suggest_portion_grams,
+    normalized_sex,
+    format_portion_label,
+)
 
 
 def _food(category: str) -> FoodItem:
@@ -66,6 +71,87 @@ class TestPortionCalculator(unittest.TestCase):
         )
         food = _food("legume")
         self.assertGreater(suggest_portion_grams(food, heavy), suggest_portion_grams(food, light))
+
+    def test_bauturi_in_ml(self):
+        user = UserProfile(
+            id=1,
+            email="u@test.com",
+            name="U",
+            sex="F",
+            age=30,
+            weight=65,
+            height=165,
+            activity_level="moderate",
+            diet_type="omnivore",
+        )
+        coffee = FoodItem(
+            id=2,
+            name="Cafea Neagră",
+            category="Băuturi",
+            iron=0.3,
+            calcium=5,
+            vitamin_d=0,
+            vitamin_b12=0,
+            magnesium=8,
+            protein=0.3,
+            zinc=0.2,
+            vitamin_c=0,
+            fiber=0,
+            calories=5,
+        )
+        cola = FoodItem(
+            id=3,
+            name="Suc Cola (1 doză)",
+            category="Băuturi",
+            iron=0,
+            calcium=59,
+            vitamin_d=0,
+            vitamin_b12=0,
+            magnesium=24,
+            protein=0,
+            zinc=1,
+            vitamin_c=0,
+            fiber=0,
+            calories=140,
+        )
+        ps_coffee = suggest_portion(coffee, user)
+        ps_cola = suggest_portion(cola, user)
+        self.assertEqual(ps_coffee.unit, "ml")
+        self.assertEqual(ps_cola.unit, "ml")
+        self.assertGreaterEqual(ps_cola.amount, 270)
+        self.assertLessEqual(ps_cola.amount, 360)
+        self.assertIn("ml", format_portion_label(ps_coffee.amount, ps_coffee.unit))
+
+    def test_deserturi_in_grams(self):
+        user = UserProfile(
+            id=1,
+            email="u@test.com",
+            name="U",
+            sex="M",
+            age=25,
+            weight=80,
+            height=180,
+            activity_level="moderate",
+            diet_type="omnivore",
+        )
+        cake = FoodItem(
+            id=4,
+            name="Cheesecake (1 felie)",
+            category="Deserturi",
+            iron=1,
+            calcium=27,
+            vitamin_d=0.6,
+            vitamin_b12=0,
+            magnesium=33,
+            protein=5,
+            zinc=0.5,
+            vitamin_c=1.9,
+            fiber=1,
+            calories=320,
+        )
+        ps = suggest_portion(cake, user)
+        self.assertEqual(ps.unit, "g")
+        self.assertGreaterEqual(ps.amount, 90)
 
     def test_nuts_smaller_than_vegetables(self):
         user = UserProfile(

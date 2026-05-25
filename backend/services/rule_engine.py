@@ -10,7 +10,7 @@ from services.medical_rules_loader import (
     normalize_clinical_text,
 )
 from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
-from services.portion_calculator import suggest_portion_grams
+from services.portion_calculator import suggest_portion
 
 
 class NutrientType(str, Enum):
@@ -102,7 +102,10 @@ class NutritionalRuleEngine:
         return any(m in conditions_norm for m in markers)
 
     def _portion_for_food(self, food: FoodItem, user: UserProfile) -> int:
-        return suggest_portion_grams(food, user)
+        return suggest_portion(food, user).grams_equivalent
+
+    def _portion_label_for_food(self, food: FoodItem, user: UserProfile) -> str:
+        return suggest_portion(food, user).display_label()
 
     def evaluate_food(
         self,
@@ -223,7 +226,7 @@ class NutritionalRuleEngine:
                 nutrient_scores[nutrient_str] = generic_score
                 final_explanations.append(
                     f"Contribuie la deficitul de {nutrient_labels.get(nutrient_str, nutrient_str)}: "
-                    f"~{portion_value:.1f} per porția sugerată ({portion_grams}g)."
+                    f"~{portion_value:.1f} per porția sugerată ({self._portion_label_for_food(food, user)})."
                 )
                 final_matched_rules.append(f"generic_{nutrient_str}")
             
@@ -300,7 +303,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=10.0,
                 explanation=f"Recomandat pentru deficit sever de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_severe_high",
                 nutrient=NutrientType.IRON.value,
                 priority=10
@@ -314,7 +317,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=8.0,
                 explanation=f"Recomandat pentru deficit sever de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_severe_medium",
                 nutrient=NutrientType.IRON.value,
                 priority=9
@@ -329,7 +332,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=8.5,
                 explanation=f"Recomandat pentru deficit moderat de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_moderate_high",
                 nutrient=NutrientType.IRON.value,
                 priority=8
@@ -344,7 +347,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=6.0,
                 explanation=f"Recomandat pentru deficit moderat de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_moderate_medium",
                 nutrient=NutrientType.IRON.value,
                 priority=7
@@ -359,7 +362,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=7.0,
                 explanation=f"Recomandat pentru deficit ușor de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_mild_high",
                 nutrient=NutrientType.IRON.value,
                 priority=6
@@ -374,7 +377,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=4.0,
                 explanation=f"Recomandat pentru aport de fier. Conține {iron_content:.1f} mg fier/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg fier, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="iron_low",
                 nutrient=NutrientType.IRON.value,
                 priority=4
@@ -411,7 +414,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=10.0,
                 explanation=f"Recomandat pentru deficit sever de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_severe_high",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=10
@@ -425,7 +428,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=8.0,
                 explanation=f"Recomandat pentru deficit sever de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_severe_medium",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=9
@@ -440,7 +443,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=8.5,
                 explanation=f"Recomandat pentru deficit moderat de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_moderate_high",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=8
@@ -455,7 +458,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=6.0,
                 explanation=f"Recomandat pentru deficit moderat de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_moderate_medium",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=7
@@ -470,7 +473,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=7.0,
                 explanation=f"Recomandat pentru deficit ușor de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_mild_high",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=6
@@ -485,7 +488,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=4.0,
                 explanation=f"Recomandat pentru aport de magneziu. Conține {magnesium_content:.1f} mg magneziu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg magneziu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="magnesium_low",
                 nutrient=NutrientType.MAGNESIUM.value,
                 priority=4
@@ -521,7 +524,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=10.0,
                 explanation=f"Recomandat pentru deficit sever de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_severe_high",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=10
@@ -535,7 +538,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=8.0,
                 explanation=f"Recomandat pentru deficit sever de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_severe_medium",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=9
@@ -550,7 +553,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=8.5,
                 explanation=f"Recomandat pentru deficit moderat de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_moderate_high",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=8
@@ -565,7 +568,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=6.0,
                 explanation=f"Recomandat pentru deficit moderat de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_moderate_medium",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=7
@@ -580,7 +583,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=7.0,
                 explanation=f"Recomandat pentru deficit ușor de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_mild_high",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=6
@@ -595,7 +598,7 @@ class NutritionalRuleEngine:
                 matched=True,
                 score=4.0,
                 explanation=f"Recomandat pentru aport de calciu. Conține {calcium_content:.1f} mg calciu/100g. "
-                           f"O porție de {portion_grams}g oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
+                           f"O porție de {self._portion_label_for_food(food, user)} oferă ~{portion_value:.1f} mg calciu, acoperind {coverage_pct:.1f}% din deficit.",
                 rule_name="calcium_low",
                 nutrient=NutrientType.CALCIUM.value,
                 priority=4

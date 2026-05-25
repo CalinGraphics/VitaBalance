@@ -20,7 +20,7 @@ from domain.models import FoodItem, RecommendationItem
 from services.deficit_calculator import DeficitCalculator
 from services.explanation_generator import ExplanationGenerator
 from services.explanation_storage import explanation_from_db_row, explanation_to_db_fields
-from services.portion_calculator import suggest_portion_grams
+from services.portion_calculator import suggest_portion
 from services.recommender import RecommenderService
 
 ACTIVE_REC_LIMIT = 20
@@ -270,7 +270,7 @@ def materialize_recommendations(
             food = next((f for f in foods_filtered if f.id == rec_list[0]["food_id"]), None)
             if food:
                 explanation_gen = ExplanationGenerator()
-                portion_g = suggest_portion_grams(food, user)
+                ps = suggest_portion(food, user)
                 expl = explanation_gen.generate_explanation(
                     food=food,
                     user=user,
@@ -281,8 +281,10 @@ def materialize_recommendations(
                     matched_rules=rec_list[0].get("matched_rules"),
                     has_lab_data=has_lab_data,
                     nutrients_covered=rec_list[0].get("nutrients_covered"),
-                    portion_grams=portion_g,
+                    portion_grams=ps.grams_equivalent,
                 )
+                expl["portion"] = ps.amount
+                expl["portion_unit"] = ps.unit
                 inserted = rec_repo.insert_many(
                     [_insert_row_from_explanation(user.id, food.id, rec_list[0], expl)]
                 )
@@ -333,7 +335,7 @@ def materialize_recommendations(
             food = food_by_id.get(rec["food_id"])
             if not food:
                 continue
-            portion_g = suggest_portion_grams(food, user)
+            ps = suggest_portion(food, user)
             explanation = explanation_gen.generate_explanation(
                 food=food,
                 user=user,
@@ -344,8 +346,10 @@ def materialize_recommendations(
                 matched_rules=rec.get("matched_rules"),
                 has_lab_data=has_lab_data,
                 nutrients_covered=rec.get("nutrients_covered"),
-                portion_grams=portion_g,
+                portion_grams=ps.grams_equivalent,
             )
+            explanation["portion"] = ps.amount
+            explanation["portion_unit"] = ps.unit
             to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
             explanation_by_food_id[food.id] = explanation
         if to_insert:
@@ -403,7 +407,7 @@ def materialize_recommendations(
             food = food_by_id.get(rec["food_id"])
             if not food:
                 continue
-            portion_g = suggest_portion_grams(food, user)
+            ps = suggest_portion(food, user)
             explanation = explanation_gen.generate_explanation(
                 food=food,
                 user=user,
@@ -414,8 +418,10 @@ def materialize_recommendations(
                 matched_rules=rec.get("matched_rules"),
                 has_lab_data=has_lab_data,
                 nutrients_covered=rec.get("nutrients_covered"),
-                portion_grams=portion_g,
+                portion_grams=ps.grams_equivalent,
             )
+            explanation["portion"] = ps.amount
+            explanation["portion_unit"] = ps.unit
             to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
             explanation_by_food_id[food.id] = explanation
         inserted = rec_repo.insert_many(to_insert)

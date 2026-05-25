@@ -4,7 +4,7 @@ import unicodedata
 from domain.models import FoodItem, UserProfile
 from services.medical_rules_loader import normalize_clinical_text
 from services.deficit_calculator import DeficitCalculator
-from services.portion_calculator import suggest_portion_grams
+from services.portion_calculator import suggest_portion, format_portion_label
 
 # Separă blocurile afișate în UI (Rezumat / detaliu) — nu folosi „---” (vizibil în card).
 EXPL_SECTION_SEP = "\x1e"
@@ -133,7 +133,9 @@ class ExplanationGenerator:
         nutrients_covered: Optional[List[str]] = None,
         portion_grams: Optional[int] = None,
     ) -> Dict:
-        portion = portion_grams if portion_grams is not None else suggest_portion_grams(food, user)
+        ps = suggest_portion(food, user)
+        grams_eq = portion_grams if portion_grams is not None else ps.grams_equivalent
+        portion_label = format_portion_label(ps.amount, ps.unit)
         is_fallback_profile_based = "fallback_profile_based" in matched_rules
 
         unique_explanations: List[str] = []
@@ -182,7 +184,7 @@ class ExplanationGenerator:
             main_text_out = self._strip_disclaimer_from_explanation_text(main_text.rstrip().rstrip("."))
         else:
             factual = self._rdi_portion_sentence(
-                food, user, portion, nutrients_covered, deficits or {}
+                food, user, grams_eq, nutrients_covered, deficits or {}, portion_label=portion_label
             )
             blocks = [main_text.rstrip().rstrip(".")]
             if factual:
@@ -222,7 +224,8 @@ class ExplanationGenerator:
 
         return {
             "text": main_text_out,
-            "portion": portion,
+            "portion": ps.amount,
+            "portion_unit": ps.unit,
             "reasons": reasons,
             "tips": tips,
             "alternatives": alternatives if alternatives else None,
@@ -295,9 +298,11 @@ class ExplanationGenerator:
         self,
         food: FoodItem,
         user: UserProfile,
-        portion: int,
+        grams_equivalent: int,
         nutrients_covered: Optional[List[str]],
         deficits: Dict[str, float],
+        *,
+        portion_label: Optional[str] = None,
     ) -> str:
         """Propoziție scurtă cu cantități la porție și % față de VNR în model (DeficitCalculator)."""
         calc = DeficitCalculator()
@@ -326,7 +331,7 @@ class ExplanationGenerator:
             ref = self._rdi_reference_amount(n, rdi)
             if ref <= 0:
                 continue
-            at_portion = v100 * float(portion) / 100.0
+            at_portion = v100 * float(grams_equivalent) / 100.0
             pct = min(100.0, (at_portion / ref) * 100.0)
             label = self.NUTRIENT_LABELS_RO.get(n, n)
             amt = self._format_amount_for_nutrient(n, at_portion)
@@ -335,7 +340,8 @@ class ExplanationGenerator:
             )
         if not parts:
             return ""
-        return "La porția estimată (~" + str(portion) + " g): " + " · ".join(parts) + "."
+        label_txt = portion_label or format_portion_label(grams_equivalent, "g")
+        return "La porția estimată (~" + label_txt + "): " + " · ".join(parts) + "."
 
     def _generate_traditional_explanation(
         self,
@@ -346,7 +352,10 @@ class ExplanationGenerator:
         coverage: float,
         portion_grams: Optional[int] = None,
     ) -> Dict:
-        portion = portion_grams if portion_grams is not None else suggest_portion_grams(food, user)
+        ps = suggest_portion(food, user)
+        grams_eq = portion_grams if portion_grams is not None else ps.grams_equivalent
+        portion_label = format_portion_label(ps.amount, ps.unit)
+        per100 = "100 ml" if ps.unit == "ml" else "100 g"
         reasons: List[str] = []
         tips: List[str] = []
         alternatives: List[str] = []
@@ -359,13 +368,13 @@ class ExplanationGenerator:
             detail_parts: List[str] = []
             for nutrient, value_per_100 in top_nutrients:
                 label = self.NUTRIENT_LABELS_RO.get(nutrient, nutrient)
-                at_portion = value_per_100 * float(portion) / 100.0
+                at_portion = value_per_100 * float(grams_eq) / 100.0
                 rdi = calc.get_rdi(nutrient, user)
                 ref = self._rdi_reference_amount(nutrient, rdi)
                 pct = min(100.0, (at_portion / ref) * 100.0) if ref > 0 else 0.0
                 amt = self._format_amount_for_nutrient(nutrient, at_portion)
                 detail_parts.append(
-                    f"**{label}** (~**{amt}** la ~{portion} g, adică ~**{pct:.0f}%** din reperul zilnic din model pentru {label})"
+                    f"**{label}** (~**{amt}** la ~{portion_label}, adică ~**{pct:.0f}%** din reperul zilnic din model pentru {label})"
                 )
             main_text = intro + "; ".join(detail_parts) + "."
         else:
@@ -377,7 +386,7 @@ class ExplanationGenerator:
         for nutrient, value_per_100 in top_nutrients[:3]:
             label = self.NUTRIENT_LABELS_RO.get(nutrient, nutrient)
             reasons.append(
-                f"Conține ~{self._format_amount_for_nutrient(nutrient, value_per_100)} {label} per 100 g (date catalog)."
+                f"Conține ~{self._format_amount_for_nutrient(nutrient, value_per_100)} {label} per {per100} (date catalog)."
             )
 
         if user.diet_type == "vegan":
@@ -405,7 +414,8 @@ class ExplanationGenerator:
 
         return {
             "text": main_text,
-            "portion": portion,
+            "portion": ps.amount,
+            "portion_unit": ps.unit,
             "reasons": reasons,
             "tips": tips if tips else None,
             "alternatives": alternatives if alternatives else None,
