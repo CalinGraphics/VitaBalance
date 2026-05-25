@@ -11,6 +11,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 from domain.models import FoodItem, UserProfile
+from services.food_category_resolver import (
+    beverage_hint_from_name,
+    is_dessert_food_category,
+    is_liquid_food_category,
+    resolve_category_group,
+)
 from services.medical_rules_loader import normalize_clinical_text
 
 # Gramaj de referință (porție standard ~70 kg, activitate moderată)
@@ -81,18 +87,6 @@ def normalized_sex(user: UserProfile) -> str:
     return "other"
 
 
-def is_liquid_category(category: str) -> bool:
-    n = normalize_category(category)
-    if n == "bauturi" or n.endswith("/bauturi") or n.startswith("bauturi/"):
-        return True
-    return "bauturi" in n.split("/") or " bauturi" in f" {n} "
-
-
-def is_dessert_category(category: str) -> bool:
-    n = normalize_category(category)
-    return n == "deserturi" or "deserturi" in n.split("/")
-
-
 def _activity_factor(user: UserProfile) -> float:
     return {
         "sedentary": 0.95,
@@ -128,40 +122,6 @@ def _sex_multiplier(user: UserProfile, cat: str) -> float:
 
 def _name_norm(name: str) -> str:
     return normalize_category(name or "")
-
-
-def _ml_from_food_name(name: str) -> Optional[int]:
-    """Indicii din denumire (CSV: doză, cocktail, cafea, etc.)."""
-    n = _name_norm(name)
-    if not n:
-        return None
-    if "doza" in n or "doze" in n or "1 doza" in n:
-        return 330
-    if "cocktail" in n:
-        return 200
-    if "vin " in f" {n} " or n.startswith("vin ") or "vin rosu" in n or "vin alb" in n:
-        return 125
-    if "bere" in n and "doza" in n:
-        return 330
-    if "bere" in n:
-        return 330
-    if "cafea" in n or "espresso" in n or "latte" in n or "mocha" in n:
-        return 180
-    if "ceai" in n:
-        return 200
-    if "smoothie" in n:
-        return 300
-    if "apa" in n and "cocos" in n:
-        return 250
-    if "lapte" in n and ("ovaz" in n or "migdale" in n or "soia" in n):
-        return 250
-    if "lapte" in n or "ciocolata calda" in n:
-        return 200
-    if "suc " in f" {n} " or n.startswith("suc ") or "limonada" in n:
-        return 200
-    if "kombucha" in n:
-        return 250
-    return None
 
 
 def _grams_from_food_name(name: str, *, dessert: bool) -> Optional[int]:
@@ -203,12 +163,12 @@ def suggest_portion(
     category: Optional[str] = None,
 ) -> PortionSuggestion:
     cat_raw = category if category is not None else (food.category or "")
-    cat = normalize_category(cat_raw)
+    group = resolve_category_group(cat_raw)
     name = food.name or ""
 
-    if is_liquid_category(cat_raw):
+    if is_liquid_food_category(cat_raw):
         base_ml = float(_CATEGORY_PORTION_ML.get("bauturi", 200))
-        hinted = _ml_from_food_name(name)
+        hinted = beverage_hint_from_name(name)
         if hinted is not None:
             base_ml = float(hinted)
         if user is not None:
@@ -216,7 +176,7 @@ def suggest_portion(
         amount = max(50, int(round(base_ml)))
         return PortionSuggestion(amount=amount, unit="ml", grams_equivalent=amount)
 
-    if is_dessert_category(cat_raw):
+    if is_dessert_food_category(cat_raw):
         base = float(_CATEGORY_PORTION_G.get("deserturi", 90))
         hinted = _grams_from_food_name(name, dessert=True)
         if hinted is not None:
@@ -226,9 +186,19 @@ def suggest_portion(
         amount = max(25, int(round(base)))
         return PortionSuggestion(amount=amount, unit="g", grams_equivalent=amount)
 
-    base = float(_CATEGORY_PORTION_G.get(cat, 150))
+    # Cereale integrale / ovăz etc. — porție de cereale, nu lactate
+    if group == "cereale" and re.search(r"\b(integral|ovaz|terci|quinoa|orez|paine|bagel|paste|spaghetti)\b", _name_norm(name)):
+        base = float(_CATEGORY_PORTION_G.get("cereale", 150))
+        if "paine" in _name_norm(name) or "felie" in _name_norm(name):
+            base = 80.0
+        if user is not None:
+            base *= _sex_multiplier(user, "cereale")
+        amount = max(30, int(round(base)))
+        return PortionSuggestion(amount=amount, unit="g", grams_equivalent=amount)
+
+    base = float(_CATEGORY_PORTION_G.get(group, 150))
     if user is not None:
-        base *= _sex_multiplier(user, cat)
+        base *= _sex_multiplier(user, group)
     amount = max(30, int(round(base)))
     return PortionSuggestion(amount=amount, unit="g", grams_equivalent=amount)
 

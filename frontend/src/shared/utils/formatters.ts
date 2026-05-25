@@ -22,25 +22,76 @@ const CATEGORY_MAPPINGS: Record<string, string> = {
   'alune': 'Alune'
 }
 
+/** Categorii compuse din CSV (Cereale/Procesate) — prioritate, ca cerealele să nu apară ca lactate. */
+const COMPOUND_CATEGORY_PRIORITY: Array<{ match: string; label: string }> = [
+  { match: 'bauturi', label: 'Băuturi' },
+  { match: 'deserturi', label: 'Deserturi' },
+  { match: 'cereale', label: 'Cereale' },
+  { match: 'leguminoase', label: 'Leguminoase' },
+  { match: 'legume', label: 'Legume' },
+  { match: 'fructe', label: 'Fructe' },
+  { match: 'peste', label: 'Pește' },
+  { match: 'carne', label: 'Carne' },
+  { match: 'oua', label: 'Ouă' },
+  { match: 'ouă', label: 'Ouă' },
+  { match: 'nuci', label: 'Nuci' },
+  { match: 'semin', label: 'Semințe' },
+  { match: 'lactate', label: 'Lactate' },
+  { match: 'lapte', label: 'Lactate' },
+  { match: 'suplimente', label: 'Suplimente' },
+  { match: 'condimente', label: 'Condimente' },
+  { match: 'gustari', label: 'Gustări' },
+  { match: 'mese', label: 'Mese' },
+  { match: 'proteine', label: 'Proteine' },
+  { match: 'paste', label: 'Paste' },
+]
+
+function normalizeCategoryPath(category: string): string {
+  return category
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
 // Formatare categorie alimentară
 export const formatFoodCategory = (category: string | undefined | null): string => {
   if (!category) return ''
-  
-  const categoryLower = category.toLowerCase().trim()
-  
-  // Verifică dacă există mapping direct
-  if (CATEGORY_MAPPINGS[categoryLower]) {
-    return CATEGORY_MAPPINGS[categoryLower]
+
+  const norm = normalizeCategoryPath(category)
+
+  if (CATEGORY_MAPPINGS[norm]) {
+    return CATEGORY_MAPPINGS[norm]
   }
-  
-  // Dacă nu există mapping, formatează manual
-  // Înlocuiește underscore-uri cu spații
+
+  if (norm.includes('/')) {
+    const parts = norm.split('/').map((p) => p.trim())
+    for (const { match, label } of COMPOUND_CATEGORY_PRIORITY) {
+      if (parts.some((p) => p.includes(match))) {
+        return label
+      }
+    }
+  }
+
+  for (const { match, label } of COMPOUND_CATEGORY_PRIORITY) {
+    if (norm.includes(match)) {
+      return label
+    }
+  }
+
   let formatted = category.replace(/_/g, ' ')
-  
-  // Capitalize prima literă
   formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1).toLowerCase()
-  
   return formatted
+}
+
+/** Cheie pentru grupare filtre (cereale vs cereale/procesate). */
+export const foodCategoryGroupKey = (category: string | undefined | null): string => {
+  if (!category) return 'alte'
+  const norm = normalizeCategoryPath(category)
+  for (const { match } of COMPOUND_CATEGORY_PRIORITY) {
+    if (norm.includes(match)) return match
+  }
+  return norm.split('/')[0] || 'alte'
 }
 
 // Formatare alergie - folosește label-urile din COMMON_ALLERGIES

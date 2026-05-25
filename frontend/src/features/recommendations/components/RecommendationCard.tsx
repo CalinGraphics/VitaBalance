@@ -368,12 +368,6 @@ const RecommendationCard = ({
 
     setReplaceLoading(true)
     try {
-      await feedbackService.create({
-        user_id: userId,
-        recommendation_id: recommendation.recommendation_id,
-        rating: 1,
-        food_id: recommendation.food_id,
-      })
       if (onReplaceRequested) {
         await onReplaceRequested(recommendation.recommendation_id)
       }

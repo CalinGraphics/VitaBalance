@@ -10,6 +10,7 @@ import NutrientChart from './NutrientChart'
 import UserProfileInfo from './UserProfileInfo'
 import type { Recommendation } from '../types'
 import { humanizeRecommendationClientError } from '../../../shared/utils/apiErrors'
+import { formatFoodCategory } from '../../../shared/utils/formatters'
 
 interface RecommendationsProps {
   user: User
@@ -25,6 +26,7 @@ interface ApiErrorDetail {
 }
 
 const FETCH_DEBOUNCE_MS = 320
+const PROFILE_REGEN_DEBOUNCE_MS = 80
 const SYNC_POLL_INITIAL_MS = 1000
 const SYNC_POLL_MAX_INTERVAL_MS = 8000
 const SYNC_POLL_MAX_MS = 45_000
@@ -92,6 +94,32 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
       setError(null)
       setBackgroundRefreshNote(null)
+
+      if (forceRegenerate) {
+        setRegeneratingAfterProfile(true)
+        setLoading(true)
+        try {
+          const data = (await recommendationsService.materializeSync(user.id, true)) as unknown[]
+          if (fetchId !== latestFetchIdRef.current) return
+          if (Array.isArray(data) && data.length > 0) {
+            setRecommendations(data as Recommendation[])
+            setSelectedCategory('all')
+            setVisibleCount(Math.min(10, data.length))
+          } else {
+            setRecommendations([])
+            setError('Nu s-au găsit recomandări. Verifică profilul și analizele medicale.')
+          }
+        } catch (err: unknown) {
+          if (fetchId !== latestFetchIdRef.current) return
+          setError(humanizeRecommendationClientError(err))
+        } finally {
+          if (fetchId === latestFetchIdRef.current) {
+            setLoading(false)
+            setRegeneratingAfterProfile(false)
+          }
+        }
+        return
+      }
 
       let storedPreload: Recommendation[] = []
       try {
@@ -257,9 +285,10 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
     }
+    const mustRegenerate = hasProfileChanged || refreshKeyChanged
     debounceRef.current = setTimeout(() => {
-      void fetchRecommendations(false)
-    }, FETCH_DEBOUNCE_MS)
+      void fetchRecommendations(mustRegenerate)
+    }, mustRegenerate ? PROFILE_REGEN_DEBOUNCE_MS : FETCH_DEBOUNCE_MS)
 
     if (hasProfileChanged) {
       prevUserValuesRef.current = {
@@ -315,8 +344,8 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const categoryCounts = useMemo(
     () =>
       recommendations.reduce<Record<string, number>>((acc, rec) => {
-        const category = rec.food?.category || 'Altele'
-        acc[category] = (acc[category] || 0) + 1
+        const label = formatFoodCategory(rec.food?.category) || 'Altele'
+        acc[label] = (acc[label] || 0) + 1
         return acc
       }, {}),
     [recommendations]
@@ -329,7 +358,9 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     () =>
       selectedCategory === 'all'
         ? recommendations
-        : recommendations.filter((rec) => rec.food?.category === selectedCategory),
+        : recommendations.filter(
+            (rec) => formatFoodCategory(rec.food?.category) === selectedCategory
+          ),
     [recommendations, selectedCategory]
   )
   const visibleRecommendations = useMemo(
@@ -367,7 +398,14 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       const uid = user.id
       if (uid == null) return
       const prev = recommendationsRef.current
-      const data = await recommendationsService.replace(uid, recId)
+      setRecommendations((current) => current.filter((r) => r.recommendation_id !== recId))
+      let data: unknown
+      try {
+        data = await recommendationsService.replace(uid, recId, { replaceFeedbackRating: 1 })
+      } catch (err) {
+        setRecommendations(prev)
+        throw err
+      }
       if (Array.isArray(data) && data.length > 0) {
         const prevById = new Map(prev.map((r) => [r.recommendation_id, r]))
         const merged = (data as Recommendation[]).map((r) => {
