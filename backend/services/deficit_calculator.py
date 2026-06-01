@@ -21,9 +21,9 @@ class DeficitCalculator:
             'other': {'18-50': 13, '50+': 8}
         },
         'calcium': {
-            'M': {'18-50': 1000, '50+': 1000},
-            'F': {'18-50': 1000, '50+': 1200},
-            'other': {'18-50': 1000, '50+': 1100}
+            'M': {'18-50': 1000, '50+': 1000, '70+': 1200},
+            'F': {'18-50': 1000, '50+': 1200, '70+': 1200},
+            'other': {'18-50': 1000, '50+': 1100, '70+': 1200}
         },
         'vitamin_d': {
             'M': {'18-70': 600, '70+': 800},
@@ -168,6 +168,11 @@ class DeficitCalculator:
             vd_key = "70+" if (user.age or 0) >= 70 else "18-70"
             branch = table[sex]
             return branch.get(vd_key, list(branch.values())[0])
+
+        if nutrient == "magnesium":
+            mg_key = "18-30" if (user.age or 0) < 30 else "30+"
+            branch = table[sex]
+            return branch.get(mg_key, list(branch.values())[0])
 
         if nutrient == "folate" and self._user_likely_pregnant(user) and sex == "F":
             branch = table[sex]

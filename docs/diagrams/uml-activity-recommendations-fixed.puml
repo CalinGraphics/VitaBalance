@@ -1,0 +1,66 @@
+@startuml VitaBalance_Activity_UML
+title VitaBalance — Diagramă de activitate: generare recomandări
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #1565C0
+skinparam ActivityFontSize 12
+skinparam ActivityDiamondBackgroundColor #FFF9C4
+skinparam ActivityDiamondBorderColor #F57F17
+skinparam ActivityStartColor #1B5E20
+skinparam ActivityEndColor #B71C1C
+skinparam ArrowColor #444444
+skinparam ArrowFontColor #333333
+skinparam ArrowFontSize 11
+skinparam swimlaneBackgroundColor #FAFAFA
+skinparam swimlaneBorderColor #AAAAAA
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #F9A825
+
+|#DDE8F0| Utilizator |
+start
+:Deschide pagina\nRecomandări;
+
+|#E8F5E9| Frontend |
+:GET /api/recommendations/stored/{user_id}\n<i>(afișare rapidă din BD)</i>;
+
+|#FFF8E1| Backend |
+if (JWT valid şi\nuser_id = profilul propriu?) then (NU)
+  :Returnează **401 / 403**\nAcces interzis;
+  stop
+else (DA)
+  :Încarcă recomandări + alimente\n+ feedback din BD;
+endif
+
+|#DDE8F0| Utilizator |
+:Solicită regenerare\nsau nu există set salvat;
+
+|#FFF8E1| Backend |
+:materialize_recommendations(...)\napelat de rută;
+if (force_regenerate = true\nSAU set vechi / inexistent?) then (NU — cache valid)
+  :Returnează setul existent\n<i>(fără recalcul complet)</i>;
+  stop
+else (DA — recalcul necesar)
+  :Încarcă UserProfile,\nFoodItem[], LabResultItem,\nFeedback[];
+  :DeficitCalculator\n.calculate_deficits(...);
+  :RecommenderService\n.generate_recommendations(...)\n<i>(reguli + scor + filtre alergen)</i>;
+  :ExplanationGenerator\npentru fiecare (food, deficit);
+  :Şterge rândurile vechi +\nInserează recomandări noi\nîn tabela recommendations;
+endif
+
+|#E8F5E9| Frontend |
+:Afişează lista actualizată\ncu scoruri şi explicaţii;
+stop
+
+note right
+  Ramuri suplimentare în implementare:
+  · înlocuire o singură recomandare
+  · excludere food_id specific
+  · refresh asincron în fundal
+  Fluxul de mai sus = **scenariul principal**.
+end note
+
+@enduml

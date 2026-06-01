@@ -1,0 +1,115 @@
+@startuml VitaBalance_Package_Diagram
+title VitaBalance — Diagramă de pachete (organizarea codului sursă)
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam packageStyle rectangle
+skinparam packageBorderColor #555555
+skinparam ArrowColor #444444
+skinparam ArrowFontColor #333333
+skinparam ArrowFontSize 11
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #F9A825
+
+top to bottom direction
+
+package "frontend\n(Vite + React + TypeScript)" as FE #EBF5FB {
+
+  package "src/features/auth" as FEAUTH #BBDEFB {
+    note as N1
+      Pagini & logică
+      autentificare magic link
+    end note
+  }
+
+  package "src/features/medical" as FEMED #BBDEFB {
+    note as N2
+      Profil medical,
+      introducere analize
+    end note
+  }
+
+  package "src/features/recommendations" as FEREC #BBDEFB {
+    note as N3
+      Listă recomandări,
+      feedback, export PDF
+    end note
+  }
+
+  package "src/shared/components" as FESHARED #D1ECF1 {
+    note as N4
+      Componente UI reutilizabile
+    end note
+  }
+
+  package "src/services" as FEAPI #D1ECF1 {
+    note as N5
+      Clienti HTTP (axios),
+      interceptori JWT
+    end note
+  }
+
+  FEAUTH ..> FEAPI
+  FEMED  ..> FEAPI
+  FEREC  ..> FEAPI
+  FEREC  ..> FESHARED
+  FEMED  ..> FESHARED
+}
+
+package "backend\n(FastAPI + Python)" as BE #EAF4EA {
+
+  package "main + schemas" as MAIN #C8E6C9 {
+    note as N6
+      Rute REST, modele
+      Pydantic, startup
+    end note
+  }
+
+  package "middleware" as MW #C8E6C9 {
+    note as N7
+      CORS, rate limiting,
+      JWT validation
+    end note
+  }
+
+  package "domain" as DOM #A5D6A7 {
+    note as N8
+      Modele de date
+      (dataclasses Python)
+    end note
+  }
+
+  package "repositories" as REPO #A5D6A7 {
+    note as N9
+      Acces Supabase:
+      CRUD pe tabele
+    end note
+  }
+
+  package "services" as SVC #A5D6A7 {
+    note as N10
+      DeficitCalculator,
+      RecommenderService,
+      ExplanationGenerator
+    end note
+  }
+
+  MAIN ..> MW
+  MAIN ..> REPO
+  MAIN ..> SVC
+  REPO ..> DOM
+  SVC  ..> DOM
+  SVC  ..> REPO
+}
+
+FEAPI ..> MAIN : "HTTP\n(SPA → API REST)"
+
+note bottom of BE
+  **config**, **supabase_client**: module
+  transversale (suport global, nereprezentate
+  ca pachete separate).
+end note
+
+@enduml

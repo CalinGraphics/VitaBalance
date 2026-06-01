@@ -1,0 +1,135 @@
+@startuml VitaBalance_Class_Diagram
+title VitaBalance — Diagramă de clase (domeniu + servicii principale)
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBorderColor #1565C0
+skinparam classBackgroundColor #E3F2FD
+skinparam classHeaderBackgroundColor #1565C0
+skinparam classFontColor #FFFFFF
+skinparam classFontSize 13
+skinparam classFontStyle bold
+skinparam ArrowColor #444444
+skinparam ArrowFontColor #333333
+skinparam ArrowFontSize 10
+skinparam stereotypeCBackgroundColor #BBDEFB
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #F9A825
+
+left to right direction
+
+package "domain.models" <<Layer>> #EBF5FB {
+
+  class UserProfile <<dataclass>> {
+    + id : int
+    + email : str
+    + name : str
+    + age : int
+    + sex : str
+    + weight : float
+    + height : float
+    + activity_level : str
+    + diet_type : str
+    + allergies : str
+    + medical_conditions : str
+  }
+
+  class FoodItem <<dataclass>> {
+    + id : int
+    + name : str
+    + category : str
+    + iron, calcium, vitamin_d, ... : float
+    + allergens : str
+  }
+
+  class LabResultItem <<dataclass>> {
+    + id : int
+    + user_id : int
+    + hemoglobin, ferritin, vitamin_d, ... : float
+    + notes : str
+  }
+
+  class RecommendationItem <<dataclass>> {
+    + id : int
+    + user_id : int
+    + food_id : int
+    + score : float
+    + explanation : str
+    + portion_suggested : float
+    + coverage_percentage : float
+  }
+
+  class FeedbackItem <<dataclass>> {
+    + id : int
+    + user_id : int
+    + recommendation_id : int
+    + rating : int
+  }
+}
+
+package "services" <<Layer>> #EAF4EA {
+
+  class DeficitCalculator <<Service>> {
+    + calculate_deficits(user, lab_results) : Dict
+    + get_rdi(nutrient, user) : float
+  }
+
+  class NutritionalRuleEngine <<Service>> {
+    + evaluate_food(...) : RuleResult
+  }
+
+  class ScopedRulesEngine <<Service>> {
+    + evaluate(...) : ScopedRuleResult
+  }
+
+  class RecommenderService <<Service>> {
+    + generate_recommendations(user, deficits, foods, ...) : List
+  }
+
+  class ExplanationGenerator <<Service>> {
+    + generate_explanation(...) : Explanation
+  }
+
+  class MaterializeOrchestrator <<Facade>> {
+    + materialize_recommendations(user_id, owner_email, ...) : List
+  }
+}
+
+' --- Relaţii domeniu ---
+UserProfile "1" --o "0..*" LabResultItem      : istoric analize
+UserProfile "1" --o "0..*" RecommendationItem  : recomandări
+UserProfile "1" --o "0..*" FeedbackItem         : feedback
+RecommendationItem "1" --o "0..*" FeedbackItem : evaluare
+FoodItem "1" --o "0..*" RecommendationItem     : food recomandat
+
+' --- Dependenţe servicii ---
+DeficitCalculator ..> UserProfile    : citește
+DeficitCalculator ..> LabResultItem  : citește
+
+RecommenderService *-- NutritionalRuleEngine : rule_engine
+NutritionalRuleEngine *-- ScopedRulesEngine  : scoped_rules_engine
+RecommenderService ..> UserProfile
+RecommenderService ..> FoodItem
+RecommenderService ..> LabResultItem
+RecommenderService ..> FeedbackItem
+RecommenderService ..> DeficitCalculator : deficite (din orchestrator)
+
+ExplanationGenerator ..> UserProfile
+ExplanationGenerator ..> FoodItem
+
+MaterializeOrchestrator ..> DeficitCalculator    : apelează
+MaterializeOrchestrator ..> RecommenderService   : apelează
+MaterializeOrchestrator ..> ExplanationGenerator : apelează
+MaterializeOrchestrator ..> RecommendationItem   : persistă via repository
+
+note bottom of MaterializeOrchestrator
+  Orchestrarea apelează repository-uri
+  Supabase (nu sunt reprezentate ca
+  clase aici) și folosește **FeedbackItem**
+  pentru istoricul evaluărilor.
+end note
+
+@enduml

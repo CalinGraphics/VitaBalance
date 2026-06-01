@@ -1,0 +1,60 @@
+@startuml VitaBalance_Component_Diagram
+title VitaBalance — Diagramă de componente (subsisteme şi dependenţe)
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam componentStyle uml2
+skinparam componentBorderColor #1565C0
+skinparam componentBackgroundColor #BBDEFB
+skinparam componentFontSize 12
+skinparam packageBorderColor #777777
+skinparam packageBackgroundColor #F9F9F9
+skinparam ArrowColor #444444
+skinparam ArrowFontColor #333333
+skinparam ArrowFontSize 11
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #F9A825
+skinparam databaseBackgroundColor #E8F5E9
+skinparam databaseBorderColor #2E7D32
+
+left to right direction
+
+package "VitaBalance (sistem software)" #F5F5F5 {
+
+  package "Client — SPA React" as SPA #E3F2FD {
+    [UI: profil, analize,\nrecomandări, export PDF] as UI
+    [Client API\naxios + JWT] as CLAPI
+    UI ..> CLAPI
+  }
+
+  package "Server — API FastAPI" as SRV #E8F5E9 {
+    [Rute REST\nmain.py] as RT
+    [Autentificare\nJWT + magic link] as AUTH
+    [Logică recomandări\n+ deficite nutritionale] as CORE
+    [Acces date\n(repositories)] as DAL
+    RT ..> AUTH
+    RT ..> CORE
+    CORE ..> DAL
+  }
+
+  package "Serviciu extern — Supabase" as EXTDB #FFF8E1 {
+    database "PostgreSQL\n(tabele aplicaţie)" as PG
+  }
+
+  package "Serviciu extern — Resend" as EXTMAIL #FFF8E1 {
+    [API trimitere email] as MAIL
+  }
+}
+
+SPA -right-> SRV : "HTTPS / JSON + Bearer\n(/api/*)"
+DAL -right-> PG  : "client Supabase\n(service_role)"
+AUTH ..> MAIL    : "magic link\n(autentificare)"
+
+note bottom of SRV
+  Rate limiting şi middleware CORS
+  se aplică la frontiera **Server**.
+end note
+
+@enduml

@@ -446,7 +446,7 @@ class RecommendationLogicTests(unittest.TestCase):
         }
         captured = {}
 
-        def _fake_eval(food, user, deficits, lab_results=None):
+        def _fake_eval(food, user, deficits, lab_results=None, precomputed_restrictions=None):
             captured["deficits"] = dict(deficits)
             return SimpleNamespace(
                 food_id=food.id,
@@ -486,7 +486,7 @@ class RecommendationLogicTests(unittest.TestCase):
             matched_rules=["x"],
             nutrients_covered=["vitamin_b12"],
         )), patch.object(self.recommender, "_rebalance_by_category", side_effect=lambda **kwargs: kwargs["recommendations"]), \
-             patch.object(self.recommender, "_filter_compatible_recommendations", side_effect=lambda user, foods, recs: recs), \
+             patch.object(self.recommender, "_filter_compatible_recommendations", side_effect=lambda user, foods, recs, **kw: recs), \
              patch.object(self.recommender, "_generate_fallback_recommendations", side_effect=[
                  [],  # fallback strict pe focus
                  [{"food_id": 202, "score": 1.0, "coverage": 1.0, "explanations": ["secondary"], "matched_rules": ["fallback_profile_based"], "nutrients_covered": ["vitamin_c"]}],
@@ -516,7 +516,7 @@ class RecommendationLogicTests(unittest.TestCase):
             matched_rules=["x"],
             nutrients_covered=["vitamin_b12"],
         )), patch.object(self.recommender, "_rebalance_by_category", side_effect=lambda **kwargs: kwargs["recommendations"]), \
-             patch.object(self.recommender, "_filter_compatible_recommendations", side_effect=lambda user, foods, recs: recs), \
+             patch.object(self.recommender, "_filter_compatible_recommendations", side_effect=lambda user, foods, recs, **kw: recs), \
              patch.object(self.recommender, "_generate_fallback_recommendations", side_effect=[
                  [],
                  [{"food_id": 301, "score": 100.0, "coverage": 100.0, "explanations": ["secondary"], "matched_rules": ["fallback_profile_based"], "nutrients_covered": ["vitamin_c"]}],

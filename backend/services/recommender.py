@@ -155,8 +155,9 @@ class RecommenderService:
                 user=effective_user,
                 foods=search_foods,
                 target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
+                precomputed_restrictions=precomputed_restrictions,
             )
-            fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb)
+            fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb, precomputed_restrictions=precomputed_restrictions)
             balanced_fb = self._rebalance_by_category(
                 user=effective_user,
                 foods=search_foods,
@@ -187,15 +188,16 @@ class RecommenderService:
             recommendations=recommendations,
             has_active_deficits=has_active_deficits,
         )
-        final = self._filter_compatible_recommendations(effective_user, search_foods, balanced)
+        final = self._filter_compatible_recommendations(effective_user, search_foods, balanced, precomputed_restrictions=precomputed_restrictions)
 
         if len(final) < self.MIN_RECOMMENDATIONS_TARGET:
             fb = self._generate_fallback_recommendations(
                 user=effective_user,
                 foods=search_foods,
                 target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
+                precomputed_restrictions=precomputed_restrictions,
             )
-            fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb)
+            fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb, precomputed_restrictions=precomputed_restrictions)
             seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
             for r in fb_ok:
                 fid = r.get("food_id")
@@ -210,7 +212,7 @@ class RecommenderService:
                 recommendations=final,
                 has_active_deficits=has_active_deficits,
             )
-            final = self._filter_compatible_recommendations(effective_user, search_foods, balanced2)
+            final = self._filter_compatible_recommendations(effective_user, search_foods, balanced2, precomputed_restrictions=precomputed_restrictions)
 
         # Dacă focusul clinic este foarte strict (ex. vegan + alergii + puține surse B12/D),
         # completăm lista cu opțiuni secundare compatibile pentru a evita recomandări prea puține.
@@ -219,8 +221,9 @@ class RecommenderService:
                 user=effective_user,
                 foods=search_foods,
                 target_nutrients=list(filtered_deficits.keys()),
+                precomputed_restrictions=precomputed_restrictions,
             )
-            fb_secondary_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb_secondary)
+            fb_secondary_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb_secondary, precomputed_restrictions=precomputed_restrictions)
             seen = {r.get("food_id") for r in final if r.get("food_id") is not None}
             for r in fb_secondary_ok:
                 fid = r.get("food_id")
@@ -247,7 +250,7 @@ class RecommenderService:
                 recommendations=final,
                 has_active_deficits=True,
             )
-            final = self._filter_compatible_recommendations(effective_user, search_foods, balanced3)
+            final = self._filter_compatible_recommendations(effective_user, search_foods, balanced3, precomputed_restrictions=precomputed_restrictions)
 
         # Prioritizare finală stabilă: recomandările pe deficitul principal înaintea celor de completare.
         final.sort(
@@ -399,8 +402,9 @@ class RecommenderService:
             user=effective_user,
             foods=search_foods,
             target_nutrients=list(focus_deficits.keys()) if focus_deficits else None,
+            precomputed_restrictions=precomputed_restrictions,
         )
-        fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb)
+        fb_ok = self._filter_compatible_recommendations(effective_user, search_foods, fb, precomputed_restrictions=precomputed_restrictions)
         if not fb_ok:
             return []
         fb_ok.sort(key=lambda x: (x.get("coverage") or 0, x.get("score") or 0), reverse=True)
@@ -620,6 +624,7 @@ class RecommenderService:
         user: UserProfile,
         foods: List[FoodItem],
         recommendations: List[Dict[str, Any]],
+        precomputed_restrictions: Optional[Dict] = None,
     ) -> List[Dict[str, Any]]:
         """Ultimă verificare: niciun aliment incompatibil cu profilul nu rămâne în listă."""
         by_id = {f.id: f for f in foods}
@@ -629,7 +634,7 @@ class RecommenderService:
             food = by_id.get(fid) if fid is not None else None
             if food is None:
                 continue
-            if self.rule_engine._is_compatible(food, user):  # type: ignore[attr-defined]
+            if self.rule_engine._is_compatible(food, user, precomputed_restrictions=precomputed_restrictions):  # type: ignore[attr-defined]
                 out.append(rec)
         return out
     
@@ -668,6 +673,7 @@ class RecommenderService:
         user: UserProfile,
         foods: List[FoodItem],
         target_nutrients: Optional[List[str]] = None,
+        precomputed_restrictions: Optional[Dict] = None,
     ) -> List[Dict]:
         """
         Fallback atunci când nu avem deficite clare sau regulile nu produc recomandări:
@@ -707,7 +713,7 @@ class RecommenderService:
 
         for food in foods:
             # Respectă toate restricțiile: dacă alimentul nu e compatibil, îl sărim.
-            if not self.rule_engine._is_compatible(food, user):  # type: ignore[attr-defined]
+            if not self.rule_engine._is_compatible(food, user, precomputed_restrictions=precomputed_restrictions):  # type: ignore[attr-defined]
                 continue
             if active_targets:
                 cat = self._normalize_category(food.category)

@@ -1,0 +1,48 @@
+@startuml VitaBalance_C4_Context
+title VitaBalance — C4 Level 1: System Context
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+skinparam ArrowFontColor #333333
+skinparam ArrowFontSize 11
+skinparam rectangleBorderColor #888888
+skinparam rectangleBackgroundColor #FAFAFA
+skinparam noteBorderColor #AAAAAA
+skinparam noteBackgroundColor #FFFDE7
+
+skinparam rectangle {
+  FontSize 13
+  FontStyle bold
+}
+
+top to bottom direction
+
+' ===== PERSON =====
+rectangle "  <b>Utilizator</b>\n<size:10>[Persoană]</size>\n\nPersoanǎ care îşi completează\nprofilul, introduce analize\nde laborator şi primeşte\nrecomandǎri alimentare." as USER #DDE8F0 {
+}
+
+' ===== SYSTEM =====
+rectangle "  <b>VitaBalance</b>\n<size:10>[Sistem Software]</size>\n\nInterfaţǎ web (React) şi API\n(FastAPI) pentru recomandǎri\nnutriţionale personalizate." as VB #C8E6C9 {
+}
+
+' ===== EXTERNAL SYSTEMS =====
+rectangle "  <b>Supabase</b>\n<size:10>[Sistem Extern]</size>\n\nPostgreSQL gestionat:\nstochează utilizatori, alimente,\nanalize, recomandǎri,\nfeedback, magic_links." as SUPA #E3E3E3 {
+}
+
+rectangle "  <b>Resend</b>\n<size:10>[Sistem Extern]</size>\n\nFurnizor email tranzacţional;\ntrimite magic link\npentru autentificare." as RESEND #E3E3E3 {
+}
+
+USER -down-> VB : "<b>Foloseşte aplicaţia</b>\n[Browser / HTTPS]"
+VB -down-> SUPA : "<b>Citeşte şi scrie date</b>\n[HTTPS, SDK Supabase,\ncheie service_role]"
+VB -right-> RESEND : "<b>Trimite magic link</b>\n[HTTPS / API Resend]"
+
+note bottom of VB
+  **Legendă**
+  Verde = sistem intern (VitaBalance)
+  Gri   = sisteme externe / platforme cloud
+end note
+
+@enduml

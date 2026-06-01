@@ -11,6 +11,7 @@ from services.medical_rules_loader import (
 )
 from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
 from services.portion_calculator import suggest_portion
+from services.deficit_calculator import DeficitCalculator
 
 
 class NutrientType(str, Enum):
@@ -72,6 +73,7 @@ class NutritionalRuleEngine:
         }
         self.scoped_rules_engine = ScopedRulesEngine()
         self.medical_rules_config = self._load_medical_rules_config()
+        self._deficit_calc = DeficitCalculator()
 
     def _normalize_text(self, value: str) -> str:
         """Normalizează textul pentru matching robust (diacritice, underscore, spații)."""
@@ -1100,9 +1102,7 @@ class NutritionalRuleEngine:
 
         # RDI per nutrient pentru a evita denom foarte mic -> 100% peste tot
         try:
-            from services.deficit_calculator import DeficitCalculator
-            calc = DeficitCalculator()
-            rdi_map = {k: calc.get_rdi(k, user) for k in deficits.keys()}
+            rdi_map = {k: self._deficit_calc.get_rdi(k, user) for k in deficits.keys()}
         except Exception:
             rdi_map = {}
         

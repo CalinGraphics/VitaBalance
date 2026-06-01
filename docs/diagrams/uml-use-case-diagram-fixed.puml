@@ -1,0 +1,55 @@
+@startuml VitaBalance_Use_Case
+title VitaBalance — Diagramă Use Case
+
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam actorStyle awesome
+skinparam usecaseBackgroundColor #E8F5E9
+skinparam usecaseBorderColor #2E7D32
+skinparam usecaseFontSize 12
+skinparam usecaseFontColor #1B5E20
+skinparam ArrowColor #444444
+skinparam ArrowFontColor #444444
+skinparam ArrowFontSize 11
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #F9A825
+
+left to right direction
+
+actor "Utilizator\nautentificat" as U #DDE8F0
+
+rectangle "VitaBalance" #F9FBF9 {
+
+  usecase "UC1\nAutentificare\n(magic link / sesiune JWT)" as UC1
+  usecase "UC2\nGestionare profil\nnutriţional & medical" as UC2
+  usecase "UC3\nIntroducere / extragere\nanalize de laborator" as UC3
+  usecase "UC4\nVizualizare recomandări\n(stocate în BD)" as UC4
+  usecase "UC5\nRegenerare recomandări\n(motor + persistare)" as UC5
+  usecase "UC6\nFeedback la\nrecomandare (like / dislike)" as UC6
+  usecase "UC7\nExport PDF\nrecomandări" as UC7
+
+}
+
+U --> UC1
+U --> UC2
+U --> UC3
+U --> UC4
+U --> UC5
+U --> UC6
+U --> UC7
+
+UC5 .right.> UC2 : <<include>>\n(profil necesar)
+UC3 .right.> UC5 : <<extend>>\n(îmbunătăţeşte precizia)
+UC4 .right.> UC1 : <<include>>
+UC5 .right.> UC1 : <<include>>
+UC6 .right.> UC4 : <<include>>
+UC7 .right.> UC4 : <<include>>
+
+note bottom of UC5
+  **<<include>>** = flux obligatoriu (ex. autentificare).
+  **<<extend>>**  = comportament opţional (analize laborator).
+end note
+
+@enduml

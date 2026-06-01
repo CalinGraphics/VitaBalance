@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 import uvicorn
 import inspect
 import hashlib
@@ -506,10 +507,8 @@ async def extract_lab_values_from_text(
 @app.get("/api/recommendations/stored/{user_id}")
 async def list_stored_recommendations(user_id: int, current_user: dict = Depends(get_current_user)):
     _ensure_user_resource(current_user, user_id)
-    rec_repo = RecommendationRepository()
-    food_repo = FoodRepository()
-    feedback_repo = FeedbackRepository()
-    return _stored_recommendations_payload(user_id, rec_repo, food_repo, feedback_repo)
+    from services.recommendation_materialize import list_stored_recommendations_fast
+    return list_stored_recommendations_fast(user_id, _user_verified=True)
 
 
 @app.post("/api/recommendations")
@@ -541,13 +540,14 @@ async def get_recommendations(
 
 @app.get("/api/recommendations/sync-meta/{user_id}")
 async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(get_current_user)):
-    _ensure_user_resource(current_user, user_id)
-    urepo = UserRepository()
+    u = _ensure_user_resource(current_user, user_id)
     rrepo = RecommendationRepository()
     lrepo = LabResultRepository()
-    u = urepo.get_by_id(user_id)
-    first = rrepo.get_first_by_user_id(user_id)
-    labs = lrepo.get_latest_by_user_id(user_id)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fut_rec = pool.submit(rrepo.get_first_by_user_id, user_id)
+        fut_labs = pool.submit(lrepo.get_latest_by_user_id, user_id)
+        first = fut_rec.result()
+        labs = fut_labs.result()
 
     def iso(v):
         if v is None:

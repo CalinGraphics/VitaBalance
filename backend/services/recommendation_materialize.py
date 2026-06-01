@@ -3,6 +3,7 @@ Materializare recomandări (motor + persistare) — apelabil din HTTP sau Backgr
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -142,25 +143,34 @@ def _insert_row_from_explanation(user_id: int, food_id: int, rec_dict: dict, exp
     return row
 
 
-def list_stored_recommendations_fast(user_id: int) -> List[dict]:
+def list_stored_recommendations_fast(user_id: int, _user_verified: bool = False) -> List[dict]:
     """
     Citire rapidă din DB — fără ExplanationGenerator (țintă < 800ms).
+
+    Parametru _user_verified=True: sare verificarea existenței utilizatorului
+    (apelat din endpoint-uri cu autentificare deja validată).
     """
-    food_repo = FoodRepository()
     rec_repo = RecommendationRepository()
     feedback_repo = FeedbackRepository()
+    food_repo = FoodRepository()
 
-    user_repo = UserRepository()
-    if not user_repo.get_by_id(user_id):
-        return []
+    if not _user_verified:
+        user_repo = UserRepository()
+        if not user_repo.get_by_id(user_id):
+            return []
 
-    existing_recs = rec_repo.get_by_user_id(user_id, limit=ACTIVE_REC_LIMIT)
+    # Paralelizare: recomandările și feedback-ul sunt independente
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fut_recs = pool.submit(rec_repo.get_by_user_id, user_id, ACTIVE_REC_LIMIT)
+        fut_feedbacks = pool.submit(feedback_repo.get_by_user_id, user_id)
+        existing_recs = fut_recs.result()
+        user_feedbacks = fut_feedbacks.result()
+
     if not existing_recs:
         return []
 
     foods = food_repo.get_all()
     food_by_id = {f.id: f for f in foods}
-    user_feedbacks = feedback_repo.get_by_user_id(user_id)
     user_feedback_by_rec = {
         fb.recommendation_id: fb.rating
         for fb in user_feedbacks
@@ -215,34 +225,45 @@ def materialize_recommendations(
     replace_recommendation_id: Optional[int] = None,
     exclude_food_ids: Optional[List[int]] = None,
 ) -> List[dict]:
-    _ensure_owner(owner_email, user_id)
-    user_repo = UserRepository()
+    # _ensure_owner returnează UserProfile deja — nu mai re-cerem prin get_by_id
+    user = _ensure_owner(owner_email, user_id)
+
     food_repo = FoodRepository()
     lab_repo = LabResultRepository()
     rec_repo = RecommendationRepository()
     feedback_repo = FeedbackRepository()
-
-    user = user_repo.get_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilizatorul nu a fost găsit")
 
     foods = food_repo.get_all()
     if not foods:
         return []
     food_by_id = {f.id: f for f in foods}
 
-    lab_results = lab_repo.get_latest_by_user_id(user_id)
-    user_feedbacks = feedback_repo.get_by_user_id(user_id)
+    # Paralelizare: lab_results, feedbacks și recomandările curente sunt independente
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        fut_labs = pool.submit(lab_repo.get_latest_by_user_id, user_id)
+        fut_feedbacks = pool.submit(feedback_repo.get_by_user_id, user_id)
+        fut_recs = pool.submit(rec_repo.get_by_user_id, user_id, FEEDBACK_REC_LOOKUP_LIMIT)
+        lab_results = fut_labs.result()
+        user_feedbacks = fut_feedbacks.result()
+        all_user_recommendation_rows = fut_recs.result()
+
     feedback_counts_by_food: Dict[int, Dict[str, int]] = {}
     user_feedback_by_rec = {
         fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None
     }
 
     feedback_food_by_rec_id: Dict[int, int] = {}
-    all_user_recommendation_rows = rec_repo.get_by_user_id(user_id, limit=FEEDBACK_REC_LOOKUP_LIMIT)
     existing_recs_for_user = all_user_recommendation_rows[:ACTIVE_REC_LIMIT]
 
-    existing = rec_repo.get_first_by_user_id(user_id)
+    # Cel mai recent rec după created_at — înlocuiește apelul redundant get_first_by_user_id
+    existing = (
+        max(
+            all_user_recommendation_rows,
+            key=lambda r: str(getattr(r, "created_at", None) or ""),
+        )
+        if all_user_recommendation_rows
+        else None
+    )
     should_generate = force_regenerate or (existing is None)
 
     def _to_dt(v):
