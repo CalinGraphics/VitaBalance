@@ -281,16 +281,6 @@ def _ensure_user_resource(current_user: dict, user_id: int) -> UserProfile:
     return profile
 
 
-def _stored_recommendations_payload(
-    user_id: int,
-    _rec_repo: RecommendationRepository,
-    _food_repo: FoodRepository,
-    _feedback_repo: FeedbackRepository,
-) -> List[dict]:
-    from services.recommendation_materialize import list_stored_recommendations_fast
-
-    return list_stored_recommendations_fast(user_id)
-
 
 @app.get("/api/profile/by-email/{email}")
 async def get_profile_by_email(email: str, current_user: dict = Depends(get_current_user)):

@@ -396,44 +396,15 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       setRecommendations((current) => current.filter((r) => r.recommendation_id !== recId))
       let data: unknown
       try {
-        data = await recommendationsService.replace(uid, recId, { replaceFeedbackRating: 1 })
+        data = await recommendationsService.replace(uid, recId, { replaceFeedbackRating: -1 })
       } catch (err) {
         setRecommendations(prev)
         throw err
       }
       if (Array.isArray(data) && data.length > 0) {
-        const prevById = new Map(prev.map((r) => [r.recommendation_id, r]))
-        const merged = (data as Recommendation[]).map((r) => {
-          const old = prevById.get(r.recommendation_id)
-          if (!old?.explanation) return r
-          let reasons = r.explanation?.reasons ?? []
-          let tips = r.explanation?.tips
-          let patch = false
-          const or = old.explanation.reasons?.length ?? 0
-          const ot = old.explanation.tips?.length ?? 0
-          const nr = reasons.length
-          const nt = tips?.length ?? 0
-          if (nr === 0 && or > 0) {
-            reasons = old.explanation.reasons ?? []
-            patch = true
-          }
-          if (nt === 0 && ot > 0) {
-            tips = old.explanation.tips
-            patch = true
-          }
-          if (!patch) return r
-          return {
-            ...r,
-            explanation: {
-              ...r.explanation,
-              reasons,
-              tips,
-            },
-          }
-        })
-        setRecommendations(merged)
+        setRecommendations(data as Recommendation[])
       } else {
-        await fetchRecommendations(false)
+        setRecommendations(prev)
       }
     },
     [fetchRecommendations, user.id]

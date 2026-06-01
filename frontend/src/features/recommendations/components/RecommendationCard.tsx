@@ -323,10 +323,10 @@ const RecommendationCard = ({
     }
     newDislikes += 1
     setLocalCounts({ likes: newLikes, dislikes: newDislikes })
-    setMyRating(1)
+    setMyRating(-1)
     setFeedbackStatus('sent')
     setFeedbackError(null)
-    onFeedbackSent?.(recommendation.recommendation_id, 1, newLikes, newDislikes)
+    onFeedbackSent?.(recommendation.recommendation_id, -1, newLikes, newDislikes)
     return { prev, rollbackCounts: { ...counts } }
   }
 
@@ -342,7 +342,7 @@ const RecommendationCard = ({
         await feedbackService.create({
           user_id: userId,
           recommendation_id: recommendation.recommendation_id,
-          rating: 1,
+          rating: -1,
           food_id: recommendation.food_id,
         })
       } catch (err: unknown) {

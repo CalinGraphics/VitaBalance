@@ -334,38 +334,33 @@ def materialize_recommendations(
             feedback_by_food=feedback_by_food,
         )
         inserted_row_ids: Dict[int, dict] = {}
+        inserted_recs: List = []
         if rec_list:
             food = next((f for f in foods_filtered if f.id == rec_list[0]["food_id"]), None)
             if food:
-                explanation_gen = ExplanationGenerator()
-                ps = suggest_portion(food, user)
-                expl = explanation_gen.generate_explanation(
-                    food=food,
-                    user=user,
-                    deficits=deficits,
-                    score=rec_list[0]["score"],
-                    coverage=rec_list[0]["coverage"],
-                    explanations=rec_list[0].get("explanations"),
-                    matched_rules=rec_list[0].get("matched_rules"),
-                    has_lab_data=has_lab_data,
-                    nutrients_covered=rec_list[0].get("nutrients_covered"),
-                    portion_grams=ps.grams_equivalent,
-                )
-                expl["portion"] = ps.amount
-                expl["portion_unit"] = ps.unit
-                inserted = rec_repo.insert_many(
+                # Cale rapidă — fără ExplanationGenerator complet (identică cu generate principal)
+                expl = _build_explanation_for_insert(food, user, rec_list[0], has_lab_data, fast=True)
+                inserted_recs = rec_repo.insert_many(
                     [_insert_row_from_explanation(user.id, food.id, rec_list[0], expl)]
                 )
-                for ins in inserted:
+                for ins in inserted_recs:
                     inserted_row_ids[ins.id] = expl
-        existing_recs = rec_repo.get_by_user_id(user_id, limit=ACTIVE_REC_LIMIT)
-        food_by_id = {f.id: f for f in foods}
-        fids_replace = [r.food_id for r in existing_recs]
+
+        # Reconstruiește lista din memorie — elimină query extra get_by_user_id
+        updated_recs = [r for r in existing_recs_for_user if r.id != replace_recommendation_id]
+        updated_recs.extend(inserted_recs)
+        updated_recs.sort(
+            key=lambda r: (float(r.coverage_percentage or 0), float(r.score or 0)),
+            reverse=True,
+        )
+        updated_recs = updated_recs[:ACTIVE_REC_LIMIT]
+
+        fids_replace = [r.food_id for r in updated_recs]
         if fids_replace:
             feedback_counts_by_food = feedback_repo.get_counts_by_food_ids(
                 fids_replace, user_id=user_id
             )
-        for rec in existing_recs:
+        for rec in updated_recs:
             food = food_by_id.get(rec.food_id)
             if not food:
                 continue
@@ -520,80 +515,3 @@ def materialize_recommendations(
     return unique_recommendations
 
 
-def hydrate_stored_recommendations_for_user(user_id: int) -> List[dict]:
-    """
-    Recomandări deja salvate, cu explicație completă (text + reasons + tips),
-    fără a rerula motorul — pentru GET /recommendations/stored (încărcare la login).
-    """
-    user_repo = UserRepository()
-    food_repo = FoodRepository()
-    lab_repo = LabResultRepository()
-    rec_repo = RecommendationRepository()
-    feedback_repo = FeedbackRepository()
-
-    user = user_repo.get_by_id(user_id)
-    if not user:
-        return []
-    foods = food_repo.get_all()
-    if not foods:
-        return []
-    food_by_id = {f.id: f for f in foods}
-    existing_recs = rec_repo.get_by_user_id(user_id, limit=100)
-    if not existing_recs:
-        return []
-
-    lab_results = lab_repo.get_latest_by_user_id(user_id)
-    user_feedbacks = feedback_repo.get_by_user_id(user_id)
-    user_feedback_by_rec = {
-        fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None
-    }
-
-    calculator = DeficitCalculator()
-    deficits = calculator.calculate_deficits(user, lab_results)
-    has_lab_data = False
-    if lab_results is not None:
-        for key in [
-            "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
-            "protein", "zinc", "folate", "vitamin_a", "vitamin_c", "iodine", "vitamin_k", "potassium",
-        ]:
-            if getattr(lab_results, key, None) is not None:
-                has_lab_data = True
-                break
-
-    explanation_gen = ExplanationGenerator()
-    recommendations: List[dict] = []
-    for rec in existing_recs[:20]:
-        food = food_by_id.get(rec.food_id)
-        if not food:
-            continue
-        expl = explanation_gen.generate_explanation(
-            food=food,
-            user=user,
-            deficits=deficits,
-            score=rec.score,
-            coverage=rec.coverage_percentage or 0,
-            explanations=[rec.explanation] if rec.explanation else None,
-            matched_rules=[],
-            has_lab_data=has_lab_data,
-        )
-        recommendations.append(
-            {
-                "food_id": food.id,
-                "food": {"id": food.id, "name": food.name, "category": food.category},
-                "score": rec.score,
-                "coverage": rec.coverage_percentage or 0,
-                "explanation": expl,
-                "recommendation_id": rec.id,
-                "feedback": {"likes": 0, "dislikes": 0},
-                "my_rating": user_feedback_by_rec.get(rec.id),
-            }
-        )
-
-    response_food_ids = [int(r["food_id"]) for r in recommendations if r.get("food_id") is not None]
-    if response_food_ids:
-        counts = feedback_repo.get_counts_by_food_ids(response_food_ids)
-        for r in recommendations:
-            fid = r.get("food_id")
-            if fid is not None:
-                r["feedback"] = counts.get(int(fid), {"likes": 0, "dislikes": 0})
-    return recommendations
