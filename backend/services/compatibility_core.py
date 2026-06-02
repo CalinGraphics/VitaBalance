@@ -27,6 +27,14 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
     cat_norm = normalize_clinical_text(food.category or "")
     name_norm = normalize_clinical_text(food.name or "")
 
+    # Detectăm produse pe bază de plante care conțin "lapte"/"iaurt" în nume
+    # (lapte de ovăz, lapte de migdale, iaurt vegetal etc.) — nu sunt produse animale.
+    _plant_based_milk_markers = (
+        "de ovaz", "de migdale", "de soia", "de cocos", "de orez", "de mazare",
+        "de caju", "vegetal", "vegetale", "vegan",
+    )
+    _is_plant_based_dairy_alt = any(m in name_norm for m in _plant_based_milk_markers)
+
     if diet in ("vegetarian", "vegan"):
         animal_markers = (
             "carne", "pui", "porc", "vita", "miel", "peste", "fructe de mare",
@@ -42,13 +50,26 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
         )
         if any(m in name_norm for m in seafood_name_markers):
             return False
+        # Preparate cu carne/pasăre în categorii mixte (Mese/Procesate, Mese/Paste etc.)
+        # a căror categorie nu conține explicit un marker animal.
+        meat_name_markers = (
+            "pui", "curcan", "porc", "de vita", "vitello", "miel", "bacon",
+            "prosciutto", "pancetta", "guanciale", "chorizo", "choripan",
+            "sunca", "jambon", "gyros", "shawarma", "bolognese", "ragu",
+            "stroganoff", "tikka masala", "kebab", "shish", "lomo saltado",
+            "osso buco", "carne toc", "carne de",
+        )
+        if any(m in name_norm for m in meat_name_markers):
+            return False
 
     if diet == "vegan":
         dairy_egg_honey = (
             "lactate", "lapte", "branza", "branzeturi", "iaurt", "smantana", "unt",
             "oua", "miere",
         )
-        if any(m in cat_norm for m in dairy_egg_honey):
+        # Produsele vegetale (iaurt vegetal, lapte de ovăz etc.) nu sunt excluse,
+        # chiar dacă au "lactate"/"iaurt" în categorie sau "lapte" în nume.
+        if not _is_plant_based_dairy_alt and any(m in cat_norm for m in dairy_egg_honey):
             return False
         dairy_egg_honey_name_markers = (
             "mozzarella", "telemea", "ricotta", "camembert", "brie", "cheddar",
@@ -56,7 +77,7 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
             "ou ", "oua", "egg", "eggs", "honey", "miere",
             "zer", "whey", "casein", "cazeina", "kefir", "chefir",
         )
-        if any(m in name_norm for m in dairy_egg_honey_name_markers):
+        if not _is_plant_based_dairy_alt and any(m in name_norm for m in dairy_egg_honey_name_markers):
             return False
 
     if diet == "pescatarian":
@@ -77,6 +98,18 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
     food_name_norm = name_norm
     food_category_norm = cat_norm
 
+    # Precompute pentru excepțiile la lactate (folosite atât în has_dairy_allergy cât și în loop).
+    _food_allergens_norm = normalize_clinical_text(food.allergens or "")
+    # Aliment cu ouă (nu lactate reale) pus greșit în categoria "Proteine/Lactate".
+    _is_egg_only_in_dairy_cat = (
+        "oua" in _food_allergens_norm or "ou " in name_norm or name_norm.startswith("ou")
+    ) and not any(m in _food_allergens_norm for m in ("lapte", "lactat", "branza"))
+    # Cuvinte-cheie lactate din ALLERGY_MAPPINGS care pot apărea fals în alternative vegetale
+    # sau în categoria alimentară greșită (ex: "Proteine/Lactate" pentru ouă).
+    _dairy_kw_false_positive_for_plant = frozenset(
+        ("lapte", "iaurt", "smantana", "lactos", "dairy", "unt", "lactate", "lactat")
+    )
+
     has_dairy_allergy = any(
         (
             resolve_allergy_token(normalize_clinical_text(x)) in {"lactoza", "lactate"}
@@ -90,21 +123,25 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
         dairy_cat_markers = (
             "lactate", "lapte", "branza", "branzeturi", "iaurt", "smantana", "unt",
         )
-        if any(m in food_category_norm for m in dairy_cat_markers):
-            return False
+        if not _is_plant_based_dairy_alt and not _is_egg_only_in_dairy_cat:
+            if any(m in food_category_norm for m in dairy_cat_markers):
+                return False
         dairy_name_markers = (
             "mozzarella", "telemea", "ricotta", "camembert", "brie", "cheddar",
             "parmezan", "parmesan", "feta", "caprese", "halloumi", "iaurt", "lapte",
             "cascaval", "kefir", "chefir", "gorgonzola", "provolone", "cottage",
             "branza", "brânză",
         )
-        if any(m in food_name_norm for m in dairy_name_markers):
-            return False
+        # Alternativele vegetale nu sunt excluse pe baza numelui chiar dacă au "lapte"/"iaurt".
+        if not _is_plant_based_dairy_alt:
+            if any(m in food_name_norm for m in dairy_name_markers):
+                return False
 
     for user_allergy in user_allergies:
         user_allergy_clean = user_allergy.strip().lower()
         user_allergy_norm = normalize_clinical_text(user_allergy_clean)
         lookup_norm = resolve_allergy_token(user_allergy_norm)
+        _is_dairy_allergy_token = lookup_norm in {"lactoza", "lactate"}
 
         allergy_info = None
         for allergy_key, mapping in ALLERGY_MAPPINGS.items():
@@ -129,10 +166,22 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
                 normalize_clinical_text(cat) in food_category_norm
                 for cat in allergy_info["categories"]
             ):
-                return False
+                # Excepții: produse vegetale și ouă în categoria lactate greșită.
+                if _is_dairy_allergy_token and (_is_plant_based_dairy_alt or _is_egg_only_in_dairy_cat):
+                    pass
+                else:
+                    return False
 
             for keyword in allergy_info["keywords"]:
                 kw = normalize_clinical_text(keyword)
+                if _is_dairy_allergy_token:
+                    # Alternative vegetale: skip keyword-uri care pot apărea fals în "lapte de ovăz" etc.
+                    if _is_plant_based_dairy_alt and kw in _dairy_kw_false_positive_for_plant:
+                        continue
+                    # Ouă în categorie lactate greșită: skip keyword-uri care potrivesc
+                    # NUMAI categoria (nu și numele alimentului).
+                    if _is_egg_only_in_dairy_cat and not allergy_keyword_matches_norm(kw, food_name_norm, ""):
+                        continue
                 if allergy_keyword_matches_norm(kw, food_name_norm, food_category_norm):
                     return False
 
@@ -162,7 +211,11 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
         if len(user_allergy_norm) >= 5 and (
             user_allergy_norm in food_name_norm or user_allergy_norm in food_category_norm
         ):
-            return False
+            # Excepții: produse vegetale și ouă în categoria "lactate" din greșeală.
+            if _is_dairy_allergy_token and (_is_plant_based_dairy_alt or _is_egg_only_in_dairy_cat):
+                pass
+            else:
+                return False
 
         # Verificare API pentru alergeni ascunși în alimente procesate / compuse.
         hidden_risk_markers = (

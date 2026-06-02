@@ -1235,4 +1235,6 @@ class RecommenderService:
             return "cartofi_prajiti"
         if "supa" in name and "conserva" in name:
             return "supa_conserva"
+        if "kombucha" in name:
+            return "kombucha"
         return ""
