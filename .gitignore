@@ -44,8 +44,6 @@ frontend/.vite/
 
 # Tool-uri locale — nu se versionează
 .agents/
-.claude/
-.cursor/
 skills-lock.json
 
 # IDE
