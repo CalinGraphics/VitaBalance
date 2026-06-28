@@ -45,6 +45,11 @@ frontend/.vite/
 # Agent skills instalate local (npx skills add) — nu versionăm copii generate
 .agents/
 
+# Fișiere generate de Claude Code / Cursor — nu se versionează
+.claude/
+.cursor/
+skills-lock.json
+
 # IDE
 .vscode/
 .idea/

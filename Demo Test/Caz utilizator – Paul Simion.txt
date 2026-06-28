@@ -4,25 +4,25 @@ Paul Simion, sex masculin, 48 ani, 88 kg, 180 cm, nivel de activitate moderat, t
 Restricții și context clinic: alergii la nuci și susan; condiție medicală declarată: deficiență de vitamina D.
 
 Date de analize introduse în aplicație
-În acest caz, câmpurile de analize din interfață nu conțin valori numerice, ci doar intervale de referință (ex. hemoglobină 12–16 g/dL, vitamina D 30–100 ng/mL etc.).
-Observația medicală disponibilă: pacient cu oboseală, iar medicul curant notează deficit de vitamina D și magneziu, cu mențiunea că analizele numerice nu sunt încă completate în sistem.
+Câmpurile de analize din interfață NU conțin valori numerice — doar intervale de referință:
+Hemoglobină: 12-16 g/dL (interval referință), feritină: 15-150 ng/mL (interval), vitamina D: 30-100 ng/mL (interval), vitamina B12: 200-900 pg/mL (interval), calciu: 8.5-10.5 mg/dL (interval), magneziu: 1.7-3.2 mg/dL (interval), zinc: 70-100 mcg/dL (interval), proteine: 6.0-8.0 g/dL (interval), folat: >3 ng/mL (interval), vitamina A: >20 mcg/dL (interval), iod: >100 mcg/L (interval), potasiu: <3.5 mmol/L (interval).
+Observație medicală: „Pacientul raportează oboseală; medic curant notează deficit de vitamina D și magneziu – analize numerice încă necompletate în sistem."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Interpretarea trebuie făcută prudent, deoarece lipsesc datele cantitative de laborator. Totuși, din observația clinică rezultă două direcții de interes:
+Deoarece câmpurile de analize conțin NUMAI intervale de referință și nu valori numerice, sistemul nu poate calcula deficite reale. Logica `DeficitCalculator` detectează că `has_lab_panel = False` (nicio valoare numerică completată), deci nu calculează deficite din biomarkeri. Cu toate acestea, observația medicală conține mențiunea explicită de „deficit de vitamina D și magneziu", care este parsată de `_parse_preferred_nutrients` și activează un deficit estimativ minimal (0.3 × RDI) pentru vitamina D și magneziu — suficient pentru a orienta fallback-ul, dar insuficient pentru recomandări precise.
 
-posibil deficit de vitamina D (deja menționat clinic);
-posibil deficit de magneziu (menționat clinic).
-În absența valorilor numerice, recomandările au caracter predominant estimativ/general, nu de corecție fină personalizată pe severitate.
+RDI magneziu pentru Paul (48 ani, M, ≥30 ani): 420 mg — corect calculat în algoritmul curent (față de 400 mg cât era eronat anterior, cohorta M ≥30 ani).
 
 Cum sunt generate recomandările în acest caz
-Pipeline-ul VitaBalance pare să fi rulat în mod fallback:
+Pipeline-ul VitaBalance rulează în mod FALLBACK:
 
-preluare profil + restricții + observații clinice;
-în lipsa biomarkerilor numerici, scorare pe compatibilitate generală și model estimativ;
-ordonare Top‑K după scorul de acoperire estimată.
-Acest lucru este confirmat și de formulările din raport: „Recomandare bazată pe profilul tău și modelul estimativ de necesar nutritional”.
+preluare profil + restricții (nuci + susan excluși) + observații clinice;
+detecție că `has_lab_panel = False` → nu se calculează deficite din analize;
+din observația clinică: activare deficit estimativ minimal pentru vitamina D și magneziu (0.3 × RDI);
+recomandări generate prin `_generate_fallback_recommendations` bazat pe compatibilitate generală și model estimativ;
+ordonare Top‑K după scorul de acoperire estimată pe mai mulți nutrienți.
 
-Top recomandări (K=10) din raport
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Pâine albă (1 felie) – 42.0%
 Bagel simplu – 41.6%
@@ -34,6 +34,19 @@ Spanac cu smântână (120 ml) – 36.8%
 Brânză Brie (28 g) – 36.8%
 Piure de conopidă (240 ml) – 36.8%
 Felii de castravete (240 ml) – 36.2%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Paul are 48 ani (≥30 ani, M), deci RDI corect este 420 mg față de 400 mg anterior. Cu deficitul estimativ de magneziu calculat ca 0.3 × RDI: 0.3 × 420 = 126 mg (față de 0.3 × 400 = 120 mg). Diferența este minimă (6 mg) și nu afectează vizibil lista de recomandări în modul fallback.
+2. Fix dislike rating: transmitea `1` în loc de `-1`. Acum feedback-ul de dislike penalizează corect alimentele cu factor 0.4. Dacă Paul a dat dislike la anumite alimente, ele ar fi penalizate corect.
+3. Nu există alte modificări cu impact direct.
+
+Recomandări actuale (algoritm curent)
+Lista de recomandări rămâne practic identică față de captura din Aprilie 2026. Modul fallback generează recomandări eterogene (pâine albă, bagel, clătite) care nu sunt în mod particular relevante clinic pentru deficitul de vitamina D sau magneziu.
+
+Observație: Pâine albă, Bagel și Crutoane sunt alimente de bază cu conținut moderat de micronutrienți, recomandate probabil pe baza compatibilității generale a profilului omnivor, nu pe corecție specifică. Lista heterogenă este caracteristică modului fallback pe date incomplete.
+
+Alergia la nuci: produsele cu nuci, alune, migdale, fistic, caju sunt excluse corect. Alergia la susan: tahini, pâine cu susan, hummus cu susan sunt excluse.
+
 Explicație profesională a rezultatului
 Lista este heterogenă și include multe alimente de bază din categoria cereale/lactate/legume, cu descrieri generice, fără detalii nutriționale punctuale (mg/porție, procent pe nutrient dominant), spre deosebire de alte cazuri unde există analize complete.
 Acest pattern susține concluzia că sistemul a funcționat în regim de recomandare generală din cauza datelor incomplete.
@@ -45,4 +58,13 @@ Implicație clinică practică
 Pentru acest utilizator, calitatea recomandărilor depinde critic de completarea analizelor numerice. Până atunci, lista trebuie tratată ca orientare preliminară, nu plan nutrițional de corecție.
 
 Punct de validare algoritmică (foarte util pentru licență)
-Acest caz este excelent pentru secțiunea de limitări: demonstrează comportamentul sistemului pe date incomplete. Merită menționat explicit că, la absența biomarkerilor, acuratețea personalizării scade și trebuie activată o etichetă clară de „recomandări provizorii”. De asemenea, e utilă validarea strictă a restricțiilor (ex. alergii la susan/nuci) în etapa de filtrare înainte de ranking.
+Acest caz este excelent pentru secțiunea de limitări: demonstrează comportamentul sistemului pe date incomplete. Merită menționat explicit că, la absența biomarkerilor numerici, acuratețea personalizării scade semnificativ și recomandările devin generice. Este utilă validarea strictă a restricțiilor (ex. alergii la susan/nuci) în etapa de filtrare înainte de ranking.
+
+Probleme identificate / Limitări rămase
+LIMITARE PRINCIPALĂ: Fără analize numerice, recomandările sunt generice și nu corespund nevoilor specifice ale pacientului. Sistemul generează corect recomandări în modul fallback, dar calitatea clinică este redusă față de cazurile cu analize complete. Ar fi benefic un mesaj explicit de avertizare în UI: „Recomandări provizorii — introduceți valorile de laborator pentru personalizare completă."
+
+Pâine albă și Bagel simplu (primele 2 poziții) sunt alimente cu indice glicemic ridicat și valoare nutrițională limitată pentru corecția deficitului de vitamina D sau magneziu. Acestea apar deoarece modul fallback nu este orientat pe corecția specifică a vitaminei D/magneziului, ci pe densitate nutrițională generală compatibilă cu profilul.
+
+Deficitul de vitamina D nu poate fi corectat eficient prin alimentație (sursele alimentare de D sunt limitate: somon gras — dar alergic la pește nu este, ouă, alimente fortifiate). Paul nu are alergie la pește, deci peștele gras (somon, macrou) ar fi recomandat dacă s-ar activa un deficit de D real. Cu analize incomplete, aceste surse nu sunt prioritizate.
+
+Alergiile la nuci și susan sunt corect aplicate — tahini, pesto, baklava, produse cu nuci sunt excluse. De verificat că pâinea albă și bagelul nu conțin susan în lista de ingrediente din catalog.

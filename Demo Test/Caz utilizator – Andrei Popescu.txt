@@ -5,7 +5,7 @@ Restricții și context clinic: alergie la nuci/arahide și antecedent de colest
 
 Date biometrice și analize introduse în aplicație
 Hemoglobină 14.2 g/dL, feritină 48 ng/mL, vitamina D 38 ng/mL, vitamina B12 420 pg/mL, calciu 9.3 mg/dL, magneziu 2.05 mg/dL, zinc 92 mcg/dL, proteine 6.9 g/dL, folat 8.2 ng/mL, vitamina A 46 mg/dL, iod 125 mg/L, potasiu 4.25 mmol/L.
-Observație medicală asociată: „Hemoleucograma și profil metabolic – fără anomalii semnificative.”
+Observație medicală asociată: „Hemoleucograma și profil metabolic – fără anomalii semnificative."
 
 Interpretare nutrițională (deficiențe/minusuri)
 Pentru acest profil, sistemul nu marchează deficite active majore. Din acest motiv, logica de recomandare nu este orientată pe corecție urgentă, ci pe menținerea echilibrului nutrițional și pe prevenirea dezechilibrelor, cu accent pe micronutrienți esențiali (ex. vitamina A, C, K, B12, iod, calciu, fier, zinc, folat, magneziu, potasiu).
@@ -18,6 +18,9 @@ se aplică filtrarea de siguranță (excludere alimente neconforme alergiilor);
 se calculează un scor de compatibilitate clinico‑nutrițională pentru alimentele rămase;
 se estimează contribuția fiecărei porții la acoperirea necesarului zilnic (RDI) pe micronutrienții monitorizați;
 se ordonează descrescător după acoperirea globală a necesarului și se livrează lista Top‑K.
+
+RDI magneziu corect aplicat (algoritm curent): Andrei are 34 de ani (≥30 ani), deci RDI magneziu este 420 mg (barbat ≥30 ani), nu 400 mg cum era calculat eronat anterior. Corectarea este transparentă și nu afectează vizibil lista de recomandări deoarece magneziul nu este deficit dominant la acest profil.
+
 Top recomandări (K=10) și justificare
 În raportul generat, primele 10 recomandări sunt:
 
@@ -31,9 +34,24 @@ Sashimi somon (3 bucăți) – 28.1%
 Macrou (85 g gătit) – 27.8%
 Guacamole (60 ml) – 27.5%
 Burger de curcan (1 chiftea) – 27.4%
+
 Explicație profesională a recomandărilor
 Recomandările sunt predominant din clasele legume, pește/proteine și lactate, ceea ce indică o strategie de diversificare cu densitate bună de micronutrienți. Primele poziții sunt ocupate de alimente vegetale cu aport ridicat de vitamine antioxidante și de reglare metabolică (A, C, K), iar pozițiile următoare consolidează aportul de B12, iod, fier, calciu și zinc prin pește/lactate/proteine slabe.
-Formularea de motivare din raport („nu se evidențiază deficite active, dar alimentul susține menținerea unui aport nutrițional echilibrat”) este coerentă cu profilul clinic: pacientul este stabil biologic, iar recomandările au rol de optimizare și menținere, nu de intervenție corectivă agresivă.
+Formularea de motivare din raport („nu se evidențiază deficite active, dar alimentul susține menținerea unui aport nutrițional echilibrat") este coerentă cu profilul clinic: pacientul este stabil biologic, iar recomandările au rol de optimizare și menținere, nu de intervenție corectivă agresivă.
 
 Exemplu de explicație punctuală (model de inclus în lucrare)
 Castravete (60 ml garnitură), scor de acoperire 40.6%: recomandat datorită compatibilității ridicate cu profilul utilizatorului și contribuției semnificative la vitaminele C, K și A, cu impact agregat favorabil asupra mai multor micronutrienți monitorizați în sistem. În contextul absenței deficitelor active, alimentul este utilizat ca opțiune de menținere a echilibrului nutrițional zilnic.
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Andrei are 34 ani (≥30 ani), deci RDI corect este 420 mg (M, ≥30 ani), față de 400 mg cât era calculat eronat anterior. Această corecție nu schimbă lista de recomandări vizibil, deoarece magneziul nu este deficit dominant (magneziu 2.05 mg/dL este în limite normale, depășind pragul clinic de 1.7 mg/dL).
+2. Nu există alte modificări cu impact direct asupra acestui caz.
+
+Recomandări actuale (algoritm curent)
+Profilul rămâne stabil, fără deficite active. Algoritmul rulează în regim de menținere/optimizare multi-nutrient (fallback cu rebalansare pe categorii). Lista de top 10 este practic identică cu cea din captura din Aprilie 2026, deoarece modificările din algoritm nu afectează direct acest profil omnivor fără restricții dietetice majore.
+
+Filtrarea pe colesterol ridicat rămâne activă: alimentele cu colesterol ≥95 mg sau (grăsimi ≥24 g + colesterol ≥40 mg) sunt excluse automat din lista de recomandări. Aceasta protejează indirect profilul cu antecedent cardiovascular.
+
+Probleme identificate / Limitări rămase
+- Sistemul nu are o regulă dedicată pentru „colesterol ridicat – evitare grăsimi saturate sau alimente aterogene specifice", ci doar un prag numeric simplu pe colesterol/grăsimi totale. Recomandarea Saltimbocca sau preparate cu grăsimi animale moderate pot trece filtrul dacă sunt sub prag.
+- Nu există o modulare explicită pentru profilul de activitate moderată în contextul menținerii metabolice (ex. recomandări mai orientate spre fibre, antioxidanți).
+- Guacamole (avocado) poate fi problematică dacă utilizatorul declară alergie la latex (cross-reactivitate), dar sistemul nu verifică această asociere.

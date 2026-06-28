@@ -5,20 +5,23 @@ Restricții și context clinic: alergie la susan; condiție medicală declarată
 
 Date de analize introduse în aplicație
 Hemoglobină 13.1 g/dL, feritină 36 ng/mL, vitamina D 28.5 ng/mL, vitamina B12 355 pg/mL, calciu 9.08 mg/dL, magneziu 1.89 mg/dL, zinc 52 mcg/dL, proteine 6.65 g/dL, folat 6.1 ng/mL, vitamina A 40.5 mg/dL, iod 111 mg/L, potasiu 4.02 mmol/L.
-Observație medicală: „Zinc seric scăzut; dietă pescatariană.”
+Observație medicală: „Zinc seric scăzut; dietă pescatariană."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Deficitul dominant în acest profil este zincul (valoare serică scăzută), în timp ce ceilalți indicatori sunt relativ stabili. În consecință, algoritmul prioritizează alimente cu aport relevant de zinc și construiește ranking-ul în jurul acestui micronutrient principal.
+Deficitul dominant în acest profil este zincul (valoare serică 52 mcg/dL, sub pragul clinic de 70 mcg/dL), în timp ce ceilalți indicatori sunt relativ stabili. În consecință, algoritmul prioritizează alimente cu aport relevant de zinc și construiește ranking-ul în jurul acestui micronutrient principal.
+
+RDI magneziu pentru Ana (36 ani, F, ≥30 ani): 320 mg — corect calculat în algoritmul curent (față de 310 mg cât era eronat anterior, afectând cohorta F ≥30 ani).
 
 Cum sunt generate recomandările în acest caz
 Pipeline-ul VitaBalance pentru Ana:
 
 preluare profil + analize + tip dietă + alergii + context clinic;
-filtrare alimente incompatibile (inclusiv pe baza alergiei declarate);
+filtrare alimente incompatibile (inclusiv pe baza alergiei la susan — tahini, hummus cu susan, salate cu semințe de susan sunt excluse; pescatarian — carnea terestră este exclusă, peștele rămâne disponibil);
 selectare nutrient prioritar: zinc;
 calcul scor per aliment în funcție de contribuția per porție la aportul zilnic recomandat;
 ordonare Top‑K și generare explicații textuale + numerice pentru trasabilitate.
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Cereale Integrale Fortificate cu B12 – 56.3%
 Edamame în păstaie (240 ml) – 53.1%
@@ -30,6 +33,17 @@ Ardei și ceapă căliți – 37.5%
 Fasole verde (120 ml cu paste) – 37.5%
 Castraveți murați (60 ml) – 37.5%
 Brânză de capră (28 g) – 35.0%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Ana are 36 ani (≥30 ani, F), deci RDI corect este 320 mg față de 310 mg anterior. Magneziul Anei este 1.89 mg/dL (ușor deasupra pragului clinic de 1.7 mg/dL), deci nu activează deficit de magneziu activ. Corecția RDI nu schimbă lista de recomandări.
+2. Fix preparate cu carne în categorii mixte — relevant pentru pescatarian: Dieta pescatariană exclude carnea terestră. Cu fix-ul aplicat, preparate ca „Wrap cu Pui", „Shawarma de Pui", „Spaghetti Bolognese", „Salată cu Pui la Grătar" etc. sunt acum excluse corect pentru pescatarieni, chiar dacă sunt în categorii mixte (Mese/Procesate). Anterior acestea puteau apărea dacă categoria alimentului nu conținea explicit „pui" sau „carne", iar fix-ul verifică și denumirea alimentului pentru markeri de carne.
+3. Nu există alte modificări cu impact direct.
+
+Recomandări actuale (algoritm curent)
+Lista de recomandări este practic identică față de captura din Aprilie 2026, deoarece preparatele care apar în top nu conțin carne terestră. Edamame (soia) rămâne valid — Ana nu are alergie la soia. Susan (inclusiv în preparate derivate: tahini, unele pâini cu susan) este corect exclus.
+
+Brânza de capră (poziția 10) este compatibilă cu dieta pescatariană. Peștele poate apărea în lista extinsă datorită compatibilității cu dieta pescatariană.
+
 Explicație profesională a rezultatului
 Lista recomandată este coerentă cu obiectivul de corecție a zincului, având în top leguminoase, cereale fortificate, legume și lactate, fiecare cu aport cuantificat de zinc per porție.
 Scorurile descrescătoare (56.3% → 35.0% în top 10) arată modul în care sistemul ierarhizează opțiunile în funcție de eficiența nutrițională pentru deficitul identificat. În acest caz, recomandările nu sunt axate pe corecții hematologice sau proteice, deoarece acești markeri nu apar ca prioritari.
@@ -42,3 +56,8 @@ Pentru pacientă cu patologie tiroidiană, corectarea deficitului de zinc poate 
 
 Punct de validare algoritmică
 Acest caz este util în lucrare pentru a demonstra că sistemul poate selecta un deficit micronutrițional unic (zinc) și poate genera un ranking coerent, explicabil numeric, fără a devia către nutrienți secundari neprioritari.
+
+Probleme identificate / Limitări rămase
+- Edamame conține soia. Dacă Ana ar declara alergie la soia, edamame ar dispărea și opțiunile bogate în zinc ar fi mai reduse.
+- Iod 111 mg/L este ușor deasupra pragului de 100 mcg/L, deci nu activează un deficit de iod. Totuși, pentru patologia tiroidiană, excesul de iod poate fi problematic în anumite forme de tiroidită. Sistemul nu aplică penalizări pentru excesul de iod în context tiroidian.
+- Sistemul nu verifică interacțiunile zinc–cupru (excesul de zinc poate depleța cuprul). Nu există reguli de plafonare a zincului per zi în VitaBalance.

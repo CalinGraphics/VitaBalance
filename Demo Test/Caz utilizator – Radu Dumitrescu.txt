@@ -5,10 +5,12 @@ Restricție alimentară: alergie la pește.
 
 Date de analize introduse în aplicație
 Hemoglobină 11.2 g/dL, feritină nedeterminată clar în buletin (menționat interval 15–150 ng/mL, fără valoare numerică punctuală), vitamina D 29 ng/mL, vitamina B12 375 pg/mL, calciu 9.05 mg/dL, magneziu 1.92 mg/dL, zinc 84 mcg/dL, proteine 6.55 g/dL, folat 6 ng/mL, vitamina A 41 mg/dL, iod 114 mg/L, potasiu 4.05 mmol/L.
-Observație medicală: „Hemoglobina scăzută; feritina necompletată în buletin.”
+Observație medicală: „Hemoglobina scăzută; feritina necompletată în buletin."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Profilul indică deficit ușor de fier, estimat indirect prin hemoglobina scăzută, în absența unei valori de feritină utilizabile pentru calcul direct. Acest context mută algoritmul în mod „estimare deficit fier din hemoglobină”, cu prioritate pe alimente bogate în fier și cofactori (ex. vitamina C pentru susținerea absorbției fierului non-heme).
+Profilul indică deficit ușor de fier, estimat indirect prin hemoglobina scăzută (11.2 g/dL, sub pragul masculin de 13.5 g/dL), în absența unei valori de feritină utilizabile pentru calcul direct. Acest context mută algoritmul în mod „estimare deficit fier din hemoglobină", cu prioritate pe alimente bogate în fier și cofactori (ex. vitamina C pentru susținerea absorbției fierului non-heme).
+
+RDI magneziu pentru Radu (42 ani, M, ≥30 ani): 420 mg — corect calculat în algoritmul curent.
 
 Cum sunt generate recomandările în acest caz
 Pentru acest utilizator, pipeline-ul VitaBalance operează astfel:
@@ -18,7 +20,8 @@ estimare necesar de corecție pentru fier pe baza hemoglobinei (deoarece feritin
 filtrare și scorare alimente după aportul de fier/100 g și contribuția per porție;
 includere de alimente cu suport metabolic complementar (ex. aport vitamina C);
 ordonare descrescătoare în Top‑K după procentul de acoperire a deficitului estimat.
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Fasole Albă Toscana (120 ml) – 72.5%
 Supă de Mazăre Despicată (240 ml) – 71.9%
@@ -30,9 +33,24 @@ Roșie (60 ml garnitură) – 69.9%
 Ou Poșat (1 mare) – 69.8%
 Sfeclă Roșie Coaptă (120 ml) – 68.1%
 Tofu Ferm (115 g) – 68.1%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Radu are 42 ani (≥30 ani, M), deci RDI corect este 420 mg, față de 400 mg cum era calculat eronat anterior. Magneziul lui Radu este 1.92 mg/dL (sub pragul de 1.7 mg/dL nu se situează — este ușor deasupra), deci nu se activează deficit de magneziu activ, iar corecția RDI nu schimbă recomandările.
+2. Nu există alte modificări cu impact direct relevant pentru profilul omnivor al lui Radu.
+
+Recomandări actuale (algoritm curent)
+Lista de recomandări rămâne practic identică față de captura din Aprilie 2026. Deficitul de fier estimat din hemoglobină rămâne principalul driver al ranking-ului. Preparatele cu pește (somon, macrou, sashimi etc.) sunt excluse corect prin alergia declarată la pește.
+
+Alimentele cu ouă (Gălbenuș de Ou, Ou Poșat) rămân în listă deoarece Radu nu are alergie la ouă și dieta sa este omnivoră.
+
 Explicație profesională a rezultatului
 Recomandările sunt puternic orientate spre corecția deficitului ușor de fier, motiv pentru care domină leguminoasele și sursele proteice cu conținut bun de fier. Prezența legumelor cu aport semnificativ de vitamina C (varză roșie, roșii, sfeclă) susține rațional absorbția intestinală a fierului non-heme din leguminoase și tofu.
 Scorurile ridicate (peste 68% în primele 10 poziții) arată o potrivire nutrițională bună între necesarul estimat și densitatea de fier per porție.
 
 Exemplu de justificare punctuală (model pentru lucrare)
 Fasole Albă Toscana (120 ml), acoperire 72.5%: recomandată pentru deficit ușor de fier, având 3.9 mg fier/100 g; porția de 162 g furnizează aproximativ 6.3 mg fier, cuantificată de sistem ca acoperire integrală a deficitului țintit la nivel de nutrient prioritar, în cadrul modelului de estimare bazat pe hemoglobină.
+
+Probleme identificate / Limitări rămase
+- Utilizarea hemoglobinei ca proxy pentru deficit de fier este o estimare aproximativă. Hemoglobina scăzută poate reflecta și anemie non-feriprivă (ex. anemie prin deficit B12/folat, anemie inflamatorie). Sistemul nu distinge aceste cazuri.
+- Feritina necompletată reduce acuratețea calculului de deficit. Sistemul tratează corect această situație prin fallback pe hemoglobină, dar merită menționat în lucrare ca limitare a calității datelor de intrare.
+- Tofu Ferm conține soia — nu există alergie la soia declarată, deci este valid. Dar în lipsa verificării etichetei de produs, riscul de soia ascunsă în preparate procesate rămâne.

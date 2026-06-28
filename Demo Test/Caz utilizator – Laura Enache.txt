@@ -2,22 +2,27 @@ Caz utilizator – Laura Enache (VitaBalance)
 Date de profil utilizator
 Laura Enache, sex feminin, 39 ani, 63 kg, 165 cm, nivel de activitate moderat, tip dietă omnivor.
 Restricții și context clinic: alergie la pește; condiție medicală declarată: reflux gastroesofagian.
+Observație medicală introdusă: „Nu mănânc pește, pui, porc. Evit cafea."
 
 Date de analize introduse în aplicație
 Hemoglobină 12.7 g/dL, feritină 34 ng/mL, vitamina D 29.5 ng/mL, vitamina B12 370 pg/mL, calciu 8.98 mg/dL, magneziu 1.91 mg/dL, zinc 80 mcg/dL, proteine 6.52 g/dL, folat 6.15 ng/mL, vitamina A 40.8 mg/dL, iod 116 mg/L, potasiu 4.05 mmol/L.
-Observație medicală: „Nu mănânc pește, pui, porc. Evit cafea.”
 
 Interpretare nutrițională (deficiențe/minusuri)
 Nu se evidențiază un deficit sever singular; profilul este unul de menținere cu posibilă optimizare multi‑nutrient (A, C, K, B12, calciu, iod, zinc, proteine). Astfel, algoritmul prioritizează alimente cu acoperire globală bună, nu o corecție țintită pe un singur nutrient.
 
+RDI magneziu pentru Laura (39 ani, F, ≥30 ani): 320 mg — corect calculat în algoritmul curent (față de 310 mg cât era eronat anterior, cohorta F ≥30 ani).
+
 Cum sunt generate recomandările în acest caz
 Pipeline-ul VitaBalance:
 
-preluare profil + analize + alergii + observații medicale;
-filtrare de compatibilitate și calcul scor rule‑based pe aport per porție;
+preluare profil + analize + alergii (pește) + observații medicale (nu pui, nu porc, evit cafea);
+filtrare de compatibilitate: pștele exclus din alergii; pui și porc excluse din observație „nu mănânc pui, porc"; cafea exclusă;
+activare reflux_guard → penalizare cafea, espresso, alimente picante, tomate, citrice, prăjite, alcool;
+calcul scor rule‑based pe aport per porție;
 estimare acoperire globală pe mai mulți nutrienți;
 ordonare Top‑K descrescător + explicații textuale și numerice.
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Porumb fiert pe știulete (1 mare) – 38.0%
 Cartof copt (mediu) – 37.2%
@@ -29,6 +34,22 @@ Cașcaval Provolone (1 felie) – 32.6%
 Brânză Gorgonzola (28 g) – 32.2%
 Iaurt grecesc natural (240 ml) – 31.9%
 Salată de cartofi (120 ml) – 31.8%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Laura are 39 ani (≥30 ani, F), deci RDI corect este 320 mg față de 310 mg anterior. Magneziul ei este 1.91 mg/dL (ușor deasupra pragului clinic de 1.7 mg/dL), deci nu activează deficit activ. Corecția RDI nu schimbă lista de recomandări.
+2. Fix preparate cu carne în categorii mixte — PARȚIAL afectează: Pui și Porc sunt detectate din textul „nu mănânc pui, porc" din observație, iar parser-ul din `_parse_food_restrictions` identifică pattern-ul „nu mananc pui, porc" și adaugă „pui" și „porc" la `forbidden_categories`. Cu fix-ul aplicat, preparatele cu pui și porc din categorii mixte (Wrap cu Pui, Shawarma de Pui etc.) sunt acum excluse corect — chiar dacă categoria nu conține explicit „pui" sau „porc", se verifică și denumirea alimentului.
+3. Fix dislike rating: transmitea `1` în loc de `-1`. Îmbunătățire pentru mecanismul de feedback, fără impact direct pe această captură specifică.
+4. Nu există alte modificări.
+
+Recomandări actuale (algoritm curent)
+Cu fix-urile aplicate privind parsarea condițiilor medicale, preparatele cu pui (Shish Tawook, Wrap cu Pui, Salată cu Pui la Grătar etc.) și cu porc sunt acum excluse corect. Lista de top 10 probabil nu se modifică vizibil pentru cele 10 alimente afișate în captura Aprilie 2026, deoarece acestea nu conțin pui sau porc explicit în denumire. Totuși:
+
+PROBLEMĂ RĂMASĂ — Saltimbocca: Saltimbocca apare pe poziția 6 (32.6%). Saltimbocca este un preparat italian cu vițel și prosciutto (carne de porc). Laura a declarat „nu mănânc pui, porc". Algoritmul parsează „porc" ca restricted keyword și ar trebui să excludă Saltimbocca datorită prezenței prosciutto (porc). CU TOATE ACESTEA, „saltimbocca" ca denumire NU conține cuvintele „pui" sau „porc" — verificarea se face pe denumirea alimentului (food_name_lower). Dacă în baza de date Saltimbocca nu are „porc" sau „prosciutto" în denumire, ci doar în ingrediente/catalog, filtrul bazat pe keyword-uri în nume poate EȘUA să excludă acest aliment.
+
+Aceasta rămâne o limitare a algoritmului: filtrarea se bazează pe matching de cuvinte cheie în denumire, nu pe analiza ingredientelor. Saltimbocca poate rămâne în lista de recomandări chiar dacă conține porc, dacă denumirea alimentului nu conține explicit „porc", „prosciutto", „pancetta" sau echivalenți.
+
+NOTĂ: Kimchi (poziția 4) poate fi problematic pentru reflux gastroesofagian din cauza fermentației și picantului. Sistemul penalizează alimente picante (chili, tabasco, jalapeno) cu reflux_guard, dar kimchi poate trece filtrul dacă nu are markeri de „picant" sau „chili" în denumire, deși are potențial iritant pentru reflux.
+
 Explicație profesională a rezultatului
 Topul este dominat de legume și lactate cu aport consistent de vitamine A/C/K, calciu, iod și B12, urmate de preparate proteice cu contribuții bune pe zinc și proteine. Acest pattern este coerent cu un profil fără deficit major critic și susține menținerea echilibrului nutrițional general.
 
@@ -38,5 +59,9 @@ Porumb fiert pe știulete (1 mare), acoperire 38.0%: selectat pentru compatibili
 Implicație clinică practică
 În context de reflux gastroesofagian, selecția finală ar trebui adaptată prin tehnici de preparare și frecvență alimentară (evitare preparate iritante/grele, individualizare toleranță digestivă), cu monitorizare clinică.
 
-Punct de validare algoritmică (important pentru lucrare)
-Acest caz evidențiază clar o zonă de îmbunătățire: raportul include alimente ce pot intra în conflict cu restricțiile declarate (ex. alergie la pește și evitarea explicită a peștelui/puiului/porcului în observații). Metodologic, merită menționat în licență că este necesară o regulă de prioritate mai strictă pentru restricții hard (alergii + excluderi declarative), înainte de etapa de ranking nutrițional.
+Probleme identificate / Limitări rămase
+PROBLEMĂ PRINCIPALĂ — Saltimbocca în context „nu mănânc porc": Saltimbocca conține prosciutto (porc), iar Laura a declarat explicit că nu mănâncă porc. Algoritmul de parsare detectează „porc" ca forbidden keyword, dar verificarea se face pe denumirea alimentului, nu pe ingrediente. Dacă „Saltimbocca" în baza de date nu are „porc" sau „prosciutto" în denumire, nu va fi exclus. Aceasta este o limitare documentată care necesită fie etichetarea ingredientelor în catalog, fie un motor de verificare a ingredientelor suplimentar.
+
+Kimchi pentru reflux: kimchi este fermentat, acid și condimentat — potențial iritant pentru GERD. Reflux_guard nu include kimchi ca marker explicit, deci nu este penalizat. Poate rămâne în top cu acoperire ~34%, ceea ce nu este clinic ideal.
+
+Sistemul parsează corect „nu mănânc pui, porc" din câmpul de observații, dar procesul de split (virgulă + regex) și verificarea în denumire lasă vulnerabilități la alimente cu denumiri generice (saltimbocca, lomo saltado) care conțin ingrediente interzise dar nu în denumire.

@@ -5,20 +5,23 @@ Restricții și context clinic: intoleranță la lactoză / lactate.
 
 Date de analize introduse în aplicație
 Hemoglobină 14.3 g/dL, feritină 58 ng/mL, vitamina D 27 ng/mL, vitamina B12 400 pg/mL, calciu 8.25 mg/dL, magneziu 1.86 mg/dL, zinc 81 mcg/dL, proteine 6.58 g/dL, folat 6 ng/mL, vitamina A 39.5 mg/dL, iod 117 mg/L, potasiu 4 mmol/L.
-Observație medicală: „Calciu ionic scăzut; intoleranță la lactoză – surse alternative de calciu.”
+Observație medicală: „Calciu ionic scăzut; intoleranță la lactoză – surse alternative de calciu."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Deficitul dominant este calciul (valoare sub prag), iar în contextul intoleranței la lactoză sistemul trebuie să favorizeze surse non-lactate sau alternative bine tolerate. Restul markerilor sunt relativ stabili și nu devin prioritari în ranking.
+Deficitul dominant este calciul (valoare 8.25 mg/dL, sub pragul clinic de 8.5 mg/dL), iar în contextul intoleranței la lactoză sistemul trebuie să favorizeze surse non-lactate sau alternative bine tolerate. Restul markerilor sunt relativ stabili și nu devin prioritari în ranking.
+
+RDI magneziu pentru Mihai (46 ani, M, ≥30 ani): 420 mg — corect calculat în algoritmul curent (față de 400 mg cât era eronat anterior).
 
 Cum sunt generate recomandările în acest caz
 Pipeline-ul rule-based VitaBalance:
 
 preluare profil + analize + alergii/intoleranțe;
 identificare nutrient prioritar: calciu;
-filtrare opțiuni incompatibile cu restricțiile alimentare declarate;
+filtrare opțiuni incompatibile cu restricțiile alimentare declarate (intoleranță lactoză → excludere lactate, lapte, brânzeturi, iaurt etc.);
 scorare alimente după conținutul de calciu/100 g, aport per porție și procent de acoperire al deficitului;
 ierarhizare Top‑K și explicații textuale + numerice (mg/100 g, mg/porție, procent acoperire).
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Sparanghel la cuptor (6 fire) – 33.9%
 Sparanghel fiert (240 ml) – 33.6%
@@ -30,6 +33,21 @@ Curmale Medjool (2 medii) – 26.1%
 Pară – 25.8%
 Mure (240 ml) – 25.8%
 Salată de cartofi (120 ml) – 24.5%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Mihai are 46 ani (≥30 ani, M), deci RDI corect este 420 mg față de 400 mg anterior. Magneziul lui Mihai este 1.86 mg/dL (ușor deasupra pragului clinic de 1.7 mg/dL), deci nu activează deficit de magneziu activ. Corecția RDI nu schimbă lista de recomandări.
+2. Fix ouă în categoria „Proteine/Lactate": Anterior, „Ouă Jumări" putea fi exclusă greșit dacă Mihai era detectat ca alergic la lactate (intoleranța la lactoză este înregistrată ca alergie la lactate în profil). Cu fix-ul aplicat, „Ouă Jumări" este acum corect recunoscută ca produs cu ouă (nu lactate), deci NU mai este exclusă eronat pentru Mihai. Dacă Ouă Jumări era anterior exclusă din lista de recomandări, acum poate apărea în top extins sau ca opțiune de diversificare.
+3. Nu există alte modificări cu impact direct.
+
+Recomandări actuale (algoritm curent)
+Lista de recomandări rămâne practic identică față de captura din Aprilie 2026 pentru primele poziții (surse non-lactate de calciu: legume, cereale, fructe). În plus, cu fix-ul pentru ouă:
+
+„Ouă Jumări" poate apărea acum în lista extinsă sau în top dacă scorul calciu este suficient, deoarece nu mai este exclusă greșit pe baza categoriei „Proteine/Lactate". Ouăle conțin calciu moderat (~55 mg/100 g), deci nu sunt top-1, dar pot intra în lista completată.
+
+Tofu Ferm (sursă de calciu non-lactat, ~350 mg calciu/100 g) poate apărea în lista extinsă dacă Mihai nu are alergie la soia.
+
+Alternativele vegetale de lapte (lapte de migdale, lapte de ovăz fortifiat cu calciu) sunt disponibile și compatibile cu intoleranța la lactoză — nu sunt lactate reale.
+
 Explicație profesională a rezultatului
 Lista este orientată corect către alimente vegetale și preparate fără bază lactată, în concordanță cu restricția la lactoză și cu obiectivul de creștere a aportului de calciu. Primele poziții oferă aproximativ 146–154 mg calciu/porție, cu acoperire de ~49–51% din deficitul estimat per recomandare individuală.
 Prin distribuția recomandărilor pe mai multe categorii (legume, cereale fortificate, fructe, leguminoase), sistemul susține aderența alimentară pe termen mediu și reduce dependența de surse lactate clasice.
@@ -42,3 +60,8 @@ Cazul demonstrează utilitatea personalizării pe restricții digestive: corecț
 
 Punct de validare algoritmică
 Acest profil validează că motorul poate prioritiza un deficit specific (calciu) și poate genera un ranking coerent chiar în prezența unei restricții importante (intoleranță la lactoză), menținând explicații cuantificabile per recomandare.
+
+Probleme identificate / Limitări rămase
+- Vitamina D 27 ng/mL este ușor sub optim (30 ng/mL este considerat suficient, dar 27 ng/mL poate genera un mic deficit de vitamina D). Sistemul poate activa un deficit secundar de D, dar acoperirea alimentară este limitată (pești grași, ouă, alimente fortifiate).
+- Tofu Ferm este o sursă excelentă de calciu non-lactat (350 mg/100 g), dar nu apare în captura disponibilă. Dacă Mihai nu are alergie la soia, ar trebui să fie una dintre primele 5 recomandări.
+- Sistemul nu distinge între intoleranța la lactoză (enzimă insuficientă) și alergia la proteinele laptelui (IgE-mediată), tratând ambele la fel. În cazul intoleranței la lactoză, produsele lactate fără lactoză (de ex. brânzeturile maturate cu conținut mic de lactoză) ar putea fi tolerate, dar sistemul le exclude complet.

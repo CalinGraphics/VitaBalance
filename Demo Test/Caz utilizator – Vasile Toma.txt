@@ -5,20 +5,25 @@ Context clinic declarat: insuficiență renală.
 
 Date de analize introduse în aplicație
 Hemoglobină 13.6 g/dL, feritină 45 ng/mL, vitamina D 25.5 ng/mL, vitamina B12 380 pg/mL, calciu 8.98 mg/dL, magneziu 1.88 mg/dL, zinc 82 mcg/dL, proteine 6.48 g/dL, folat 6 ng/mL, vitamina A 39.8 mg/dL, iod 115 mg/L, potasiu 4.18 mmol/L.
-Observație medicală: „Boală cronică de rinichi stadiu stabil; potasiu în limite strânse.”
+Observație medicală: „Boală cronică de rinichi stadiu stabil; potasiu în limite strânse."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Markerii generali sunt relativ stabili, însă contextul nefrologic impune atenție prioritară la potasiu. În raport, algoritmul a selectat explicit potasiul ca nutrient dominant pentru scoring, iar recomandările sunt ordonate după aportul de potasiu per porție.
+Markerii generali sunt relativ stabili, însă contextul nefrologic impune atenție prioritară la potasiu. Vitamina D 25.5 ng/mL este ușor sub optim (30 ng/mL), dar deasupra pragului sever de 20 ng/mL. Proteine 6.48 g/dL sunt la limita inferioară a normalului (prag 6.0 g/dL). În raportul din captura inițială, algoritmul selecta potasiu ca nutrient dominant pentru scoring, recomandând alimente bogate în potasiu — PROBLEMATICĂ pentru un pacient cu insuficiență renală.
+
+RDI magneziu pentru Vasile (61 ani, M, ≥30 ani): 420 mg — corect calculat în algoritmul curent (față de 400 mg cât era eronat anterior).
 
 Cum sunt generate recomandările în acest caz
 Pipeline-ul VitaBalance pentru acest profil:
 
 preluare profil + analize + condiție clinică (insuficiență renală);
-identificare nutrient prioritar în modelul curent: potasiu;
+activare „renal_guard" → penalizare alimente cu potasiu ≥500 mg (factor 0.22), ≥350 mg (factor 0.45), ≥250 mg (factor 0.72);
+activare penalizări suplimentare pentru alge, banane, avocado, spanac, cartofi, stafide, mango, portocale, suc de roșii;
+identificare nutrient dominant în calculul de deficit;
 scorare alimente pe baza contribuției per porție la aportul zilnic recomandat;
 ierarhizare Top‑K descrescător după procentul de acoperire;
 generare explicații textuale + numerice (mg potasiu/porție și procent RDI).
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Kimchi (120 ml) – 27.6%
 Bok Choy fiert (240 ml) – 26.2%
@@ -30,16 +35,43 @@ Mango (240 ml felii) – 22.1%
 Struguri (240 ml) – 21.2%
 Salată Caprese – 19.7%
 Bisque de homar (240 ml) – 18.2%
+
+PROBLEMĂ MAJORĂ IDENTIFICATĂ ÎN CAPTURA ORIGINALĂ: Algoritmul recomanda pentru potasiu (maximizare acoperire) alimente bogate în potasiu — kimchi (~340 mg K/100 g), stafide (~750 mg K/100 g), mango (~168 mg K/100 g), portocale (~181 mg K/100 g), salată de alge. Aceasta este CONTRAINDICATĂ clinic pentru CKD (Chronic Kidney Disease), unde restricția de potasiu este esențială.
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Vasile are 61 ani (≥30 ani, M), deci RDI corect este 420 mg față de 400 mg anterior. Magneziul lui este 1.88 mg/dL (ușor deasupra pragului de 1.7 mg/dL), deci nu activează deficit activ. Corecția RDI nu schimbă lista.
+2. Nu există alte modificări specifice care să rezolve problema CKD din fix-urile aplicate (fix-urile vizau magneziu, calciu 70+, lactate vegetale, carne în categorii mixte, dislike rating, Kombucha duplicat, ouă în categorii lactate).
+
+PROBLEMĂ RĂMASĂ NEREZOLVATĂ: Sistemul conține mecanismul `_renal_potassium_safety_factor` care penalizează alimentele cu potasiu ridicat (factor 0.22 pentru ≥500 mg, 0.45 pentru ≥350 mg, 0.72 pentru ≥250 mg) și include markeri specifici (stafide, mango, portocale, spanac, alge). Cu toate acestea, captura din Aprilie 2026 arăta că stafide (~750 mg K/100 g, factor de penalizare 0.22), mango, portocale și alge marine apăreau în top 10. Aceasta sugerează că factorul de penalizare nu era suficient de sever pentru a le scoate din top la momentul capturii, sau că potasiu era nutrientul cu cel mai mare scor de deficit și înmulțit cu factor 0.22 rămânea totuși competitiv.
+
+Recomandări actuale (algoritm curent)
+Deși mecanismul renal_guard există în cod, există riscul ca alimentele bogate în potasiu să rămână în lista de top pentru Vasile Toma, datorită faptului că potasiu 4.18 mmol/L este aproape de limita superioară normală (3.5–5.0 mmol/L) dar nu depășește pragul de hiperkalemie. Dacă potasiu este nutrientul dominant de deficit (estimare relativă față de RDI), sistemul poate continua să genereze recomandări cu potasiu ridicat, atenuate de factor 0.22, dar în continuare în top dacă diferența de scor față de alte alimente este suficient de mare.
+
+Lista probabilă în algoritmul curent (cu renal_guard activ):
+
+Kimchi (120 ml) – factor renalizat, acoperire redusă
+Bok Choy fiert (240 ml) – relativ tolerabil ca potasiu
+Salată de castravete – potasiu moderat, relativ sigur
+Legume cu potasiu scăzut (ardei, dovlecel, ceapă) pot avansa în clasament
+Salată Caprese – mozarella + roșii, potasiu moderat
+Portocale, stafide, mango — penalizate cu factor 0.22–0.45, dar pot rămâne în top dacă nutrientul dominant e potasiu
+
 Explicație profesională a rezultatului
 Raportul arată un model clar: toate recomandările sunt motivate prin contribuția la potasiu, cu acoperiri de la ~27.6% la ~15.3% în lista extinsă. Tehnic, ranking-ul este coerent cu regula internă de prioritate pe nutrient dominant și are trasabilitate numerică bună (mg/porție + procent).
 
-În același timp, pentru contextul de boală renală cronică, acest caz este valoros în lucrare deoarece evidențiază nevoia de constrângeri clinice suplimentare (ex. praguri superioare de potasiu sau penalizare pentru alimente high-potassium), nu doar maximizarea acoperirii.
+În același timp, pentru contextul de boală renală cronică, acest caz este valoros în lucrare deoarece evidențiază nevoia de constrângeri clinice suplimentare (ex. praguri superioare de potasiu sau penalizare mai agresivă pentru alimente high-potassium), nu doar maximizarea acoperirii.
 
 Exemplu de justificare punctuală (model pentru lucrare)
-Kimchi (120 ml), acoperire 27.6%: recomandat pe baza compatibilității clinico‑nutriționale în modelul curent, cu aport estimat de ~939 mg potasiu per porția de 190 g, ceea ce reprezintă 27.6% din aportul zilnic de referință utilizat în algoritm.
+Kimchi (120 ml), acoperire 27.6%: recomandat pe baza compatibilității clinico‑nutriționale în modelul curent, cu aport estimat de ~939 mg potasiu per porția de 190 g, ceea ce reprezintă 27.6% din aportul zilnic de referință utilizat în algoritm. NOTĂ CLINICĂ IMPORTANTĂ: la pacient cu CKD, această cantitate de potasiu poate fi contraindicată fără validare nefrologică.
 
 Implicație clinică practică
-La pacient cu insuficiență renală, recomandările trebuie interpretate împreună cu medicul nefrolog, iar porțiile/frecvența alimentelor bogate în potasiu trebuie ajustate individual în funcție de stadiu, tratament și obiectivele de monitorizare.
+La pacient cu insuficiență renală, recomandările trebuie interpretate EXCLUSIV împreună cu medicul nefrolog. Potasiu 4.18 mmol/L este în limite normale pentru un pacient CKD stabil, dar maximizarea aportului de potasiu prin alimentație este CONTRAINDICATĂ ca principiu, deoarece rinichii afectați nu pot elimina excesul eficient.
 
-Punct de validare algoritmică
-Acest profil este un exemplu foarte bun pentru capitolul de limitări/îmbunătățiri: motorul este explicabil și consistent matematic, dar are nevoie de reguli clinice dedicate CKD pentru a evita supra-prioritizarea potasiului în scenarii cu restricție potențială.
+Probleme identificate / Limitări rămase
+PROBLEMĂ CRITICĂ: Sistemul nu are o regulă de „evitare" pentru alimente bogate în potasiu la CKD — are doar un factor de penalizare (0.22–0.72). Dacă potasiu este nutrientul cu cel mai mare deficit calculat, alimentele bogate în potasiu vor continua să apară în top, chiar dacă atenuate. Este nevoie de o regulă de excludere hard pentru pacienți cu CKD și hiperkalemie, sau cel puțin un avertisment explicit în raport.
+
+Stafide (~750 mg K/100 g): ar trebui complet excluse pentru CKD, nu doar penalizate cu factor 0.22. La o porție de 85 g, stafidele oferă ~637 mg potasiu — echivalentul a 19% din RDI zilnic (3400 mg), dar periculos de acumulat într-o singură masă pentru CKD.
+
+Logica de a maximiza acoperirea potasiului pentru un pacient cu restricție de potasiu este o eroare de design fundamental în absența unui flag clinic „restricție_potasiu". VitaBalance ar trebui să detecteze CKD și să inverseze logica (minimizare risc potasiu, nu maximizare aport).
+
+Merită menționat explicit în capitolul de limitări/îmbunătățiri: motorul este explicabil și consistent matematic, dar are nevoie de reguli clinice dedicate CKD pentru a evita supra-prioritizarea potasiului. Acesta este cel mai pregnant exemplu de inadecvare clinică a algoritmului curent.

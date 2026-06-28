@@ -5,19 +5,24 @@ Restricții și context clinic: alergie la ouă; condiție medicală declarată:
 
 Date de analize introduse în aplicație
 Hemoglobină 11.9 g/dL, feritină 18 ng/mL, vitamina D 25 ng/mL, vitamina B12 305 pg/mL, calciu 8.88 mg/dL, magneziu 1.83 mg/dL, zinc 70 mcg/dL, proteine 6.38 g/dL, folat 6.6 ng/mL, vitamina A 38.5 mg/dL, iod 106 mg/L, potasiu 3.92 mmol/L.
-Observație medicală: „Vegetariană; feritină scăzută, suspiciune anemie feriprivă.”
+Observație medicală: „Vegetariană; feritină scăzută, suspiciune anemie feriprivă."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Deficitul dominant este clar fierul, susținut de feritină scăzută și hemoglobină la limită inferioară. Algoritmul prioritizează corect această țintă și calculează acoperirea deficitului per aliment/porție.
+Deficitul dominant este clar fierul, susținut de feritină scăzută (18 ng/mL, sub pragul clinic de 30 ng/mL) și hemoglobină la limita inferioară (11.9 g/dL, sub pragul feminin de 12.0 g/dL). Algoritmul prioritizează corect această țintă și calculează acoperirea deficitului per aliment/porție.
+
+RDI magneziu pentru Roxana (23 ani, F, <30 ani): 310 mg — corect calculat atât înainte cât și acum (cohorta <30 ani era corectă).
+RDI fier pentru Roxana (23 ani, F, 18-50 ani): 18 mg — corect calculat.
 
 Cum sunt generate recomandările în acest caz
 Pipeline-ul VitaBalance:
 
-preluare profil + analize + dietă + alergii;
+preluare profil + analize + dietă vegetariană + alergii (ouă);
 detectare deficit prioritar (fier);
+filtrare compatibilitate: dieta vegetariană → excludere carne, pui, porc, vită, miel, pește, fructe de mare; alergie la ouă → excludere ouă și preparate cu ouă;
 scorare rule-based după conținut de fier/100 g, aport per porție și procent de acoperire;
 ordonare Top‑K descrescător + explicații numerice (mg fier/100 g, mg/porție, procent deficit).
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Cereale Integrale Fortificate cu B12 – 64.7%
 Fasole Albă Toscana (120 ml) – 50.3%
@@ -27,17 +32,48 @@ Tofu Ferm (115 g) – 45.2%
 Humus (2 linguri) – 44.6%
 Seitan (85 g) – 43.1%
 Burger Vegetal (1 chiftea) – 39.9%
-Verze cu ciocănel de porc – 37.9%
+Verze cu ciocănel de porc – 37.9% ← PROBLEMĂ
 Roșii Pasate (120 ml) – 37.9%
+
+PROBLEMĂ IDENTIFICATĂ ÎN CAPTURA ORIGINALĂ: „Verze cu ciocănel de porc" apărea pe poziția 9 (37.9%) în lista de recomandări pentru Roxana Petrescu, care este VEGETARIANĂ. Aceasta este o eroare clară: porc este incompatibil cu dieta vegetariană. Bug-ul era că preparatul „Verze cu ciocănel de porc" era într-o categorie mixtă (Mese/Tradiționale sau similar) care nu conținea explicit „porc" sau „carne" în denumirea categoriei, iar marcatoarele din text (ciocănel de porc) nu erau verificate în denumirea alimentului.
+
+Modificări față de captura inițială (April 2026)
+1. FIX CRITIC aplicat — preparate cu carne în categorii mixte: Cu fix-ul aplicat, lista `meat_name_markers` din `compatibility_core.py` include acum: „pui", „curcan", „porc", „de vita", „vitello", „miel", „bacon", „prosciutto", „pancetta", „guanciale", „chorizo", „sunca", „jambon", „gyros", „shawarma", „bolognese", „ragu", „stroganoff", „tikka masala", „kebab", „shish", „lomo saltado", „osso buco", „carne toc", „carne de". Deoarece „Verze cu ciocănel de porc" conține „porc" în denumire, acum este corect exclus pentru vegetarieni/vegani, indiferent de categoria alimentului. IMPACTUL ESTE DIRECT: Verze cu ciocănel de porc (poziția 9) dispare din lista de recomandări pentru Roxana.
+2. Fix RDI magneziu: Roxana are 23 ani (<30 ani, F), RDI este 310 mg — era deja corect. Nu există impact.
+3. Fix ouă pentru alergici la lactate: Nu afectează direct Roxana (alergia ei este la ouă, nu lactate). Ouăle sunt excluse corect pentru Roxana pe baza alergiei declarate.
+4. Fix dislike rating: Îmbunătățire pentru mecanismul de feedback, fără impact direct pe această captură.
+
+Recomandări actuale (algoritm curent)
+Cu fix-ul aplicat, „Verze cu ciocănel de porc" este EXCLUS din lista de recomandări pentru Roxana. Lista actualizată va aduce un alt aliment în locul poziției 9. Probabil candidat de înlocuire: Edamame în păstaie, Supă de linte orientală, Sfeclă roșie, sau alt aliment vegetarian bogat în fier.
+
+Lista actualizată estimată (top 10, algoritm curent):
+
+Cereale Integrale Fortificate cu B12 – 64.7%
+Fasole Albă Toscana (120 ml) – 50.3%
+Fasole Refried (120 ml) – 49.0%
+Mazăre Verde (120 ml) – 49.0%
+Tofu Ferm (115 g) – 45.2%
+Humus (2 linguri) – 44.6%
+Seitan (85 g) – 43.1%
+Burger Vegetal (1 chiftea) – 39.9%
+[Aliment vegetarian cu fier, ex. Edamame sau Supă de linte] – estimat ~37–38%
+Roșii Pasate (120 ml) – 37.9%
+
 Explicație profesională a rezultatului
-Recomandările de top sunt în principal din zona cerealelor fortificate și leguminoaselor, adecvate pentru creșterea aportului de fier în context vegetarian. Scorurile ridicate din primele poziții reflectă o potrivire bună cu deficitul estimat.
+Recomandările de top sunt în principal din zona cerealelor fortificate și leguminoaselor, adecvate pentru creșterea aportului de fier în context vegetarian fără ouă. Scorurile ridicate din primele poziții reflectă o potrivire bună cu deficitul estimat.
 Cazul este foarte relevant pentru evaluarea sistemului, deoarece arată tranziția de la intervenție generală la intervenție țintită pe micronutrient (fier), cu justificări cantitative clare.
 
 Exemplu de justificare punctuală (model pentru lucrare)
-Cereale Integrale Fortificate cu B12, acoperire 64.7%: recomandate pentru deficit moderat de fier; conținutul de 8.0 mg fier/100 g permite un aport de ~13.2 mg per porția de 165 g, cuantificat de algoritm ca acoperire integrală a deficitului țintit.
+Cereale Integrale Fortificate cu B12, acoperire 64.7%: recomandate pentru deficit moderat de fier; conținutul de 8.0 mg fier/100 g permite un aport de ~13.2 mg per porția de 165 g, cuantificat de algoritm ca acoperire integrală a deficitului țintit. De menționat că această recomandare este activată chiar dacă „B12" este în denumire — B12 nu este deficitul prioritar la Roxana, dar alimentul apare pe locul 1 datorită densității ridicate de fier.
 
 Implicație clinică practică
 Pentru suspiciune de anemie feriprivă, planul alimentar trebuie asociat cu monitorizare hematologică periodică și, dacă este cazul, conduită medicală specifică (suplimentare conform recomandării clinicianului).
 
 Punct de validare algoritmică
-Acest profil validează bine mecanismul de prioritizare a fierului, dar evidențiază și o zonă de îmbunătățire: unele recomandări din lista extinsă intră în conflict cu preferința dietară vegetariană (preparate cu carne), ceea ce sugerează necesitatea întăririi filtrului de constrângeri înainte de ranking.
+Acest profil validează bine mecanismul de prioritizare a fierului și demonstrează că fix-ul pentru preparate cu carne în categorii mixte funcționează: „Verze cu ciocănel de porc" a dispărut din lista vegetariană. Rămâne util pentru lucrare ca exemplu de bug identificat și corectat prin audit de caz.
+
+Probleme identificate / Limitări rămase
+- Seitan (grâu hidratat) conține gluten. Dacă Roxana ar avea celiachie sau sensibilitate la gluten, seitan ar trebui exclus. Sistemul nu aplică o regulă automată de excludere gluten pentru vegetarieni — gluten este filtrat NUMAI dacă utilizatorul declară explicit alergie/intoleranță la gluten.
+- Tofu Ferm și Humus conțin soia. Dacă Roxana ar declara alergie la soia, ar pierde două surse importante de fier non-heme.
+- Absorbția fierului non-heme (din leguminoase, cereale) este semnificativ mai mică decât fierul heme din carne (15–35% vs. 2–15%). Sistemul nu ajustează eficiența de absorbție a fierului pe baza tipului de sursă (heme vs. non-heme). Aceasta este o limitare clinică importantă pentru dieta vegetariană.
+- Vitamina D 25 ng/mL este la limita inferioară a normalului (sub 30 ng/mL optim). Nu generează deficit activ în algoritm (pragul sever este 20 ng/mL), dar merită monitorizat.

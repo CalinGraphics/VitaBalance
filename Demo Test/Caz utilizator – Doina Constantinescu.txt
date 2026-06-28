@@ -5,20 +5,24 @@ Restricții și context clinic: alergie la arahide; condiție medicală declarat
 
 Date de analize introduse în aplicație
 Hemoglobină 12.9 g/dL, feritină 43 ng/mL, vitamina D 26.5 ng/mL, vitamina B12 388 pg/mL, calciu 9 mg/dL, magneziu 1.9 mg/dL, zinc 83 mcg/dL, proteine 6.58 g/dL, folat 6.2 ng/mL, vitamina A 40.8 mg/dL, iod 116.5 mg/L, potasiu 4.04 mmol/L.
-Observație medicală: „HbA1c urmărită în ambulator; profil lipido‑glucidic în evaluare.”
+Observație medicală: „HbA1c urmărită în ambulator; profil lipido‑glucidic în evaluare."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Nu apare un deficit sever unic care să domine ranking-ul; profilul este relativ stabil, cu orientare spre optimizare multi-nutrient. În acest scenariu, algoritmul recomandă alimente cu acoperire globală bună (vitamine A/C/K, B12, iod, calciu, proteine, zinc), menținând compatibilitatea cu alergia declarată.
+Nu apare un deficit sever unic care să domine ranking-ul; profilul este relativ stabil, cu orientare spre optimizare multi-nutrient. În acest scenariu, algoritmul recomandă alimente cu acoperire globală bună (vitamine A/C/K, B12, iod, calciu, proteine, zinc), menținând compatibilitatea cu alergia declarată la arahide. Diabetul activează mecanismul `diabetes_guard_active`, care penalizează alimente cu zahăr liber ridicat, carbohidrați rafinați și densitate calorică mare.
+
+RDI magneziu pentru Doina (57 ani, F, ≥30 ani): 320 mg — corect calculat în algoritmul curent (față de 310 mg cât era eronat anterior, cohorta F ≥30 ani).
 
 Cum sunt generate recomandările în acest caz
 Pipeline-ul VitaBalance:
 
 preluare profil + analize + condiții clinice + alergii;
-filtrare de siguranță (eliminare opțiuni incompatibile, inclusiv arahide);
+filtrare de siguranță (eliminare opțiuni incompatibile, inclusiv arahide și produse cu arahide);
+activare „diabetes_guard" → penalizare alimente cu free_sugar ≥12 g, carbs ≥45 g și fibre <3 g, calorii mari cu grăsimi ridicate;
 scorare rule-based pe contribuția per porție la RDI și la acoperirea globală;
 ordonare Top‑K descrescător;
 explicație textuală + numerică pentru trasabilitate (aport/porție și procente).
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Roșii pasate (120 ml) – 38.7%
 Porumb fiert pe știulete (1 mare) – 38.5%
@@ -30,6 +34,17 @@ Brânză Brie (28 g) – 31.1%
 Friptură Florentină (85 g) – 30.7%
 Burger de curcan (1 chiftea) – 30.7%
 Cașcaval Provolone (1 felie) – 30.5%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Doina are 57 ani (≥30 ani, F), deci RDI corect este 320 mg față de 310 mg anterior. Magneziul ei este 1.9 mg/dL (ușor deasupra pragului de 1.7 mg/dL), deci nu activează deficit de magneziu activ. Corecția RDI nu schimbă lista de recomandări.
+2. Fix preparate cu carne în categorii mixte: Doina este omnivoră, deci Verze cu ciocănel de porc (poziția 3), Saltimbocca (vițel + prosciutto, poziția 5), Friptură Florentină și Burger de curcan rămân valide. Fix-ul de excludere pentru vegetarieni/vegani nu se aplică profilului Doinei.
+3. Nu există alte modificări cu impact direct.
+
+Recomandări actuale (algoritm curent)
+Lista de recomandări rămâne practic identică față de captura din Aprilie 2026. Diabetul activează „diabetes_guard" care penalizează alimentele cu zahăr ridicat, reducând șansele de a vedea dulciuri sau băuturi îndulcite în top.
+
+Observație importantă — Cartof copt (poziția 4): cartofii au indice glicemic ridicat și pot influența negativ glicemia la diabetici. Sistemul penalizează alimente cu carbs ≥45 g și fibre <3 g, dar cartofii pot trece pragul dacă porția este moderată. Merită menționat în lucrare că filtrul glucidic al sistemului are limitări pentru gestionarea indexului glicemic.
+
 Explicație profesională a rezultatului
 Topul este construit dintr-un mix de:
 
@@ -45,3 +60,8 @@ Pentru pacientă cu diabet, recomandările pot susține un model alimentar de me
 
 Punct de validare algoritmică
 Cazul validează comportamentul motorului în scenariu de comorbiditate metabolică, fără deficit dominant, dar cu filtrare pe alergeni și ranking explicabil pe acoperire multi‑nutrient.
+
+Probleme identificate / Limitări rămase
+- Cartof copt și Salată de cartofi (poziția 4 și 6) sunt alimente cu indice glicemic ridicat-mediu, potențial problematice pentru diabet. Sistemul penalizează carbs ≥45 g cu fibre <3 g, dar cartofii pot trece filtrul la porții moderate. Lipsa unui model de indice glicemic explicit este o limitare clinică importantă.
+- Verze cu ciocănel de porc (poziția 3) este un aliment tradițional cu conținut ridicat de grăsimi saturate și sodiu — nu ideal din perspectiva gestionării lipidice în diabet. Sistemul nu penalizează explicit grăsimile saturate per se (doar grăsimi totale mari + colesterol ridicat).
+- Filtrul de arahide: arahidele și untul de arahide sunt excluse corect. Totuși, produsele procesate care conțin arahide urmele pot trece dacă nu sunt etichetate în catalog.

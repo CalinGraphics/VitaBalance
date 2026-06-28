@@ -5,20 +5,26 @@ Context clinic declarat: osteoporoză și deficiență de vitamina D.
 
 Date de analize introduse în aplicație
 Hemoglobină 12.8 g/dL, feritină 35 ng/mL, vitamina D 14 ng/mL, vitamina B12 265 pg/mL, calciu 8.1 mg/dL, magneziu 1.72 mg/dL, zinc 76 mcg/dL, proteine 6.25 g/dL, folat 5.2 ng/mL, vitamina A 33 mg/dL, iod 102 mg/L, potasiu 3.75 mmol/L.
-Observație medicală: „Osteoporoză cunoscută; vitamina D și calciu sub ținta terapeutică.”
+Observație medicală: „Osteoporoză cunoscută; vitamina D și calciu sub ținta terapeutică."
 
 Interpretare nutrițională (deficiențe/minusuri)
-Cazul evidențiază un deficit moderat de calciu (8.1 mg/dL) și un deficit important de vitamina D (14 ng/mL), pe fondul unei patologii osoase deja cunoscute. În consecință, motorul de recomandare prioritizează alimente cu densitate crescută de calciu și include opțiuni cu aport complementar pentru vitamina D, în limita disponibilității alimentare.
+Cazul evidențiază un deficit moderat de calciu (8.1 mg/dL, sub pragul clinic de 8.5 mg/dL) și un deficit important de vitamina D (14 ng/mL, sub pragul de 20 ng/mL). Contextul de osteoporoză activează mecanismul de required nutrients (calciu + vitamina D obligatorii în top), iar motorul de recomandare prioritizează alimente cu densitate crescută de calciu și include opțiuni cu aport complementar pentru vitamina D.
+
+RDI calciu pentru Victoria (69 ani, F, 50+ ani dar nu ≥70 ani): 1200 mg — calculat corect (Victoria are 69 ani, deci intră în categoria 50+, F = 1200 mg). Fix-ul pentru calciu 70+ nu afectează acest caz deoarece Victoria are 69 ani (sub pragul de 70 ani).
+
+RDI magneziu pentru Victoria (69 ani, F, ≥30 ani): 320 mg — corect calculat în algoritmul curent (față de 310 mg cât era eronat anterior).
 
 Cum sunt generate recomandările în acest caz
 Pipeline-ul VitaBalance aplicat acestui profil:
 
 preluare profil + analize + context clinic (osteoporoză);
 identificare nutrient-țintă principal: calciu (cu suport pentru vitamina D);
-scorare rule-based în funcție de conținutul de calciu/100 g, aportul per porție și procentul de acoperire al deficitului;
+activare „required_focus_nutrients" = {calcium, vitamin_d} din cauza osteoporozei declarate;
+scorare rule-based în funcție de conținutul de calciu/100 g, aport per porție și procentul de acoperire al deficitului;
 ordonare Top‑K descrescător după acoperirea estimată;
 atașare de explicații textuale + numerice pentru trasabilitatea deciziei.
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Cașcaval elvețian (1 felie) – 67.7%
 Mozzarella proaspătă (28 g) – 67.7%
@@ -30,10 +36,26 @@ Sparanghel la cuptor (6 fire) – 28.9%
 Sparanghel fiert (240 ml) – 28.6%
 Bama prăjită (240 ml) – 28.1%
 Cartof copt (mediu) – 27.8%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Victoria are 69 ani (≥30 ani, F), deci RDI magneziu corect este 320 mg, față de 310 mg cât era calculat eronat anterior. Magneziul Victoriei este 1.72 mg/dL, exact la limita superioară a pragului clinic (1.7 mg/dL). Cu RDI corectat la 320 mg (față de 310 mg anterior), estimarea deficitului de magneziu poate fi ușor mai mare, dar magneziul rămâne deficit secundar față de calciu și vitamina D care domină.
+2. Fix RDI calciu 70+: Victoria are 69 ani, deci nu este afectată de acest fix (pragul este ≥70 ani).
+3. Fix ouă în categoria „Proteine/Lactate": „Ouă Jumări" apărea pe locul 5 (38.1%). Cu fix-ul aplicat, este corect tratată ca produs cu ouă (nu lactate) și rămâne validă pentru Victoria (fără alergie la lactate sau ouă). Poziția sa în top rămâne similară. Fix-ul previne excluderea greșită a Ouălor Jumări pentru utilizatorii cu alergie la lactate (nu este cazul Victoriei).
+4. Nu există alte modificări relevante pentru profilul omnivor al Victoriei.
+
+Recomandări actuale (algoritm curent)
+Lista de recomandări rămâne practic identică față de captura din Aprilie 2026. Lactica cu calciu ridicat (cașcaval, mozzarella, pecorino, parmezan) domină corect în top datorită densității mari de calciu per 100 g și contribuției mari la acoperirea deficitului.
+
+Ouă Jumări rămâne pe poziția 5 (~38%) — excluderea greșită pentru alergici la lactate nu afecta acest caz, deoarece Victoria nu are alergie la lactate.
+
 Explicație profesională a rezultatului
-Primele poziții sunt dominate de lactate maturate, cu aport foarte ridicat de calciu per 100 g, ceea ce explică scorurile de acoperire semnificativ mai mari față de restul listei. Ulterior, sistemul completează planul cu alternative mixte (ouă, băuturi fortificate, legume), pentru diversificare și aderență mai bună la regim.
+Primele poziții sunt dominate de lactate maturate, cu aport foarte ridicat de calciu per 100 g, ceea ce explică scorurile de acoperire semnificativ mai mari față de restul listei. Ulterior, sistemul completează planul cu alternative mixte (ouă, băuturi vegetale, legume), pentru diversificare și aderență mai bună la regim.
 În mod justificat clinic, recomandările sunt concentrate pe recuperarea statusului mineral osos; componenta de vitamina D apare mai redus în alimentație, ceea ce susține explicit nevoia de monitorizare medicală și strategie terapeutică integrată.
 
 Exemplu de justificare punctuală (model pentru lucrare)
 Cașcaval elvețian (1 felie), acoperire 67.7%: recomandat prioritar pentru deficit moderat de calciu; conține 397 mg calciu/100 g, iar porția de 190 g furnizează aproximativ 754.3 mg calciu, cuantificat de algoritm ca acoperire integrală a deficitului țintit în modelul de calcul nutrițional.
 
+Probleme identificate / Limitări rămase
+- Vitamina D nu poate fi acoperită semnificativ prin alimentație singură (sursele alimentare de D sunt limitate: pește gras, gălbenuș de ou, alimente fortifiate). La Victoria cu D = 14 ng/mL, recomandările alimentare sunt insuficiente fără suplimentare medicală. Sistemul menționează corect necesitatea monitorizării, dar nu pune accent explicit pe insuficiența acoperirii alimentare pentru vitamina D.
+- Magneziu 1.72 mg/dL este la limita inferioară. Cu RDI de 320 mg (corectat), deficitul de magneziu poate apărea acum ca deficit activ secundar, influențând ușor scorurile unor alimente cu magneziu (nuci, semințe, leguminoase). La Victoria, care nu are alergie la nuci, acestea pot apărea în lista extinsă.
+- Bama prăjită (poziția 9) este un aliment prăjit — în contextul osteoporozei la 69 ani cu activitate sedentară, preparatele prăjite nu ar fi ideale nutrițional, dar sistemul nu penalizează modul de preparare specific al acestui aliment din această categorie.

@@ -5,20 +5,23 @@ Restricții și context clinic: alergie/intoleranță la gluten, diagnostic decl
 
 Date de analize introduse în aplicație
 Hemoglobină 13.4 g/dL, feritină 41 ng/mL, vitamina D 30.5 ng/mL, vitamina B12 405 pg/mL, calciu 9.18 mg/dL, magneziu 1.94 mg/dL, zinc 87 mcg/dL, proteine 6.68 g/dL, folat 6.4 ng/mL, vitamina A 41.5 mg/dL, iod 118 mg/L, potasiu 4.08 mmol/L.
-Observație medicală: „Boala celiacă stabilizată; profil orientativ în limite.”
+Observație medicală: „Boala celiacă stabilizată; profil orientativ în limite."
 
 Interpretare nutrițională (deficiențe/minusuri)
 Nu apar deficite severe active în biomarkeri, ceea ce indică un profil clinic relativ stabil. În acest context, motorul de recomandare funcționează în regim de optimizare și menținere: selectează alimente compatibile cu restricția la gluten și maximizează acoperirea globală pe mai mulți micronutrienți (A, C, K, B12, iod, calciu, zinc, proteine etc.).
+
+RDI magneziu pentru Gabriela (31 ani, F, ≥30 ani): 320 mg — corect calculat în algoritmul curent (față de 310 mg cât era eronat anterior, cohorta F ≥30 ani).
 
 Cum sunt generate recomandările în acest caz
 Pipeline-ul VitaBalance pentru acest profil:
 
 preluare profil + analize + restricții (celiachie/gluten);
-filtrare alimente incompatibile cu dieta fără gluten;
+filtrare alimente incompatibile cu dieta fără gluten (excludere pâine, paste, grâu, cereale cu gluten);
 scorare rule-based pe compatibilitate clinico‑nutrițională și aport per porție;
 estimarea acoperirii globale multi-nutrient;
 ordonare Top‑K + explicații textuale și numerice pentru fiecare aliment.
-Top recomandări (K=10) din raport
+
+Top recomandări (K=10) din raport (captura Aprilie 2026)
 
 Porumb fiert pe știulete (1 mare) – 38.1%
 Verze cu ciocănel de porc – 37.7%
@@ -30,6 +33,18 @@ Iaurt grecesc natural (240 ml) – 32.3%
 Brânză Gorgonzola (28 g) – 32.3%
 Friptură Florentina (85 g) – 30.1%
 Cotlet de porc (115 g la grătar) – 30.1%
+
+Modificări față de captura inițială (April 2026)
+1. Fix RDI magneziu: Gabriela are 31 ani (≥30 ani, F), deci RDI corect este 320 mg față de 310 mg anterior. Magneziul ei este 1.94 mg/dL (ușor deasupra pragului de 1.7 mg/dL), deci nu activează deficit de magneziu activ. Corecția RDI nu schimbă vizibil lista.
+2. Fix preparate cu carne în categorii mixte: Gabriela este omnivoră, deci Verze cu ciocănel de porc (poziția 2), Friptură Florentina, Cotlet de porc (pozițiile 9-10) rămân valide. Fix-ul privind excluderea preparatelor cu carne afectează NUMAI utilizatorii vegetarieni/vegani.
+3. Fix ouă în categoria „Proteine/Lactate": Nu afectează Gabriela (nu are alergie la lactate sau ouă).
+4. Nu există alte modificări relevante pentru profilul omnivor al Gabrielei.
+
+Recomandări actuale (algoritm curent)
+Lista de recomandări rămâne practic identică față de captura din Aprilie 2026. Profilul fără deficit major dominant generează un fallback cu rebalansare pe categorii, iar alimentele cu densitate multi-nutrient bună și compatibile cu dieta fără gluten domină lista.
+
+Verze cu ciocănel de porc (poziția 2) rămâne valid pentru Gabriela ca profil omnivor. Această recomandare ar fi exclusă pentru vegetarieni/vegani cu fix-ul actual, dar nu pentru profilul Gabrielei.
+
 Explicație profesională a rezultatului
 Recomandările din top combină:
 
@@ -46,3 +61,8 @@ Cazul arată că algoritmul poate menține calitatea recomandărilor într-un pr
 
 Punct de validare algoritmică
 Util pentru licență ca exemplu de regim de menținere: fără deficit major dominant, dar cu filtrare pe restricție critică (gluten) și ranking explicabil pe acoperire globală.
+
+Probleme identificate / Limitări rămase
+- Sistemul nu distinge gradul de severitate al celiachiei (celiachie activă vs. stabilizată sub regim fără gluten). Filtrarea pe gluten se aplică identic indiferent de status.
+- Cereale Integrale Fortificate cu B12 conțin în mod tipic grâu sau orz și ar trebui excluse pentru celiachie. Sistemul trebuie să verifice dacă are înregistrat acest aliment ca conținând gluten. Dacă nu este etichetat corect ca conținând gluten, poate apărea eronat în lista de recomandări.
+- Magneziu 1.94 mg/dL este ușor deasupra pragului critic, dar absorbția de magneziu este adesea afectată în celiachie (chiar și stabilizată). O monitorizare suplimentară a magneziului seric ar fi clinică recomandată.
