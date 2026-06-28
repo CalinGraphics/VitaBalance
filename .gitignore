@@ -42,10 +42,8 @@ yarn-error.log*
 frontend/dist/
 frontend/.vite/
 
-# Agent skills instalate local (npx skills add) — nu versionăm copii generate
+# Tool-uri locale — nu se versionează
 .agents/
-
-# Fișiere generate de Claude Code / Cursor — nu se versionează
 .claude/
 .cursor/
 skills-lock.json
