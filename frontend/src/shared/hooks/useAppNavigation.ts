@@ -86,7 +86,6 @@ export const useAppNavigation = () => {
   const handleProfileUpdate = useCallback((updatedUser: User) => {
     setMedicalUser(updatedUser)
     setRecommendationsRefreshKey((k) => k + 1)
-    setRoute('recommendations')
   }, [])
 
   const handleLogout = useCallback(() => {

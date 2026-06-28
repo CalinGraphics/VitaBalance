@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { UserCog, Save, FlaskConical, ArrowLeft } from 'lucide-react'
 import React from 'react'
@@ -34,34 +34,6 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const loadUserData = useCallback(async () => {
-    try {
-      if (user.id) {
-        const response = await profileService.get(user.id)
-        setFormData({
-          email: response.email,
-          name: response.name,
-          sex: response.sex,
-          activity_level: response.activity_level,
-          diet_type: response.diet_type,
-          allergies: response.allergies || '',
-          medical_conditions: response.medical_conditions || ''
-        })
-        setAgeText(response.age != null ? String(response.age) : '')
-        setWeightText(response.weight != null ? String(response.weight) : '')
-        setHeightText(response.height != null ? String(response.height) : '')
-      }
-    } catch (error) {
-      console.error('Eroare la încărcarea datelor:', error)
-    }
-  }, [user.id])
-
-  useEffect(() => {
-    if (user.id) {
-      void loadUserData()
-    }
-  }, [user.id, loadUserData])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -86,7 +58,6 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
         return
       }
 
-      // Backend uses email to identify and update user
       const payload: Partial<User> = {
         ...formData,
         age,
@@ -94,21 +65,27 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
         height,
       }
       const response = await profileService.update(user.id || 0, payload)
-      if (user.id) {
-        setLoadingNote('Se generează recomandările actualizate…')
-        await regenerateRecommendationsAfterSave(user.id)
-      }
-      setLoadingNote(null)
-      setSuccess(true)
-      
-      // Actualizează utilizatorul cu datele noi
+
+      // Actualizează starea utilizatorului imediat după salvare,
+      // indiferent dacă regenerarea recomandărilor reușește sau nu
       const updatedUser = {
         ...user,
         ...response
       }
       onUpdate(updatedUser)
-      
-      // Navigate back after a short delay
+
+      // Regenerare recomandări — best-effort, nu blochează navigarea
+      if (user.id) {
+        try {
+          setLoadingNote('Se generează recomandările actualizate…')
+          await regenerateRecommendationsAfterSave(user.id)
+        } catch (recErr) {
+          console.error('Eroare la regenerarea recomandărilor:', recErr)
+        }
+        setLoadingNote(null)
+      }
+
+      setSuccess(true)
       setTimeout(() => {
         onNavigateBack()
       }, 1500)
