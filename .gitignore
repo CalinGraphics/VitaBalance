@@ -42,7 +42,7 @@ yarn-error.log*
 frontend/dist/
 frontend/.vite/
 
-# Tool-uri locale — nu se versionează
+# Tool-uri locale
 .agents/
 skills-lock.json
 
