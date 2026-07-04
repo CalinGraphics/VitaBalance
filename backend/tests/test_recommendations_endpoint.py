@@ -16,6 +16,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 if HAS_FASTAPI:
     import main as main_module
+    from services import recommendation_materialize as materialize_module
 from domain.models import FoodItem, LabResultItem, RecommendationItem, UserProfile
 
 
@@ -71,7 +72,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
             def get_counts_by_food_id(self):
                 return {}
 
-            def get_counts_by_food_ids(self, food_ids):
+            def get_counts_by_food_ids(self, food_ids, user_id=None):
                 return {int(fid): {"likes": 0, "dislikes": 0} for fid in food_ids}
 
         class FakeRecRepo:
@@ -114,6 +115,14 @@ class RecommendationsEndpointTests(unittest.TestCase):
             patch.object(main_module, "LabResultRepository", FakeLabRepo),
             patch.object(main_module, "FeedbackRepository", FakeFeedbackRepo),
             patch.object(main_module, "RecommendationRepository", FakeRecRepo),
+            # `/api/recommendations` delega la materialize_recommendations(), care își
+            # importă propriile referințe la repo-uri (nu pe cele din `main`) — fără aceste
+            # patch-uri, testele loveau baza de date reală și primeau 404/liste goale.
+            patch.object(materialize_module, "UserRepository", FakeUserRepo),
+            patch.object(materialize_module, "FoodRepository", FakeFoodRepo),
+            patch.object(materialize_module, "LabResultRepository", FakeLabRepo),
+            patch.object(materialize_module, "FeedbackRepository", FakeFeedbackRepo),
+            patch.object(materialize_module, "RecommendationRepository", FakeRecRepo),
         ]
 
     def test_excludes_chicken_when_medical_condition_says_no_chicken(self):
@@ -126,7 +135,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
         labs = LabResultItem(id=1, user_id=1)  # fără biomarkeri completați
 
         ctx = self._make_repo_patches(user, foods, labs)
-        with ctx[0], ctx[1], ctx[2], ctx[3], ctx[4]:
+        with ctx[0], ctx[1], ctx[2], ctx[3], ctx[4], ctx[5], ctx[6], ctx[7], ctx[8], ctx[9]:
             resp = self.client.post("/api/recommendations", json={"user_id": 1})
 
         self.assertEqual(resp.status_code, 200, resp.text)
@@ -143,7 +152,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
         labs = LabResultItem(id=2, user_id=1)  # toate None
 
         ctx = self._make_repo_patches(user, foods, labs)
-        with ctx[0], ctx[1], ctx[2], ctx[3], ctx[4]:
+        with ctx[0], ctx[1], ctx[2], ctx[3], ctx[4], ctx[5], ctx[6], ctx[7], ctx[8], ctx[9]:
             resp = self.client.post("/api/recommendations", json={"user_id": 1})
 
         self.assertEqual(resp.status_code, 200, resp.text)
@@ -163,7 +172,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
         labs = LabResultItem(id=3, user_id=1, hemoglobin=11.0, ferritin=None)
 
         ctx = self._make_repo_patches(user, foods, labs)
-        with ctx[0], ctx[1], ctx[2], ctx[3], ctx[4]:
+        with ctx[0], ctx[1], ctx[2], ctx[3], ctx[4], ctx[5], ctx[6], ctx[7], ctx[8], ctx[9]:
             resp = self.client.post("/api/recommendations", json={"user_id": 1})
 
         self.assertEqual(resp.status_code, 200, resp.text)
@@ -232,6 +241,13 @@ class RecommendationsEndpointTests(unittest.TestCase):
             patch.object(main_module, "LabResultRepository", FakeLabRepo),
             patch.object(main_module, "FeedbackRepository", FakeFeedbackRepo),
             patch.object(main_module, "RecommendationRepository", FakeRecRepoWithRows),
+            # `/api/recommendations/stored/{id}` delegă la list_stored_recommendations_fast(),
+            # care își importă propriile referințe la repo-uri (nu pe cele din `main`).
+            patch.object(materialize_module, "UserRepository", FakeUserRepo),
+            patch.object(materialize_module, "FoodRepository", FakeFoodRepo),
+            patch.object(materialize_module, "LabResultRepository", FakeLabRepo),
+            patch.object(materialize_module, "FeedbackRepository", FakeFeedbackRepo),
+            patch.object(materialize_module, "RecommendationRepository", FakeRecRepoWithRows),
         ):
             resp = self.client.get("/api/recommendations/stored/1")
 
