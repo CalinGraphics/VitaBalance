@@ -245,6 +245,22 @@ class RecommendationLogicTests(unittest.TestCase):
         creveti = make_food(id=84, name="Shrimp bowl", category="mese", iron=0.5)
         self.assertFalse(self.rule_engine._is_compatible(creveti, user))
 
+    def test_fish_allergy_blocks_cod_halibut_tilapia_in_generic_categories(self):
+        """Specii frecvente în catalog fără „pește” în categorie (ex. Mese/Proteine)."""
+        user = make_user(allergies="oua, peste", medical_conditions="anemie")
+        cases = [
+            make_food(id=85, name="File de Cod", category="Mese/Proteine", iron=0.8),
+            make_food(id=86, name="Halibut la Cuptor", category="Mese/Diverse", iron=1.0),
+            make_food(id=87, name="Tilapia la Gratar", category="Proteine/Carne", iron=0.9),
+        ]
+        linte = make_food(id=88, name="Linte fiarta", category="Leguminoase", iron=3.0)
+        fasole = make_food(id=89, name="Fasole Alba", category="Leguminoase", iron=3.5)
+        for food in cases:
+            with self.subTest(food=food.name):
+                self.assertFalse(self.rule_engine._is_compatible(food, user))
+        self.assertTrue(self.rule_engine._is_compatible(linte, user))
+        self.assertTrue(self.rule_engine._is_compatible(fasole, user))
+
     def test_egg_allergy_blocks_cobb_and_picatta_names(self):
         user = make_user(allergies="oua")
         cobb = make_food(id=90, name="Salată Cobb", category="mese/proteine")

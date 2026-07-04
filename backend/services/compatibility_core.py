@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 from domain.models import FoodItem, UserProfile
-from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm
+from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm, fish_name_matches_norm
 from services.food_intelligence_api import (
     assess_hidden_soy_risk_from_api,
     assess_hidden_allergen_risk_from_api,
@@ -184,6 +184,9 @@ def is_compatible_diet_and_allergies(food: FoodItem, user: UserProfile) -> bool:
                         continue
                 if allergy_keyword_matches_norm(kw, food_name_norm, food_category_norm):
                     return False
+
+            if lookup_norm == "peste" and fish_name_matches_norm(food_name_norm):
+                return False
 
         if food.allergens:
             food_allergens = [
