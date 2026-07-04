@@ -727,16 +727,19 @@ class NutritionalRuleEngine:
             'peste': [
                 'nu mananc peste', 'nu mănânc pește', 'nu mananc pesti', 'nu mănânc pești',
                 'fara peste', 'fără pește', 'no fish', 'no seafood',
-                'evit peste', 'interzis peste', 'nu pot peste', 'nu pot mânca peste'
+                'evit peste', 'interzis peste', 'nu pot peste', 'nu pot mânca pește',
+                'nu pot consuma peste', 'nu pot consuma pesti',
             ],
             'lactate': [
                 'nu mananc lactate', 'nu mănânc lactate', 'nu mananc lapte', 'nu mănânc lapte',
                 'fara lactate', 'fără lactate', 'fara lapte', 'fără lapte',
-                'no dairy', 'no milk', 'evit lactate', 'interzis lactate'
+                'no dairy', 'no milk', 'evit lactate', 'interzis lactate',
+                'nu pot consuma lactate', 'nu pot consuma lapte',
             ],
             'semințe': [
                 'nu mananc seminte', 'nu mănânc semințe', 'nu am voie seminte', 'nu am voie semințe',
-                'fara seminte', 'fără semințe', 'no seeds', 'evit seminte', 'interzis seminte'
+                'fara seminte', 'fără semințe', 'no seeds', 'evit seminte', 'interzis seminte',
+                'nu pot consuma seminte', 'nu pot consuma seminte de',
             ],
             'nuci': [
                 'nu mananc nuci', 'nu mănânc nuci', 'nu mananc nuca', 'nu mănânc nucă',
@@ -795,6 +798,7 @@ class NutritionalRuleEngine:
         # "nu mananc peste, pui", "nu am voie peste si pui", etc.
         list_patterns = [
             r'nu\s+(?:mananc|pot manca|am voie)\s+([^.;!?]+)',
+            r'nu\s+pot\s+(?:consuma|manca|mananc)\s+([^.;!?]+)',
             r'fara\s+([^.;!?]+)',
             r'evit\s+([^.;!?]+)',
             r'nu\s+consum\s+([^.;!?]+)',
@@ -986,9 +990,10 @@ class NutritionalRuleEngine:
                     'peste': [
                         'peste', 'pește', 'pescarus', 'fish', 'seafood', 'fructe de mare',
                         'homar', 'lobster', 'crevet', 'crab', 'midie', 'scoici', 'calamar', 'sepie',
+                        'cod', 'halibut', 'tilapia', 'somon', 'ton', 'macrou', 'merluciu',
                     ],
                     'lactate': ['lactate', 'lapte', 'dairy', 'milk'],
-                    'semințe': ['semințe', 'seminte', 'seeds'],
+                    'semințe': ['semințe', 'seminte', 'seeds', 'chia', 'flax', 'susan', 'sesam'],
                     'nuci': ['nuci', 'nucă', 'nuts'],
                     'leguminoase': ['leguminoase', 'fasole', 'linte', 'legumes', 'beans'],
                     'ouă': ['ouă', 'oua', 'ou', 'eggs'],
@@ -1032,7 +1037,8 @@ class NutritionalRuleEngine:
             seed_restrictions = [
                 'nu am voie seminte', 'nu am voie semințe', 'fără seminte', 'fără semințe',
                 'no seeds', 'no seeds allowed', 'fara seminte', 'fara semințe',
-                'interzis seminte', 'interzis semințe', 'evit seminte', 'evit semințe'
+                'interzis seminte', 'interzis semințe', 'evit seminte', 'evit semințe',
+                'nu pot consuma seminte', 'nu pot consuma seminte de',
             ]
             seed_keywords = ['semințe', 'seminte', 'semințe de', 'seminte de', 'chia', 'flax',
                            'in', 'sunflower', 'pumpkin', 'sesame', 'sezam', 'semințe de in',
@@ -1064,7 +1070,8 @@ class NutritionalRuleEngine:
             dairy_restrictions = [
                 'nu am voie lactate', 'nu am voie lapte', 'fără lactate', 'fără lapte',
                 'no dairy', 'no milk', 'fara lactate', 'fara lapte',
-                'interzis lactate', 'interzis lapte', 'evit lactate', 'evit lapte'
+                'interzis lactate', 'interzis lapte', 'evit lactate', 'evit lapte',
+                'nu pot consuma lactate', 'nu pot consuma lapte',
             ]
             dairy_keywords = ['lactate', 'lapte', 'branza', 'iaurt', 'smantana', 'unt', 'telemea',
                             'cascaval', 'ricotta', 'mozzarella', 'gorgonzola', 'parmezan',

@@ -6,6 +6,7 @@ from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
 from services.rule_engine import NutritionalRuleEngine
 from services.deficit_calculator import DeficitCalculator
 from services.medical_rules_loader import normalize_clinical_text, normalize_diet_type
+from services.clinical_context import build_effective_user_profile
 from services.portion_calculator import suggest_portion_for_category, suggest_portion_grams
 
 class RecommenderService:
@@ -41,11 +42,7 @@ class RecommenderService:
         """
         # Integrează observațiile / diagnosticul din analize în câmpul medical_conditions,
         # astfel încât restricțiile de tip „nu am voie pește sau legume” să fie respectate.
-        effective_user = user
-        if lab_results and lab_results.notes:
-            merged_conditions = f"{user.medical_conditions or ''} {lab_results.notes or ''}".strip()
-            if merged_conditions:
-                effective_user = replace(user, medical_conditions=merged_conditions)
+        effective_user = build_effective_user_profile(user, lab_results)
         filtered_deficits = {
             k: v for k, v in deficits.items()
             if k in self.nutrients and v > 0
@@ -284,11 +281,7 @@ class RecommenderService:
         """
         Top-1 pentru înlocuire: evaluează un subset de alimente (fără rebalance / MIN_TARGET / secondary fill).
         """
-        effective_user = user
-        if lab_results and lab_results.notes:
-            merged_conditions = f"{user.medical_conditions or ''} {lab_results.notes or ''}".strip()
-            if merged_conditions:
-                effective_user = replace(user, medical_conditions=merged_conditions)
+        effective_user = build_effective_user_profile(user, lab_results)
 
         filtered_deficits = {k: v for k, v in deficits.items() if k in self.nutrients and v > 0}
         focus_deficits = self._build_focus_deficits(filtered_deficits, effective_user)
