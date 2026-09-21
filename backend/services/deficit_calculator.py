@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 import re
 import unicodedata
 from domain.models import UserProfile, LabResultItem
@@ -80,6 +80,22 @@ class DeficitCalculator:
             'F': {'all': 2600},
             'other': {'all': 3000}
         }
+    }
+
+    # Praguri clinice sub care o valoare din analize înseamnă deficit (unitatea = cea afișată în UI/explicații).
+    CLINICAL_THRESHOLDS = {
+        'iron': {'threshold': 30.0, 'unit': 'ng/mL'},        # feritină
+        'calcium': {'threshold': 8.5, 'unit': 'mg/dL'},
+        'vitamin_d': {'threshold': 20.0, 'unit': 'ng/mL'},
+        'vitamin_b12': {'threshold': 200.0, 'unit': 'pg/mL'},
+        'magnesium': {'threshold': 1.7, 'unit': 'mg/dL'},
+        'protein': {'threshold': 6.0, 'unit': 'g/dL'},
+        'zinc': {'threshold': 70.0, 'unit': 'µg/dL'},
+        'folate': {'threshold': 3.0, 'unit': 'ng/mL'},
+        'vitamin_a': {'threshold': 20.0, 'unit': 'µg/dL'},
+        'vitamin_c': {'threshold': 23.0, 'unit': 'µmol/L'},
+        'iodine': {'threshold': 100.0, 'unit': 'µg/L'},
+        'potassium': {'threshold': 3.5, 'unit': 'mmol/L'},
     }
 
     def _normalized_sex(self, user: UserProfile) -> str:
@@ -286,13 +302,7 @@ class DeficitCalculator:
         ]
         
         # Extrage textul din observații pentru a detecta nutrienți preferați
-        notes_text = ""
-        if user and getattr(user, 'medical_conditions', None):
-            notes_text = (user.medical_conditions or "").lower()
-        if lab_results and getattr(lab_results, 'notes', None):
-            notes_text = f"{notes_text} {lab_results.notes or ''}".lower()
-        
-        preferred_nutrients = self._parse_preferred_nutrients(notes_text)
+        preferred_nutrients = self._parse_preferred_nutrients(self._notes_text(user, lab_results))
 
         # Dacă nu există analize deloc SAU există un rând dar toate valorile sunt NULL,
         # nu calculăm deficite medicale estimate. În acest caz, recomandările vor merge
@@ -477,27 +487,64 @@ class DeficitCalculator:
         }
         return mapping.get(nutrient)
     
+    def _notes_text(self, user: Optional[UserProfile], lab_results: Optional[LabResultItem]) -> str:
+        """Afecțiunile din profil + observațiile de la analize, în litere mici (sursa nutrienților „preferați")."""
+        notes_text = ""
+        if user and getattr(user, 'medical_conditions', None):
+            notes_text = (user.medical_conditions or "").lower()
+        if lab_results and getattr(lab_results, 'notes', None):
+            notes_text = f"{notes_text} {lab_results.notes or ''}".lower()
+        return notes_text
+
+    def _lab_marker(self, nutrient: str, user: UserProfile, lab_results: LabResultItem):
+        """(marker, valoare, prag, unitate) pentru nutrient; valoare None dacă nu există în analize."""
+        if nutrient == 'iron':
+            if getattr(lab_results, 'ferritin', None) is not None:
+                cfg = self.CLINICAL_THRESHOLDS['iron']
+                return 'ferritin', lab_results.ferritin, cfg['threshold'], cfg['unit']
+            if getattr(lab_results, 'hemoglobin', None) is not None:
+                return 'hemoglobin', lab_results.hemoglobin, self._hemoglobin_threshold(user), 'g/dL'
+            return None, None, None, None
+        cfg = self.CLINICAL_THRESHOLDS.get(nutrient)
+        value = self._get_lab_value(nutrient, lab_results)
+        if cfg is None or value is None:
+            return None, None, None, None
+        return nutrient, value, cfg['threshold'], cfg['unit']
+
+    def describe_need(
+        self, nutrient: str, user: UserProfile, lab_results: Optional[LabResultItem] = None
+    ) -> Dict[str, Any]:
+        """
+        De unde vine nevoia pentru un nutrient — folosit de explicații ca să citeze exact ce a stat la baza deficitului:
+        - "lab":     valoare din analize sub pragul clinic (marker, value, threshold, unit);
+        - "notes":   pacientul a menționat nutrientul în afecțiuni/observații;
+        - "profile": estimare din profil (fără analize relevante).
+        """
+        if lab_results is not None:
+            marker, value, threshold, unit = self._lab_marker(nutrient, user, lab_results)
+            if value is not None and threshold is not None and value < threshold:
+                return {"source": "lab", "marker": marker, "value": float(value),
+                        "threshold": float(threshold), "unit": unit}
+        if nutrient in self._parse_preferred_nutrients(self._notes_text(user, lab_results)):
+            return {"source": "notes"}
+        return {"source": "profile"}
+
+    def _hemoglobin_threshold(self, user: UserProfile) -> float:
+        sex = self._normalized_sex(user)
+        if sex == "M":
+            return 13.5  # g/dL — prag orientativ adult
+        if sex == "F":
+            return 12.0  # g/dL — prag orientativ adult (non-gravidă; sarcina modifică interpretarea clinică)
+        return 12.5  # g/dL — medie conservatoare dacă sexul e neclar
+
     def _calculate_deficit_from_labs(self, nutrient: str, lab_value: float, rdi: float) -> float:
-        clinical_thresholds = {
-            'iron': {'threshold': 30.0, 'unit': 'ferritin_ng_ml'},
-            'calcium': {'threshold': 8.5, 'unit': 'mg_dl'},
-            'vitamin_d': {'threshold': 20.0, 'unit': 'ng_ml'},
-            'vitamin_b12': {'threshold': 200.0, 'unit': 'pg_ml'},
-            'magnesium': {'threshold': 1.7, 'unit': 'mg_dl'},
-            'protein': {'threshold': 6.0, 'unit': 'g_dl'},
-            'zinc': {'threshold': 70.0, 'unit': 'mcg_dl'},
-            'folate': {'threshold': 3.0, 'unit': 'ng_ml'},
-            'vitamin_a': {'threshold': 20.0, 'unit': 'mcg_dl'},
-            'vitamin_c': {'threshold': 23.0, 'unit': 'umol_l'},
-            'iodine': {'threshold': 100.0, 'unit': 'mcg_l'},
-            'potassium': {'threshold': 3.5, 'unit': 'mmol_l'},
-        }
-        
+        clinical_thresholds = self.CLINICAL_THRESHOLDS
+
         if nutrient not in clinical_thresholds:
             return 0
-        
+
         threshold = clinical_thresholds[nutrient]['threshold']
-        
+
         if lab_value < threshold:
             deficit_ratio = (threshold - lab_value) / threshold
             normalized_deficit = min(1.5, max(0.3, deficit_ratio))
@@ -510,13 +557,7 @@ class DeficitCalculator:
         Fallback pentru fier când ferritina nu este disponibilă:
         estimează severitatea pe baza hemoglobinei.
         """
-        sex = self._normalized_sex(user)
-        if sex == "M":
-            threshold = 13.5  # g/dL — prag orientativ adult
-        elif sex == "F":
-            threshold = 12.0  # g/dL — prag orientativ adult (non-gravidă; sarcina modifică interpretarea clinică)
-        else:
-            threshold = 12.5  # g/dL — medie conservatoare dacă sexul e neclar
+        threshold = self._hemoglobin_threshold(user)
 
         if hemoglobin < threshold:
             deficit_ratio = (threshold - hemoglobin) / threshold

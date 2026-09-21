@@ -1,35 +1,34 @@
-import { AlertTriangle, X } from 'lucide-react'
+import { Info, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const Disclaimer = () => {
+  const { t } = useTranslation()
   const [isVisible, setIsVisible] = useState(true)
 
   if (!isVisible) return null
 
   return (
-    <div className="w-full mb-6 min-w-0">
-      <div className="w-full rounded-2xl bg-yellow-900/40 border border-yellow-500/35 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur-sm">
-        <div className="px-4 sm:px-5 py-3.5 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-base sm:text-sm text-yellow-200 font-medium leading-relaxed break-words">
-              <strong>Disclaimer medical:</strong> Această aplicație oferă sugestii generale și nu înlocuiește 
-              consultul medical. Pentru probleme de sănătate, vă rugăm să consultați un specialist. 
-              Recomandările sunt bazate pe informații generale și pot să nu fie potrivite pentru toți utilizatorii.
-            </p>
-          </div>
-          <button
-            onClick={() => setIsVisible(false)}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0 rounded-lg text-yellow-400 hover:text-yellow-200 transition-colors touch-manipulation -m-1"
-            aria-label="Închide"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <div className="mb-6 w-full min-w-0">
+      <div
+        role="note"
+        className="flex w-full items-start gap-3 rounded-card border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 sm:px-5"
+      >
+        <Info aria-hidden="true" className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-300" />
+        <p className="min-w-0 flex-1 break-words text-sm leading-relaxed text-amber-100/90">
+          <strong className="font-semibold text-amber-200">{t('disclaimer.title')}</strong> {t('disclaimer.body')}
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsVisible(false)}
+          className="-m-1 flex min-h-[44px] min-w-[44px] flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-amber-300/80 transition-colors hover:bg-white/5 hover:text-amber-100 touch-manipulation"
+          aria-label={t('disclaimer.dismiss')}
+        >
+          <X aria-hidden="true" className="h-4 w-4" />
+        </button>
       </div>
     </div>
   )
 }
 
 export default Disclaimer
-

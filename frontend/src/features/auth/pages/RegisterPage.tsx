@@ -1,29 +1,49 @@
 import React, { useState } from 'react';
-import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import { motion } from 'framer-motion';
-import type { AuthUser } from '../../../shared/types';
-import { formatApiDetail } from '../../../shared/utils/apiErrors';
+import { ImagePlus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
+import type { AuthUser, Route } from '../../../shared/types';
+import { authService } from '../../../services/api';
+import { extractErrorCode, extractErrorMessage } from '../../../shared/utils/apiErrors';
 
 interface RegisterPageProps {
-  onNavigate: (page: 'login' | 'register') => void;
+  onNavigate: (route: Route) => void;
   onRegister: (user: AuthUser, accessToken?: string) => void;
 }
 
+type FieldErrors = {
+  fullName?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Erori cunoscute de la backend care aparțin unui câmp anume. */
+const ERROR_CODE_FIELD: Record<string, keyof FieldErrors> = {
+  emailTaken: 'email',
+  emailRequired: 'email',
+  invalidEmail: 'email',
+  fullNameRequired: 'fullName',
+  passwordRequired: 'password',
+  passwordBlank: 'password',
+  passwordTooShort: 'password',
+};
+
 const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) => {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    avatarFile: null as File | null,
     avatarPreview: null as string | null,
   });
-  const [errors, setErrors] = useState<{
-    fullName?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-  }>({});
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange =
     (field: 'fullName' | 'email' | 'password' | 'confirmPassword') =>
@@ -31,215 +51,156 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
+  // Previzualizare locală; imaginea nu este trimisă către server.
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setForm((prev) => ({
-        ...prev,
-        avatarFile: file,
-        avatarPreview: reader.result as string,
-      }));
+      setForm((prev) => ({ ...prev, avatarPreview: reader.result as string }));
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: {
-      fullName?: string;
-      email?: string;
-      password?: string;
-      confirmPassword?: string;
-    } = {};
-    
-    if (!form.fullName) newErrors.fullName = 'Completează numele complet.';
-    if (!form.email) newErrors.email = 'Introdu email-ul.';
-    if (!form.password || form.password.length < 6)
-      newErrors.password = 'Parola trebuie să aibă minim 6 caractere.';
-    if (form.password !== form.confirmPassword)
-      newErrors.confirmPassword = 'Parolele nu coincid.';
-    
+    if (isLoading) return;
+
+    const newErrors: FieldErrors = {};
+    if (!form.fullName.trim()) newErrors.fullName = t('apiErrors.fullNameRequired');
+    if (!form.email.trim()) newErrors.email = t('apiErrors.emailRequired');
+    else if (!EMAIL_PATTERN.test(form.email.trim())) newErrors.email = t('apiErrors.invalidEmail');
+    if (form.password.length < 6) newErrors.password = t('apiErrors.passwordTooShort');
+    if (form.password !== form.confirmPassword) newErrors.confirmPassword = t('auth.register.passwordMismatch');
+
     setErrors(newErrors);
+    setFormError(null);
+    if (Object.keys(newErrors).length > 0) return;
 
-    if (Object.keys(newErrors).length === 0) {
-      try {
-        // Apel API pentru register
-        const apiUrl = import.meta.env.VITE_API_URL || '/api';
-        const response = await fetch(`${apiUrl}/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: form.email.trim(),
-            password: form.password,
-            fullName: form.fullName.trim(),
-          }),
-        });
-
-        if (!response.ok) {
-          let errorMessage = 'Eroare la crearea contului';
-          try {
-            const text = await response.text();
-            try {
-              const errorData = JSON.parse(text) as { detail?: unknown; message?: unknown };
-              const detail = errorData.detail ?? errorData.message;
-              if (typeof detail === 'string') {
-                errorMessage = detail;
-              } else if (detail !== undefined && detail !== null) {
-                errorMessage = formatApiDetail(detail);
-              }
-            } catch {
-              // Răspunsul nu e JSON (ex.: pagină de eroare) – afișăm primele 200 caractere
-              if (text && text.length > 0) {
-                errorMessage = text.length > 200 ? text.slice(0, 200) + '…' : text;
-              } else {
-                errorMessage = `Eroare server (${response.status}). Verifică că backend-ul rulează pe portul 8000.`;
-              }
-            }
-            // Identifică tipul de eroare și setează eroarea corespunzătoare
-            const lowerMessage = errorMessage.toLowerCase();
-            if (lowerMessage.includes('email') || lowerMessage.includes('deja înregistrat')) {
-              setErrors({ email: errorMessage });
-            } else if (lowerMessage.includes('parolă') || lowerMessage.includes('password') || lowerMessage.includes('parola')) {
-              setErrors({ password: errorMessage });
-            } else {
-              setErrors({ email: errorMessage });
-            }
-          } catch {
-            setErrors({ email: `${errorMessage} (${response.status})` });
-          }
-          return;
-        }
-
-        const user = await response.json();
-        onRegister(
-          {
-            fullName: user.fullName,
-            email: user.email,
-            avatarUrl: null,
-          },
-          user.access_token
-        );
-      } catch (error: unknown) {
-        console.error('Eroare la înregistrare:', error);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Eroare la conectare. Vă rugăm să încercați din nou.';
-        setErrors({ email: errorMessage });
-      }
+    setIsLoading(true);
+    try {
+      const session = await authService.register(form.email, form.password, form.fullName);
+      onRegister(
+        { email: session.email, fullName: session.fullName, avatarUrl: null },
+        session.access_token
+      );
+    } catch (err: unknown) {
+      const message = extractErrorMessage(err);
+      const code = extractErrorCode(err);
+      const field = code ? ERROR_CODE_FIELD[code] : undefined;
+      if (field) setErrors({ [field]: message });
+      else setFormError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6 sm:gap-8 md:flex-row-reverse max-w-full">
-      {/* Text lateral - stacked on mobile */}
+    <div className="flex w-full max-w-full flex-col items-center justify-center gap-8 md:flex-row-reverse md:gap-16">
       <motion.div
-        initial={{ opacity: 0, x: 40 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-sm text-center md:text-right"
       >
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-neonMagenta">
-          Creează-ți spațiul
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+          {t('auth.register.eyebrow')}
         </p>
-        <h2 className="mb-3 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-100">
-          Cont nou <span className="text-neonMagenta">VitaBalance</span>
-        </h2>
-        <p className="text-base sm:text-sm text-slate-300 leading-relaxed">
-          Completează profilul medical și analizele într-un flux simplu, cu un ambient neon futurist.
-        </p>
+        <h1 className="mb-3 text-3xl font-semibold tracking-tight text-zinc-50 md:text-4xl">
+          {t('auth.register.heroTitle')} <span className="text-accent">VitaBalance</span>
+        </h1>
+        <p className="text-base leading-relaxed text-zinc-400 md:text-sm">{t('auth.register.heroText')}</p>
       </motion.div>
 
-      {/* Card register - full width on mobile */}
       <GlassCard className="w-full max-w-full md:max-w-md">
-        <div className="mb-5 sm:mb-6">
-          <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-100">
-            Creare cont
-          </h3>
-          <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-            Completează informațiile de mai jos.
-          </p>
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-50">{t('auth.register.cardTitle')}</h2>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400">{t('auth.register.cardSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
           <InputField
-            label="Nume complet"
+            label={t('auth.fields.fullName')}
             value={form.fullName}
             onChange={handleChange('fullName')}
-            placeholder="Nume Prenume"
+            placeholder={t('auth.fields.fullNamePlaceholder')}
             error={errors.fullName}
+            autoComplete="name"
           />
           <InputField
-            label="Email"
+            label={t('auth.fields.email')}
             type="email"
             value={form.email}
             onChange={handleChange('email')}
-            placeholder="exemplu@email.com"
+            placeholder={t('auth.fields.emailPlaceholder')}
             error={errors.email}
+            autoComplete="email"
+            inputMode="email"
           />
           <InputField
-            label="Parolă"
+            label={t('auth.fields.password')}
             type="password"
             value={form.password}
             onChange={handleChange('password')}
-            placeholder="••••••••"
+            placeholder={t('auth.fields.passwordPlaceholder')}
             error={errors.password}
+            hint={t('auth.register.passwordHint')}
+            autoComplete="new-password"
           />
           <InputField
-            label="Confirmare parolă"
+            label={t('auth.fields.confirmPassword')}
             type="password"
             value={form.confirmPassword}
             onChange={handleChange('confirmPassword')}
-            placeholder="Repetă parola"
+            placeholder={t('auth.fields.confirmPasswordPlaceholder')}
             error={errors.confirmPassword}
+            autoComplete="new-password"
           />
 
-          {/* Upload avatar */}
           <div className="mb-4">
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.16em] text-slate-300">
-              Poză de profil
-            </label>
+            <span className="field-label">{t('auth.register.avatarLabel')}</span>
             <div className="flex items-center gap-4">
-              <label className="inline-flex cursor-pointer items-center rounded-xl border border-dashed border-slate-500/70 bg-black/20 px-3 py-2 text-xs text-slate-200 hover:border-neonCyan hover:text-neonCyan transition">
-                <span className="mr-2 text-lg">📁</span>
-                <span>Alege o imagine</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
+              <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-dashed border-line-strong px-3.5 text-sm text-zinc-300 transition-colors focus-within:border-accent hover:border-accent hover:text-accent">
+                <ImagePlus aria-hidden="true" className="h-4 w-4" />
+                <span>{t('auth.register.avatarChoose')}</span>
+                <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} />
               </label>
               {form.avatarPreview && (
                 <motion.img
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
                   src={form.avatarPreview}
-                  alt="Avatar preview"
-                  className="h-12 w-12 rounded-full border border-white/20 object-cover shadow-neon"
+                  alt={t('auth.register.avatarAlt')}
+                  className="h-12 w-12 rounded-full border border-line-strong object-cover"
                 />
               )}
             </div>
           </div>
 
-          <div className="mt-4">
-            <PrimaryButton type="submit">Înregistrare</PrimaryButton>
+          {formError && (
+            <p
+              role="alert"
+              className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300"
+            >
+              {formError}
+            </p>
+          )}
+
+          <div className="mt-6">
+            <PrimaryButton type="submit" disabled={isLoading}>
+              {isLoading ? t('auth.register.submitting') : t('auth.register.submit')}
+            </PrimaryButton>
           </div>
         </form>
 
-        <div className="mt-5 flex items-center justify-between text-xs">
-          <span className="text-slate-400">
-            Ai deja cont?
-          </span>
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-5 text-sm">
+          <span className="text-zinc-400">{t('auth.register.haveAccount')}</span>
           <button
+            type="button"
             onClick={() => onNavigate('login')}
-            className="font-semibold text-neonCyan hover:text-neonMagenta transition"
+            className="min-h-[44px] cursor-pointer px-1 font-semibold text-accent transition-colors hover:text-accent-hover touch-manipulation"
           >
-            Înapoi la logare
+            {t('auth.register.backToLogin')}
           </button>
         </div>
       </GlassCard>
@@ -248,4 +209,3 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
 };
 
 export default RegisterPage;
-

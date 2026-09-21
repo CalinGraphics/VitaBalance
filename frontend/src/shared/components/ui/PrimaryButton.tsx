@@ -1,5 +1,4 @@
 import React, { ReactNode } from 'react';
-import { motion } from 'framer-motion';
 
 interface PrimaryButtonProps {
   children: ReactNode;
@@ -7,7 +6,15 @@ interface PrimaryButtonProps {
   type?: 'button' | 'submit' | 'reset';
   full?: boolean;
   disabled?: boolean;
+  /** `primary` = accent solid; `secondary` = contur discret pentru acțiuni secundare; `danger` = acțiuni distructive. */
+  variant?: 'primary' | 'secondary' | 'danger';
 }
+
+const VARIANTS = {
+  primary: 'bg-accent text-accent-fg hover:bg-accent-hover active:bg-accent-strong',
+  secondary: 'border border-line-strong bg-transparent text-zinc-100 hover:bg-white/5 active:bg-white/10',
+  danger: 'border border-red-500/30 bg-transparent text-red-300 hover:bg-red-500/10 active:bg-red-500/15',
+} as const;
 
 const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   children,
@@ -15,43 +22,18 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   type = 'button',
   full = true,
   disabled = false,
+  variant = 'primary',
 }) => (
-  <motion.button
-    whileHover={disabled ? {} : {
-      boxShadow: '0 0 40px rgba(34,211,238,0.6), 0 0 55px rgba(37,99,235,0.6)'
-    }}
-    whileTap={disabled ? {} : {}}
+  <button
     type={type}
     onClick={onClick}
     disabled={disabled}
-    className={`group relative inline-flex items-center justify-center overflow-hidden min-h-[44px] min-w-[44px] rounded-xl px-6 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 shadow-[0_0_25px_rgba(34,211,238,0.5)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation ${
+    className={`inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold leading-5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation ${VARIANTS[variant]} ${
       full ? 'w-full' : ''
     }`}
   >
-    {/* Animated gradient overlay */}
-    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full opacity-60 group-hover:translate-x-full transition-transform duration-700" />
-    
-    {/* Content */}
-    <span className="relative z-10 flex items-center gap-2 leading-5">
-      {children}
-    </span>
-    
-    {/* Shimmer effect */}
-    <motion.div
-      className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-      initial={{ x: '-120%' }}
-      animate={disabled ? {} : {
-        x: ['-120%', '220%'],
-      }}
-      transition={{
-        duration: 2,
-        repeat: Infinity,
-        repeatDelay: 3,
-        ease: 'easeInOut',
-      }}
-    />
-  </motion.button>
+    {children}
+  </button>
 );
 
 export default PrimaryButton;
-

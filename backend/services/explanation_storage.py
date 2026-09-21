@@ -4,7 +4,10 @@ Serializare / deserializare explicații recomandări pentru DB și API.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+
+from services.explanation_facts import has_facts
+from services.explanation_renderer import render_explanation
 
 
 def explanation_to_db_fields(expl: Dict[str, Any]) -> Dict[str, Any]:
@@ -26,6 +29,9 @@ def explanation_to_db_fields(expl: Dict[str, Any]) -> Dict[str, Any]:
         "tips": tips if tips else None,
         "alternatives": list(alts) if alts else None,
     }
+    if expl.get("facts"):
+        # Faptele (limba-neutre) sunt sursa de adevăr; text/reasons/tips de mai sus sunt randarea RO, pentru compatibilitate.
+        payload["facts"] = expl["facts"]
     return {
         "explanation": text,
         "portion_suggested": portion,
@@ -40,14 +46,25 @@ def explanation_from_db_row(
     *,
     fallback_text: str = "",
     fallback_portion: float = 150.0,
+    lang: str = "ro",
+    food_name: Optional[str] = None,
+    name_of: Optional[Callable[[int], Optional[str]]] = None,
 ) -> Dict[str, Any]:
-    """Reconstruiește dict-ul explanation pentru API din rând DB."""
+    """
+    Reconstruiește dict-ul explanation pentru API din rând DB.
+
+    Dacă rândul are fapte (explanation_json.facts) și se cunoaște numele alimentului, explicația se randează în
+    `lang`. Rândurile vechi, fără fapte, rămân în textul salvat (RO) până la următoarea regenerare.
+    """
     expl_json = row.get("explanation_json")
     if isinstance(expl_json, str):
         try:
             expl_json = json.loads(expl_json)
         except json.JSONDecodeError:
             expl_json = None
+
+    if food_name and has_facts(expl_json):
+        return render_explanation(expl_json["facts"], food_name=food_name, lang=lang, name_of=name_of)
 
     if isinstance(expl_json, dict) and expl_json.get("text"):
         unit = str(expl_json.get("portion_unit") or "g").lower().strip() or "g"
@@ -92,19 +109,3 @@ def explanation_from_db_row(
         "tips": None,
         "alternatives": None,
     }
-
-
-def explanation_from_recommendation_item(rec: Any) -> Dict[str, Any]:
-    """Din RecommendationItem + câmpuri opționale atașate pe obiect."""
-    row = {
-        "explanation": getattr(rec, "explanation", "") or "",
-        "portion_suggested": getattr(rec, "portion_suggested", 150),
-        "explanation_json": getattr(rec, "explanation_json", None),
-        "reasons": getattr(rec, "reasons", None),
-        "tips": getattr(rec, "tips", None),
-    }
-    return explanation_from_db_row(
-        row,
-        fallback_text=row["explanation"],
-        fallback_portion=float(row["portion_suggested"] or 150),
-    )

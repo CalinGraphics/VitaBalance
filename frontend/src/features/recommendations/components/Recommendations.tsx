@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { UtensilsCrossed, Download, Loader2 } from 'lucide-react'
-import { GlassCard } from '../../../shared/components'
+import { UtensilsCrossed, Download } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { GlassCard, PageHeader, Spinner } from '../../../shared/components'
+import i18n, { currentLanguage } from '../../../shared/i18n'
 import { recommendationsService } from '../../../services/api'
 import type { User } from '../../../shared/types'
 import RecommendationCard from './RecommendationCard'
 import NutrientChart from './NutrientChart'
 import UserProfileInfo from './UserProfileInfo'
+import CaloricGoalProgress from './CaloricGoalProgress'
 import type { Recommendation } from '../types'
 import { humanizeRecommendationClientError } from '../../../shared/utils/apiErrors'
-import { formatFoodCategory } from '../../../shared/utils/formatters'
+import { resolveFoodCategory } from '../../../shared/utils/formatters'
 import {
   loadStoredRecommendations,
   pollRecommendationRefresh,
@@ -43,6 +45,8 @@ function initialRecommendationsForUser(userId: number | undefined): Recommendati
 }
 
 const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
+  const { t, i18n: i18nHook } = useTranslation()
+  const language = i18nHook.language
   const [recommendations, setRecommendations] = useState<Recommendation[]>(() =>
     initialRecommendationsForUser(user.id)
   )
@@ -96,9 +100,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
           },
           onTimeout: () => {
             if (fetchId === latestFetchIdRef.current) {
-              setBackgroundRefreshNote(
-                'Lista se actualizează în fundal; cardurile noi apar automat când sunt gata.'
-              )
+              setBackgroundRefreshNote(i18n.t('recommendations.backgroundRefresh'))
             }
           },
         })
@@ -108,7 +110,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         let data: unknown[]
         try {
           data = await loadStoredRecommendations(uid)
-        } catch (listErr) {
+        } catch {
           data = []
         }
         if (Array.isArray(data) && data.length > 0) {
@@ -134,7 +136,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     try {
       if (!user.id) {
         if (fetchId !== latestFetchIdRef.current) return
-        setError('ID-ul utilizatorului lipsește. Vă rugăm să vă conectați din nou.')
+        setError(i18n.t('recommendations.errors.noUserId'))
         setLoading(false)
         setRegeneratingAfterProfile(false)
         return
@@ -196,9 +198,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
           },
           onTimeoutNote: () => {
             if (fetchId === latestFetchIdRef.current) {
-              setBackgroundRefreshNote(
-                'Lista se actualizează în fundal; cardurile noi apar automat când sunt gata.'
-              )
+              setBackgroundRefreshNote(i18n.t('recommendations.backgroundRefresh'))
             }
           },
         }
@@ -209,7 +209,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         applyRecommendationList(data, fetchId)
         hasVisibleList = true
       } else {
-        setError('Nu s-au găsit recomandări. Verifică profilul și analizele medicale.')
+        setError(i18n.t('recommendations.errors.noneFound'))
         setRecommendations([])
       }
     } catch (err: unknown) {
@@ -217,7 +217,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       let errorMessage = humanizeRecommendationClientError(err)
       const apiError = err as ApiErrorDetail
 
-      if (!errorMessage || errorMessage === 'A apărut o eroare neașteptată') {
+      if (!errorMessage || errorMessage === i18n.t('apiErrors.unexpected')) {
         if (err instanceof Error && err.message) {
           errorMessage = humanizeRecommendationClientError(err)
         } else if (apiError?.response?.data?.detail) {
@@ -259,6 +259,28 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   useEffect(() => {
     recommendationsRef.current = recommendations
   }, [recommendations])
+
+  // Explicațiile și numele alimentelor vin din API în limba curentă: la schimbarea limbii reîncărcăm lista salvată.
+  const previousLanguageRef = useRef(language)
+  useEffect(() => {
+    if (previousLanguageRef.current === language) return
+    previousLanguageRef.current = language
+    const uid = user.id
+    if (!uid) return
+    let cancelled = false
+    loadStoredRecommendations(uid)
+      .then((data) => {
+        if (cancelled || !Array.isArray(data) || data.length === 0) return
+        setRecommendations(data as Recommendation[])
+        writeRecommendationsSessionCache(uid, data as Recommendation[])
+      })
+      .catch(() => {
+        /* rămân textele din limba anterioară până la următoarea reîncărcare */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [language, user.id])
 
   useEffect(() => {
     const prevUserValues = prevUserValuesRef.current
@@ -308,7 +330,6 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         debounceRef.current = null
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     user.id,
     user.diet_type,
@@ -329,6 +350,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       downloadRecommendationPdf({
         user: { name: user.name, email: user.email, id: user.id },
         recommendations,
+        language: currentLanguage(),
       })
     ).catch((err: unknown) => {
       console.error('Export PDF failed:', err)
@@ -336,27 +358,37 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   }, [recommendations, user.email, user.id, user.name])
 
   const userId = user.id
+  const categoryKeyOf = useCallback(
+    (rec: Recommendation) => resolveFoodCategory(rec.food?.category)?.key ?? 'other',
+    []
+  )
   const categoryCounts = useMemo(
     () =>
       recommendations.reduce<Record<string, number>>((acc, rec) => {
-        const label = formatFoodCategory(rec.food?.category) || 'Altele'
-        acc[label] = (acc[label] || 0) + 1
+        const key = categoryKeyOf(rec)
+        acc[key] = (acc[key] || 0) + 1
         return acc
       }, {}),
-    [recommendations]
+    [recommendations, categoryKeyOf]
   )
   const availableCategories = useMemo(
     () => Object.keys(categoryCounts).sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0)),
     [categoryCounts]
   )
+  const categoryLabels = useMemo(() => {
+    const labels: Record<string, string> = { other: t('recommendations.categoryOther') }
+    for (const rec of recommendations) {
+      const resolved = resolveFoodCategory(rec.food?.category)
+      if (resolved) labels[resolved.key] = resolved.label
+    }
+    return labels
+  }, [recommendations, t])
   const filteredRecommendations = useMemo(
     () =>
       selectedCategory === 'all'
         ? recommendations
-        : recommendations.filter(
-            (rec) => formatFoodCategory(rec.food?.category) === selectedCategory
-          ),
-    [recommendations, selectedCategory]
+        : recommendations.filter((rec) => categoryKeyOf(rec) === selectedCategory),
+    [recommendations, selectedCategory, categoryKeyOf]
   )
   const visibleRecommendations = useMemo(
     () => filteredRecommendations.slice(0, visibleCount),
@@ -407,7 +439,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         setRecommendations(prev)
       }
     },
-    [fetchRecommendations, user.id]
+    [user.id]
   )
 
   const showFullPageLoader = loading && recommendations.length === 0
@@ -415,28 +447,27 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
   return (
     <div className="space-y-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <UserProfileInfo user={user} />
-      </motion.div>
+      <UserProfileInfo user={user} />
+
+      <CaloricGoalProgress goal={user.caloric_goal} recommendations={recommendations} />
+
+      {currentLanguage() !== 'ro' && recommendations.length > 0 && (
+        <p className="-mt-4 text-xs leading-relaxed text-zinc-500">{t('recommendations.contentLanguageNote')}</p>
+      )}
 
       {(showInlineRegenerating || backgroundRefreshNote) && (
-        <GlassCard className="border border-neonCyan/30 bg-neonCyan/5">
-          <div className="flex flex-wrap items-center gap-3 text-slate-200 text-sm">
-            {showInlineRegenerating && (
-              <Loader2 className="w-5 h-5 text-neonCyan shrink-0 animate-spin" aria-hidden />
-            )}
+        <GlassCard className="border-accent-border">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-200" role="status">
+            {showInlineRegenerating && <Spinner className="h-4 w-4 shrink-0 text-accent" />}
             <p>
               {showInlineRegenerating && (
                 <>
-                  <span className="font-semibold text-neonCyan">Se actualizează recomandările</span> după
-                  modificarea profilului sau analizelor. Poți vedea mai jos lista anterioară până la finalizare.
+                  <span className="font-semibold text-accent">{t('recommendations.updating.title')}</span>{' '}
+                  {t('recommendations.updating.body')}
                 </>
               )}
               {backgroundRefreshNote && (
-                <span className={showInlineRegenerating ? 'block mt-2 text-slate-300' : ''}>
+                <span className={showInlineRegenerating ? 'block mt-2 text-zinc-300' : ''}>
                   {backgroundRefreshNote}
                 </span>
               )}
@@ -446,42 +477,33 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
       )}
 
       {recommendations.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <GlassCard className="w-full !max-w-none">
-            <div className="flex flex-col gap-4 sm:gap-6 mb-6 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-2.5 sm:p-3 rounded-lg shadow-neon flex-shrink-0">
-                  <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-100">Recomandările tale</h2>
-                  <p className="text-slate-400 text-sm">Alimente personalizate pentru nevoile tale nutriționale</p>
-                </div>
-              </div>
-              <motion.button
-                onClick={exportToPDF}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-neonCyan/50 bg-gradient-to-r from-slate-800/60 to-slate-900/60 px-5 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/60 hover:to-slate-800/60 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_15px_rgba(0,245,255,0.3)] hover:shadow-[0_0_25px_rgba(0,245,255,0.5)] whitespace-nowrap touch-manipulation self-start md:self-center"
-              >
-                <Download className="w-5 h-5 text-neonCyan flex-shrink-0" />
-                <span>Exportă PDF</span>
-              </motion.button>
-            </div>
+        <GlassCard className="w-full !max-w-none">
+          <div className="mb-6 flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
+            <PageHeader
+              Icon={UtensilsCrossed}
+              title={t('recommendations.title')}
+              subtitle={t('recommendations.subtitle')}
+              className="min-w-0"
+            />
+            <button
+              type="button"
+              onClick={exportToPDF}
+              className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center gap-2 self-start whitespace-nowrap rounded-lg border border-line-strong px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/5 touch-manipulation md:self-center"
+            >
+              <Download aria-hidden="true" className="h-4 w-4 flex-shrink-0 text-accent" />
+              <span>{t('recommendations.exportPdf')}</span>
+            </button>
+          </div>
 
-            <NutrientChart recommendations={recommendations} />
-          </GlassCard>
-        </motion.div>
+          <NutrientChart recommendations={recommendations} />
+        </GlassCard>
       )}
 
       {recommendations.length > 0 && (
         <GlassCard className="w-full !max-w-none">
           <div className="mb-3">
-            <h3 className="text-lg font-semibold text-slate-100">Categorii recomandate</h3>
-            <p className="text-xs text-slate-400">Poți filtra recomandările pe categorii alimentare.</p>
+            <h3 className="text-lg font-semibold text-zinc-50">{t('recommendations.categories.title')}</h3>
+            <p className="text-xs text-zinc-400">{t('recommendations.categories.subtitle')}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -490,13 +512,14 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                 setSelectedCategory('all')
                 setVisibleCount(10)
               }}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              aria-pressed={selectedCategory === 'all'}
+              className={`min-h-[36px] cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                 selectedCategory === 'all'
-                  ? 'border-neonCyan bg-neonCyan/20 text-neonCyan'
-                  : 'border-slate-600 text-slate-300 hover:border-neonCyan/60'
+                  ? 'border-accent-border bg-accent-soft text-accent'
+                  : 'border-line-strong text-zinc-300 hover:bg-white/5'
               }`}
             >
-              Toate ({recommendations.length})
+              {t('recommendations.categories.all', { count: recommendations.length })}
             </button>
             {availableCategories.map((category) => (
               <button
@@ -506,13 +529,14 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                   setSelectedCategory(category)
                   setVisibleCount(10)
                 }}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                aria-pressed={selectedCategory === category}
+                className={`min-h-[36px] cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                   selectedCategory === category
-                    ? 'border-neonCyan bg-neonCyan/20 text-neonCyan'
-                    : 'border-slate-600 text-slate-300 hover:border-neonCyan/60'
+                    ? 'border-accent-border bg-accent-soft text-accent'
+                    : 'border-line-strong text-zinc-300 hover:bg-white/5'
                 }`}
               >
-                {category} ({categoryCounts[category]})
+                {categoryLabels[category] ?? category} ({categoryCounts[category]})
               </button>
             ))}
           </div>
@@ -551,39 +575,35 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
       {filteredRecommendations.length > visibleCount && (
         <div className="flex justify-center mt-8 mb-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
+            type="button"
             onClick={() => setVisibleCount((prev) => Math.min(prev + 5, filteredRecommendations.length))}
-            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl border border-neonCyan/60 bg-gradient-to-r from-slate-800/70 via-slate-900/80 to-slate-950 px-7 py-3 text-sm font-semibold text-slate-100 hover:bg-gradient-to-r hover:from-slate-700/70 hover:to-slate-900 hover:border-neonCyan transition-all duration-200 gap-2 shadow-[0_0_18px_rgba(0,245,255,0.35)] hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] touch-manipulation"
+            className="inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg border border-line-strong px-7 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/5 touch-manipulation"
           >
-            Vezi mai multe
-          </motion.button>
+            {t('recommendations.showMore')}
+          </button>
         </div>
       )}
 
       {showFullPageLoader && (
         <GlassCard className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neonCyan mb-4"></div>
-          <p className="text-slate-300 text-lg">Se încarcă recomandările...</p>
+          <div role="status" aria-live="polite">
+            <Spinner className="mb-4 h-7 w-7 text-accent" />
+            <p className="text-lg text-zinc-300">{t('recommendations.loading')}</p>
+          </div>
         </GlassCard>
       )}
 
       {!loading && error && recommendations.length === 0 && (
         <GlassCard className="text-center py-12">
-          <p className="text-red-400 text-lg mb-4">{error}</p>
-          <p className="text-slate-400 text-sm">
-            Se încearcă generarea automată. Dacă nu apare nimic în câteva secunde, verifică profilul și
-            analizele medicale.
-          </p>
+          <p role="alert" className="mb-4 text-lg text-red-400">{error}</p>
+          <p className="text-sm text-zinc-400">{t('recommendations.errors.retryHint')}</p>
         </GlassCard>
       )}
 
       {!loading && !error && recommendations.length === 0 && (
         <GlassCard className="text-center py-12">
-          <p className="text-slate-300 text-lg">
-            Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele.
-          </p>
+          <p className="text-lg text-zinc-300">{t('recommendations.empty')}</p>
         </GlassCard>
       )}
     </div>

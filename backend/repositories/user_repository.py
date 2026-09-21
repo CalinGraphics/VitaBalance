@@ -56,6 +56,8 @@ class UserRepository:
         medical_conditions: Optional[str] = None,
         user_id: Optional[int] = None,
         bump_updated_at: bool = True,
+        caloric_goal: Optional[float] = None,
+        set_caloric_goal: bool = False,
     ) -> UserProfile:
         row = {
             "email": email,
@@ -69,6 +71,10 @@ class UserRepository:
             "allergies": allergies if allergies is not None else "",
             "medical_conditions": medical_conditions if medical_conditions is not None else "",
         }
+        # Coloana `caloric_goal` e scrisă doar când e nevoie (valoare setată sau ștergerea uneia existente),
+        # ca salvarea profilului să rămână compatibilă cu baze de date fără această coloană.
+        if set_caloric_goal:
+            row["caloric_goal"] = caloric_goal
         if bump_updated_at:
             row["updated_at"] = datetime.now(timezone.utc).isoformat()
         if user_id is not None:

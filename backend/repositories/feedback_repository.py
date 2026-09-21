@@ -1,5 +1,8 @@
 """
 Feedback data access – Supabase only.
+
+Feedback-ul e unic per (user_id, food_id) și persistă când recomandarea e regenerată sau înlocuită
+(feedback.recommendation_id devine NULL, rândul rămâne).
 """
 from typing import Dict, List, Optional
 from supabase import Client
@@ -25,66 +28,51 @@ class FeedbackRepository:
             return []
         return [row_to_feedback(r) for r in resp.data]
 
-    def get_by_user_and_recommendation(self, user_id: int, recommendation_id: int) -> Optional[FeedbackItem]:
-        resp = (
-            self._client.table(self.TABLE)
-            .select("*")
-            .eq("user_id", user_id)
-            .eq("recommendation_id", recommendation_id)
-            .limit(1)
-            .execute()
-        )
-        if not resp.data or len(resp.data) == 0:
-            return None
-        return row_to_feedback(resp.data[0])
-
-    def _resolve_food_id(self, recommendation_id: int, food_id: Optional[int]) -> Optional[int]:
-        if food_id is not None:
-            return int(food_id)
+    def _owned_recommendation_food_id(self, user_id: int, recommendation_id: int) -> Optional[int]:
+        """food_id-ul recomandării dacă există și aparține utilizatorului, altfel None."""
         resp = (
             self._client.table("recommendations")
             .select("food_id")
             .eq("id", recommendation_id)
+            .eq("user_id", user_id)
             .limit(1)
             .execute()
         )
-        if resp.data and len(resp.data) > 0 and resp.data[0].get("food_id") is not None:
+        if resp.data and resp.data[0].get("food_id") is not None:
             return int(resp.data[0]["food_id"])
         return None
 
     def upsert(
         self,
         user_id: int,
-        recommendation_id: int,
+        recommendation_id: Optional[int],
         rating: int,
         food_id: Optional[int] = None,
     ) -> FeedbackItem:
-        """Creează sau actualizează feedback-ul. Un singur vote per (user_id, recommendation_id)."""
-        resolved_food_id = self._resolve_food_id(recommendation_id, food_id)
-        existing = self.get_by_user_and_recommendation(user_id, recommendation_id)
-        payload = {"rating": rating}
-        if resolved_food_id is not None:
-            payload["food_id"] = resolved_food_id
-        if existing:
-            resp = (
-                self._client.table(self.TABLE)
-                .update(payload)
-                .eq("id", existing.id)
-                .execute()
-            )
-            if not resp.data or len(resp.data) == 0:
-                raise ValueError("Update feedback returned no data")
-            return row_to_feedback(resp.data[0])
+        """
+        Creează sau actualizează votul pentru alimentul recomandat (un singur rând per user_id + food_id).
+
+        Alimentul se ia din recomandare când aceasta există și e a utilizatorului (sursa de adevăr);
+        dacă a fost deja ștearsă, se folosește `food_id` primit și feedback-ul se salvează fără legătură la recomandare.
+        """
+        rec_food_id = (
+            self._owned_recommendation_food_id(user_id, recommendation_id)
+            if recommendation_id is not None
+            else None
+        )
+        resolved_food_id = rec_food_id if rec_food_id is not None else food_id
+        if resolved_food_id is None:
+            raise ValueError("Recomandarea nu a fost găsită și nu s-a primit food_id pentru feedback.")
+
         row = {
             "user_id": user_id,
-            "recommendation_id": recommendation_id,
+            "food_id": int(resolved_food_id),
+            "recommendation_id": recommendation_id if rec_food_id is not None else None,
             "rating": rating,
         }
-        if resolved_food_id is not None:
-            row["food_id"] = resolved_food_id
-        resp = self._client.table(self.TABLE).insert(row).execute()
+        resp = self._client.table(self.TABLE).upsert(row, on_conflict="user_id,food_id").execute()
         if not resp.data or len(resp.data) == 0:
-            raise ValueError("Insert feedback returned no data")
+            raise ValueError("Upsert feedback returned no data")
         return row_to_feedback(resp.data[0])
 
     def get_counts_by_food_ids(self, food_ids: List[int], user_id: Optional[int] = None) -> Dict[int, Dict[str, int]]:
@@ -121,13 +109,3 @@ class FeedbackRepository:
             elif isinstance(rating, (int, float)) and rating <= 2:
                 counts[fid]["dislikes"] += 1
         return counts
-
-    def create(
-        self,
-        user_id: int,
-        rating: int,
-        *,
-        recommendation_id: int,
-        food_id: Optional[int] = None,
-    ) -> FeedbackItem:
-        return self.upsert(user_id, recommendation_id, rating, food_id=food_id)

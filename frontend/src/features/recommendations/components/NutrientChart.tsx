@@ -1,14 +1,20 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useTranslation } from 'react-i18next'
+
+// Culori de grafic: o singură culoare de accent, text/grilă neutre (aliniate cu tokenii din tailwind.config.js)
+const ACCENT = '#2dd4bf'
+const AXIS_TEXT = '#a1a1aa'
+const GRID = 'rgba(255,255,255,0.08)'
 
 /** Etichetă Y: centrată vertical, coborâtă, cu distanță față de valori. */
-function YAxisLabel(props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) {
+function YAxisLabel(props: { viewBox?: { x?: number; y?: number; width?: number; height?: number }; text: string }) {
   const vb = props?.viewBox
   if (!vb || vb.height == null) return null
   const cx = (vb.x ?? 0) - 22
   const cy = (vb.y ?? 0) + (vb.height ?? 0) / 2
   return (
-    <text x={cx} y={cy} fill="#e2e8f0" fontSize={13} textAnchor="middle" dominantBaseline="middle" transform={`rotate(-90, ${cx}, ${cy})`}>
-      Acoperire (%)
+    <text x={cx} y={cy} fill={AXIS_TEXT} fontSize={13} textAnchor="middle" dominantBaseline="middle" transform={`rotate(-90, ${cx}, ${cy})`}>
+      {props.text}
     </text>
   )
 }
@@ -22,74 +28,57 @@ interface NutrientChartProps {
 }
 
 const NutrientChart = ({ recommendations }: NutrientChartProps) => {
-  // Calculează datele pentru grafic
-  const chartData = recommendations.slice(0, 5).map((rec, index) => ({
+  const { t } = useTranslation()
+  const seriesName = t('recommendations.chart.series')
+
+  const chartData = recommendations.slice(0, 5).map((rec) => ({
     name: rec.food.name.length > 15 ? rec.food.name.substring(0, 15) + '...' : rec.food.name,
-    'Acoperire deficit (%)': Math.round(rec.coverage),
-    index: index
+    coverage: Math.round(rec.coverage),
   }))
 
   if (chartData.length === 0) return null
 
   return (
     <div className="mt-6 min-w-0 overflow-hidden">
-      <h3 className="text-base sm:text-lg font-semibold text-slate-100 mb-4">
-        Comparație acoperire deficit - Top 5 recomandări
-      </h3>
-      {/* Desktop: height 300, axes 12px; mobile: smaller for readability */}
-      <div className="w-full h-[250px] sm:h-[280px] md:h-[300px] overflow-visible">
+      <h3 className="mb-4 text-base font-semibold text-zinc-100 sm:text-lg">{t('recommendations.chart.title')}</h3>
+      <div className="h-[250px] w-full overflow-visible sm:h-[280px] md:h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 12, right: 16, left: 72, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-            <XAxis 
-              dataKey="name" 
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis
+              dataKey="name"
               angle={-45}
               textAnchor="end"
               height={100}
               fontSize={12}
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
+              stroke={GRID}
+              tick={{ fill: AXIS_TEXT, fontSize: 12 }}
             />
-            <YAxis 
-              label={<YAxisLabel />}
+            <YAxis
+              label={<YAxisLabel text={t('recommendations.chart.yAxis')} />}
               domain={[0, 100]}
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
+              stroke={GRID}
+              tick={{ fill: AXIS_TEXT, fontSize: 12 }}
               width={40}
               tickMargin={12}
             />
-          <Tooltip 
-            formatter={(value: number) => [`${value}%`, 'Acoperire deficit']}
-            contentStyle={{ 
-              backgroundColor: '#1e293b', 
-              border: '1px solid #00f5ff', 
-              borderRadius: '8px',
-              color: '#e5e7eb'
-            }}
-            labelStyle={{ color: '#00f5ff' }}
-          />
-          <Legend 
-            wrapperStyle={{ color: '#9ca3af' }}
-          />
-          <Bar 
-            dataKey="Acoperire deficit (%)" 
-            fill="url(#neonGradient)"
-            radius={[8, 8, 0, 0]}
-            barSize={80}
-          />
-          <defs>
-            <linearGradient id="neonGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00f5ff" />
-              <stop offset="50%" stopColor="#a855ff" />
-              <stop offset="100%" stopColor="#ff007f" />
-            </linearGradient>
-          </defs>
-        </BarChart>
-      </ResponsiveContainer>
+            <Tooltip
+              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+              formatter={(value: number) => [`${value}%`, seriesName]}
+              contentStyle={{
+                backgroundColor: '#101113',
+                border: '1px solid rgba(255,255,255,0.16)',
+                borderRadius: '8px',
+                color: '#e4e4e7',
+              }}
+              labelStyle={{ color: ACCENT }}
+            />
+            <Bar dataKey="coverage" name={seriesName} fill={ACCENT} radius={[6, 6, 0, 0]} maxBarSize={56} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   )
 }
 
 export default NutrientChart
-

@@ -7,36 +7,54 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
       colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+        // Accent unic de brand (teal, identitate de nutriție/sănătate) — singura culoare "vie" din UI.
+        accent: {
+          DEFAULT: '#2dd4bf',
+          hover: '#5eead4',
+          strong: '#14b8a6',
+          fg: '#04201c', // text pe fundal accent (contrast > 10:1)
+          soft: 'rgba(45, 212, 191, 0.10)',
+          border: 'rgba(45, 212, 191, 0.32)',
         },
-        neonCyan: '#00f5ff',
-        neonMagenta: '#ff007f',
-        neonPurple: '#a855ff',
+        // Scara teal păstrată pentru grafice și stări secundare
+        primary: {
+          50: '#f0fdfa',
+          100: '#ccfbf1',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#2dd4bf',
+          500: '#14b8a6',
+          600: '#0d9488',
+          700: '#0f766e',
+          800: '#115e59',
+          900: '#134e4a',
+        },
+        // Fundal și suprafețe aproape monocrome (neutre, fără dominantă albastră)
+        canvas: '#08090a',
+        surface: '#101113',
+        'surface-hover': '#17181b',
+        line: 'rgba(255, 255, 255, 0.08)',
+        'line-strong': 'rgba(255, 255, 255, 0.16)',
+      },
+      borderRadius: {
+        card: '14px',
       },
       boxShadow: {
-        'neon': '0 0 25px rgba(0, 245, 255, 0.45)',
-        'neon-magenta': '0 0 25px rgba(255, 0, 127, 0.45)',
-        'neon-purple': '0 0 25px rgba(168, 85, 255, 0.45)',
+        // Umbră discretă, fără glow colorat
+        card: '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 12px 32px -16px rgba(0,0,0,0.7)',
+        pop: '0 12px 32px -8px rgba(0,0,0,0.75)',
       },
-      backdropBlur: {
-        xs: '2px',
+      transitionDuration: {
+        DEFAULT: '180ms',
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-in',
-        'slide-up': 'slideUp 0.5s ease-out',
-        'scale-in': 'scaleIn 0.3s ease-out',
-        'glow': 'glow 2s ease-in-out infinite alternate',
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'scale-in': 'scaleIn 0.18s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -44,20 +62,15 @@ export default {
           '100%': { opacity: '1' },
         },
         slideUp: {
-          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         scaleIn: {
-          '0%': { transform: 'scale(0.9)', opacity: '0' },
+          '0%': { transform: 'scale(0.97)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
-        },
-        glow: {
-          '0%': { boxShadow: '0 0 20px rgba(0, 245, 255, 0.3)' },
-          '100%': { boxShadow: '0 0 40px rgba(0, 245, 255, 0.8)' },
         },
       },
     },
   },
   plugins: [],
 }
-

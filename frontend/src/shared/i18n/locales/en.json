@@ -1,0 +1,472 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "close": "Close",
+    "cancel": "Cancel",
+    "optional": "optional",
+    "goToLogin": "Go to login",
+    "createProfile": "Create profile",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  },
+  "app": {
+    "errors": {
+      "noAuthUser": "No authenticated user",
+      "noProfile": "Medical profile missing",
+      "noProfileForRecs": "Medical profile missing for recommendations",
+      "unknownRoute": "Unknown route",
+      "route": "Route: {{route}}"
+    },
+    "boundary": {
+      "title": "Error",
+      "message": "Something went wrong in the application. Please reload the page.",
+      "details": "Error details",
+      "reload": "Reload page"
+    }
+  },
+  "nav": {
+    "label": "Main navigation",
+    "dashboard": "Recommendations",
+    "labs": "Lab results",
+    "profile": "Profile",
+    "logout": "Log out",
+    "logoAlt": "VitaBalance logo",
+    "footer": "© {{year}} VitaBalance"
+  },
+  "lang": {
+    "label": "Language",
+    "ro": "Română",
+    "en": "English",
+    "switchTo": "Switch language to {{language}}"
+  },
+  "disclaimer": {
+    "title": "Medical disclaimer:",
+    "body": "This application provides general suggestions and does not replace medical advice. For any health concern, please consult a specialist. Recommendations are based on general information and may not be suitable for every user.",
+    "dismiss": "Dismiss disclaimer"
+  },
+  "selectors": {
+    "allergiesPlaceholder": "Select allergies",
+    "allergiesSelected_one": "{{count}} allergy selected",
+    "allergiesSelected_other": "{{count}} allergies selected",
+    "conditionsPlaceholder": "Select medical conditions",
+    "conditionsSelected_one": "{{count}} condition selected",
+    "conditionsSelected_other": "{{count}} conditions selected",
+    "remove": "Remove {{item}}",
+    "allergiesHint": "Select every allergy that affects you. Recommendations will automatically exclude foods containing these allergens.",
+    "conditionsHint": "Select the conditions that affect you. Recommendations will take them into account."
+  },
+  "allergies": {
+    "lactoza": {
+      "label": "Lactose / Dairy",
+      "description": "Allergies to dairy products (milk, cheese, yogurt, etc.)"
+    },
+    "gluten": {
+      "label": "Gluten",
+      "description": "Allergies to gluten-containing products (wheat, bread, pasta, etc.)"
+    },
+    "nuci": {
+      "label": "Tree nuts",
+      "description": "Allergies to walnuts, hazelnuts, almonds, pistachios, etc."
+    },
+    "oua": {
+      "label": "Eggs",
+      "description": "Allergies to eggs and egg-containing products"
+    },
+    "soia": {
+      "label": "Soy",
+      "description": "Allergies to soy and derived products (tofu, tempeh, etc.)"
+    },
+    "peste": {
+      "label": "Fish",
+      "description": "Allergies to fish and fish products"
+    },
+    "crustacee": {
+      "label": "Shellfish",
+      "description": "Allergies to shrimp, crab, lobster, etc."
+    },
+    "arahide": {
+      "label": "Peanuts",
+      "description": "Allergies to peanuts and peanut-containing products"
+    },
+    "sesam": {
+      "label": "Sesame",
+      "description": "Allergies to sesame seeds and sesame-containing products"
+    },
+    "mustar": {
+      "label": "Mustard",
+      "description": "Allergies to mustard and mustard-containing products"
+    }
+  },
+  "conditions": {
+    "diabet": {
+      "label": "Diabetes",
+      "description": "Requires attention to carbohydrates and glycemic index"
+    },
+    "hipertensiune": {
+      "label": "Hypertension",
+      "description": "Limit sodium, heart-healthy diet"
+    },
+    "anemie": {
+      "label": "Anemia / iron deficiency",
+      "description": "Iron-rich foods and vitamin C"
+    },
+    "osteoporoza": {
+      "label": "Osteoporosis",
+      "description": "Calcium, vitamin D, magnesium"
+    },
+    "tiroida": {
+      "label": "Thyroid disorders",
+      "description": "Iodine, selenium; avoid excess soy in some cases"
+    },
+    "celiachie": {
+      "label": "Celiac disease / gluten intolerance",
+      "description": "Gluten-free diet"
+    },
+    "boli_cardiovasculare": {
+      "label": "Cardiovascular disease",
+      "description": "Low-sodium diet, healthy fats"
+    },
+    "insuficienta_renala": {
+      "label": "Kidney failure",
+      "description": "Limit potassium, phosphorus, protein (depending on stage)"
+    },
+    "reflux": {
+      "label": "Gastroesophageal reflux",
+      "description": "Avoid large meals, acidic/fatty foods"
+    },
+    "iritații_intestinale": {
+      "label": "Irritable bowel syndrome",
+      "description": "Adapted fibre intake, avoid personal triggers"
+    },
+    "deficienta_vitamin_d": {
+      "label": "Vitamin D deficiency",
+      "description": "Vitamin D-rich foods, sun exposure"
+    },
+    "deficienta_b12": {
+      "label": "Vitamin B12 deficiency",
+      "description": "Meat, fish, eggs; supplements if needed"
+    },
+    "obezitate": {
+      "label": "Obesity / weight management",
+      "description": "Calorie balance, quality nutrients"
+    },
+    "colesterol_ridicat": {
+      "label": "High cholesterol",
+      "description": "Unsaturated fats, fibre, avoid trans fats"
+    },
+    "gout": {
+      "label": "Gout",
+      "description": "Limit purines (red meat, seafood), stay hydrated"
+    }
+  },
+  "categories": {
+    "carne": "Meat",
+    "peste": "Fish",
+    "legume": "Vegetables",
+    "lactate": "Dairy",
+    "cereale": "Grains",
+    "fructe_seci": "Dried fruit",
+    "seminte": "Seeds",
+    "fructe": "Fruit",
+    "leguminoase": "Legumes",
+    "oua": "Eggs",
+    "unt": "Butter",
+    "ulei": "Oil",
+    "ciuperci": "Mushrooms",
+    "nuci": "Nuts",
+    "soia": "Soy",
+    "alune": "Hazelnuts",
+    "bauturi": "Beverages",
+    "deserturi": "Desserts",
+    "suplimente": "Supplements",
+    "condimente": "Condiments",
+    "gustari": "Snacks",
+    "mese": "Meals",
+    "proteine": "Protein",
+    "paste": "Pasta"
+  },
+  "apiErrors": {
+    "unexpected": "An unexpected error occurred",
+    "invalidCredentials": "Incorrect email or password.",
+    "emailTaken": "This email is already registered.",
+    "emailRequired": "Enter your email address.",
+    "invalidEmail": "The email address is not valid.",
+    "fullNameRequired": "Enter your full name.",
+    "passwordRequired": "Enter your password.",
+    "passwordBlank": "The password cannot contain only spaces.",
+    "passwordTooShort": "The password must be at least 6 characters long.",
+    "sessionMissing": "Your session has expired. Please sign in again.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "profileNotFound": "Profile not found.",
+    "forbidden": "You do not have access to this resource.",
+    "apiRouteMissing": "The API route does not exist (404). Check VITE_API_URL at build time (e.g. https://backend.com/api) and that the backend service is up to date.",
+    "timeout": "The server responded too slowly (timeout). Try again or check your connection; recommendations regenerate after you change your profile.",
+    "network": "Could not reach the server. Check that the API is running and that you are online.",
+    "gateway": "Gateway timeout (504): the proxy or hosting cut the request short. Increase the proxy timeout or try again.",
+    "unavailable": "Server temporarily unavailable (502/503). Please try again in a few moments."
+  },
+  "auth": {
+    "fields": {
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "First Last",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Repeat the password"
+    },
+    "login": {
+      "heroTitle": "Welcome to",
+      "heroText": "Nourish your balance and let your energy return to its natural level.",
+      "cardTitle": "Sign in",
+      "cardSubtitle": "Enter your email and password to access your account.",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "noAccount": "Don't have an account yet?",
+      "createAccount": "Create account"
+    },
+    "register": {
+      "eyebrow": "Create your space",
+      "heroTitle": "New account on",
+      "heroText": "Fill in your medical profile and lab results in one simple flow, then get personalised food recommendations.",
+      "cardTitle": "Create account",
+      "cardSubtitle": "Fill in the details below.",
+      "passwordHint": "At least 6 characters.",
+      "passwordMismatch": "The passwords do not match.",
+      "avatarLabel": "Profile picture",
+      "avatarChoose": "Choose an image",
+      "avatarAlt": "Profile picture preview",
+      "submit": "Sign up",
+      "submitting": "Creating account...",
+      "haveAccount": "Already have an account?",
+      "backToLogin": "Back to sign in"
+    }
+  },
+  "profile": {
+    "create": {
+      "title": "Your medical profile",
+      "subtitle": "Fill in your details to get personalised recommendations",
+      "submit": "Continue",
+      "saving": "Saving..."
+    },
+    "edit": {
+      "title": "Update profile",
+      "subtitle": "Change your personal information",
+      "backToRecs": "Back to recommendations",
+      "regenerating": "Generating updated recommendations…",
+      "success": "Profile updated successfully!",
+      "labsPrompt": "Also update your lab results for more precise recommendations based on your values (haemoglobin, ferritin, vitamins, etc.).",
+      "labsButton": "Update lab results",
+      "save": "Save changes",
+      "saving": "Saving..."
+    },
+    "fields": {
+      "name": "Full name",
+      "namePlaceholder": "First Last",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "age": "Age",
+      "sex": "Sex",
+      "weight": "Weight (kg)",
+      "height": "Height (cm)",
+      "activity": "Activity level",
+      "diet": "Diet type",
+      "caloricGoal": "Daily calorie goal (kcal)",
+      "caloricGoalHint": "Informational only: we compare it with the recommended calories on the dashboard; it does not change the recommendations. Between {{min}} and {{max}} kcal.",
+      "allergies": "Allergies",
+      "conditions": "Medical conditions"
+    },
+    "options": {
+      "sex": {
+        "F": "Female",
+        "M": "Male",
+        "other": "Other"
+      },
+      "activity": {
+        "sedentary": "Sedentary",
+        "moderate": "Moderate",
+        "active": "Active",
+        "very_active": "Very active"
+      },
+      "diet": {
+        "omnivore": "Omnivore",
+        "vegetarian": "Vegetarian",
+        "vegan": "Vegan",
+        "pescatarian": "Pescatarian"
+      }
+    },
+    "errors": {
+      "ageRequired": "Age is required.",
+      "weightRequired": "Weight is required.",
+      "heightRequired": "Height is required.",
+      "caloricGoalRange": "The calorie goal must be between {{min}} and {{max}} kcal.",
+      "saveFailed": "Could not save your profile. Please try again.",
+      "updateFailed": "Could not save your changes. Please try again."
+    },
+    "summary": {
+      "title": "User profile",
+      "weight": "Weight",
+      "height": "Height",
+      "age": "Age",
+      "years_one": "{{count}} year",
+      "years_other": "{{count}} years",
+      "sex": "Sex",
+      "activity": "Activity level",
+      "diet": "Diet type",
+      "caloricGoal": "Calorie goal",
+      "na": "N/A"
+    }
+  },
+  "labs": {
+    "title": "Lab results",
+    "subtitle": "Enter the values from your recent tests (optional)",
+    "noteTitle": "Note:",
+    "noteBody": "If you have no recent tests you can skip this step. You can clear any value (or all of them) and save – recommendations will update based on the new data and your profile.",
+    "regenerating": "Generating updated recommendations…",
+    "saving": "Saving...",
+    "loadingExisting": "Loading existing results...",
+    "clearAll": "Clear all values",
+    "skip": "Skip",
+    "approximate": "approximate",
+    "vitaminKPlaceholder": "phylloquinone / vit. K1",
+    "errors": {
+      "saveFailed": "Could not save your lab results. You can continue anyway."
+    },
+    "names": {
+      "hemoglobin": "Haemoglobin",
+      "ferritin": "Ferritin",
+      "vitamin_d": "Vitamin D",
+      "vitamin_b12": "Vitamin B12",
+      "calcium": "Calcium",
+      "magnesium": "Magnesium",
+      "zinc": "Zinc",
+      "protein": "Protein",
+      "folate": "Folate / Folic acid",
+      "vitamin_a": "Vitamin A",
+      "vitamin_c": "Vitamin C",
+      "iodine": "Iodine",
+      "vitamin_k": "Vitamin K",
+      "potassium": "Potassium"
+    },
+    "pdf": {
+      "title": "Upload a medical report (PDF)",
+      "description": "attach your medical report as a PDF and the system will automatically extract the values for the available fields.",
+      "choose": "Choose PDF report",
+      "processing": "Processing the PDF...",
+      "notPdf": "Please upload a PDF file.",
+      "noText": "Could not extract text from the PDF. The file may be scanned or protected.",
+      "nothingFound": "No known values were found in the report. Please enter them manually.",
+      "extracted": "Extracted {{count}} values: {{names}}. Please review and complete manually if needed.",
+      "lowConfidence": "{{count}} values have low confidence — check them before saving.",
+      "failed": "Could not process the PDF. Try again or enter the values manually."
+    },
+    "notes": {
+      "label": "Notes or medical diagnosis",
+      "placeholder": "Add any notes or additional information...",
+      "suggestionsTitle": "Helpful note suggestions (click to add):"
+    },
+    "suggestions": {
+      "ironAnemia": "Confirmed iron-deficiency anaemia",
+      "vitaminD": "Vitamin D deficiency",
+      "vitaminB12": "Vitamin B12 deficiency",
+      "magnesium": "Magnesium deficiency",
+      "zinc": "Zinc deficiency",
+      "folate": "Folate deficiency (vitamin B9)",
+      "calcium": "Calcium deficiency",
+      "iodine": "Iodine deficiency",
+      "potassium": "Potassium deficiency",
+      "lactose": "Lactose intolerance",
+      "gluten": "Gluten intolerance / coeliac disease",
+      "hypertension": "Arterial hypertension",
+      "diabetes": "Diabetes mellitus / prediabetes",
+      "reflux": "Gastroesophageal reflux",
+      "kidney": "Chronic kidney disease",
+      "noFish": "I cannot eat fish",
+      "noDairy": "I cannot eat dairy",
+      "noSeeds": "I cannot eat seeds"
+    }
+  },
+  "recommendations": {
+    "title": "Your recommendations",
+    "subtitle": "Foods personalised to your nutritional needs",
+    "exportPdf": "Export PDF",
+    "showMore": "Show more",
+    "loading": "Loading recommendations...",
+    "empty": "No recommendations found. Please check your profile and lab results.",
+    "categoryOther": "Other",
+    "backgroundRefresh": "The list is updating in the background; new cards appear automatically when ready.",
+    "contentLanguageNote": "Food names and detailed explanations are generated by the server in Romanian; the rest of the interface follows the language you selected.",
+    "errors": {
+      "noUserId": "User ID is missing. Please sign in again.",
+      "noneFound": "No recommendations found. Check your profile and medical lab results.",
+      "retryHint": "Automatic generation is being attempted. If nothing appears in a few seconds, check your profile and lab results.",
+      "refreshFailed": "Updating the recommendations failed. The previous list remains displayed."
+    },
+    "updating": {
+      "title": "Updating recommendations",
+      "body": "after your profile or lab results changed. You can see the previous list below until it finishes."
+    },
+    "categories": {
+      "title": "Recommended categories",
+      "subtitle": "You can filter the recommendations by food category.",
+      "all": "All ({{count}})"
+    },
+    "chart": {
+      "title": "Deficit coverage comparison - Top 5 recommendations",
+      "series": "Deficit coverage",
+      "yAxis": "Coverage (%)"
+    },
+    "caloric": {
+      "title": "Daily calorie goal",
+      "subtitle": "Calories of the suggested portions, compared with your goal",
+      "noData": "We have no calorie data for the recommended foods.",
+      "valueText": "{{total}} of {{goal}} kcal ({{percent}}%)",
+      "over": "≈ {{diff}} kcal over your goal if you ate every suggested portion.",
+      "remaining": "≈ {{diff}} kcal left until your goal if you ate every suggested portion.",
+      "disclaimer_one": "Informational: sum of the calories of the suggested portions ({{count}} food), estimated from per-100 g values. It is not a meal plan and does not influence the recommendations.",
+      "disclaimer_other": "Informational: sum of the calories of the suggested portions ({{count}} foods), estimated from per-100 g values. It is not a meal plan and does not influence the recommendations.",
+      "missing_one": "Calorie data is missing for {{count}} food.",
+      "missing_other": "Calorie data is missing for {{count}} foods."
+    },
+    "card": {
+      "summary": "Summary",
+      "nutrientDetail": "Nutrient details",
+      "portion": "Suggested portion:",
+      "kcalHint": "Approximate calories of the suggested portion",
+      "whyTitle": "Why I recommend it:",
+      "tipsTitle": "Tips",
+      "alternatives": "Similar alternatives:",
+      "feedbackQuestion": "What do you think of this recommendation?",
+      "like": "I like this recommendation",
+      "dislike": "I dislike this recommendation",
+      "thanks": "Thanks for your feedback, we use it to adjust future recommendations.",
+      "errors": {
+        "feedback": "Could not send your feedback. Please try again.",
+        "dislike": "Could not save the dislike. Please try again.",
+        "replace": "Could not replace the recommendation. Your dislike was recorded."
+      },
+      "dislikeTitle": "Not for you?",
+      "dislikeBody": "Do you want me to swap this recommendation for an alternative that fits your needs?",
+      "replacing": "Replacing...",
+      "yes": "Yes",
+      "no": "No"
+    }
+  },
+  "pdf": {
+    "subtitle": "Personalised Nutrition Recommendations Report",
+    "beneficiary": "Prepared for",
+    "defaultUser": "User",
+    "generatedAt": "Generated on",
+    "important": "IMPORTANT:",
+    "disclaimer": "These recommendations are general suggestions based on the information provided and do not replace professional medical advice. Consult a licensed doctor or dietitian before making major changes to your diet.",
+    "section": "NUTRITION RECOMMENDATIONS",
+    "category": "Category",
+    "portion": "Suggested portion",
+    "coverage": "Deficit coverage",
+    "description": "Description",
+    "motivation": "Rationale",
+    "rights": "All rights reserved.",
+    "fileName": "Recommendations"
+  }
+}

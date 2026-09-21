@@ -1,0 +1,477 @@
+{
+  "common": {
+    "loading": "Se încarcă...",
+    "close": "Închide",
+    "cancel": "Anulează",
+    "optional": "opțional",
+    "goToLogin": "Mergi la login",
+    "createProfile": "Creează profil",
+    "showPassword": "Arată parola",
+    "hidePassword": "Ascunde parola"
+  },
+  "app": {
+    "errors": {
+      "noAuthUser": "Nu există utilizator autentificat",
+      "noProfile": "Profil medical lipsă",
+      "noProfileForRecs": "Profil medical lipsă pentru recomandări",
+      "unknownRoute": "Rută necunoscută",
+      "route": "Rută: {{route}}"
+    },
+    "boundary": {
+      "title": "Eroare",
+      "message": "A apărut o eroare în aplicație. Te rugăm să reîncarci pagina.",
+      "details": "Detalii eroare",
+      "reload": "Reîncarcă pagina"
+    }
+  },
+  "nav": {
+    "label": "Navigare principală",
+    "dashboard": "Recomandări",
+    "labs": "Analize medicale",
+    "profile": "Profil",
+    "logout": "Delogare",
+    "logoAlt": "Logo VitaBalance",
+    "footer": "© {{year}} VitaBalance"
+  },
+  "lang": {
+    "label": "Limbă",
+    "ro": "Română",
+    "en": "English",
+    "switchTo": "Schimbă limba în {{language}}"
+  },
+  "disclaimer": {
+    "title": "Disclaimer medical:",
+    "body": "Această aplicație oferă sugestii generale și nu înlocuiește consultul medical. Pentru probleme de sănătate, vă rugăm să consultați un specialist. Recomandările sunt bazate pe informații generale și pot să nu fie potrivite pentru toți utilizatorii.",
+    "dismiss": "Închide avertismentul"
+  },
+  "selectors": {
+    "allergiesPlaceholder": "Selectează alergiile",
+    "allergiesSelected_one": "{{count}} alergie selectată",
+    "allergiesSelected_few": "{{count}} alergii selectate",
+    "allergiesSelected_other": "{{count}} de alergii selectate",
+    "conditionsPlaceholder": "Selectează condițiile medicale",
+    "conditionsSelected_one": "{{count}} condiție selectată",
+    "conditionsSelected_few": "{{count}} condiții selectate",
+    "conditionsSelected_other": "{{count}} de condiții selectate",
+    "remove": "Elimină {{item}}",
+    "allergiesHint": "Selectează toate alergiile care te afectează. Recomandările vor exclude automat alimentele care conțin acești alergeni.",
+    "conditionsHint": "Selectează condițiile care te afectează. Recomandările vor ține cont de acestea."
+  },
+  "allergies": {
+    "lactoza": {
+      "label": "Lactoză / Lactate",
+      "description": "Alergii la produse lactate (lapte, brânză, iaurt, etc.)"
+    },
+    "gluten": {
+      "label": "Gluten",
+      "description": "Alergii la produse cu gluten (grâu, pâine, paste, etc.)"
+    },
+    "nuci": {
+      "label": "Nuci",
+      "description": "Alergii la nuci, alune, migdale, fistic, etc."
+    },
+    "oua": {
+      "label": "Ouă",
+      "description": "Alergii la ouă și produse care conțin ouă"
+    },
+    "soia": {
+      "label": "Soia",
+      "description": "Alergii la soia și produse derivate (tofu, tempeh, etc.)"
+    },
+    "peste": {
+      "label": "Pește",
+      "description": "Alergii la pește și produse din pește"
+    },
+    "crustacee": {
+      "label": "Crustacee",
+      "description": "Alergii la creveți, crab, homar, etc."
+    },
+    "arahide": {
+      "label": "Arahide",
+      "description": "Alergii la arahide și produse care conțin arahide"
+    },
+    "sesam": {
+      "label": "Sesam",
+      "description": "Alergii la semințe de susan și produse care conțin susan"
+    },
+    "mustar": {
+      "label": "Muștar",
+      "description": "Alergii la muștar și produse care conțin muștar"
+    }
+  },
+  "conditions": {
+    "diabet": {
+      "label": "Diabet",
+      "description": "Necesită atenție la glucide și indice glicemic"
+    },
+    "hipertensiune": {
+      "label": "Hipertensiune",
+      "description": "Limitare sodiu, dietă sănătoasă pentru inimă"
+    },
+    "anemie": {
+      "label": "Anemie / deficiență de fier",
+      "description": "Alimente bogate în fier și vitamina C"
+    },
+    "osteoporoza": {
+      "label": "Osteoporoză",
+      "description": "Calciu, vitamina D, magneziu"
+    },
+    "tiroida": {
+      "label": "Boli de tiroidă",
+      "description": "Iod, seleniu; evitat excesul de soia în unele cazuri"
+    },
+    "celiachie": {
+      "label": "Celiachie / intoleranță la gluten",
+      "description": "Dietă fără gluten"
+    },
+    "boli_cardiovasculare": {
+      "label": "Boli cardiovasculare",
+      "description": "Dietă săracă în sodiu, grăsimi sănătoase"
+    },
+    "insuficienta_renala": {
+      "label": "Insuficiență renală",
+      "description": "Limitare potasiu, fosfor, proteine (în funcție de stadiu)"
+    },
+    "reflux": {
+      "label": "Reflux gastroesofagian",
+      "description": "Evitat mese mari, alimente acide/grase"
+    },
+    "iritații_intestinale": {
+      "label": "Sindrom de colon iritabil",
+      "description": "Fibre adaptate, evitat trigger-ele personale"
+    },
+    "deficienta_vitamin_d": {
+      "label": "Deficiență de vitamina D",
+      "description": "Alimente cu vitamina D, expunere la soare"
+    },
+    "deficienta_b12": {
+      "label": "Deficiență de vitamina B12",
+      "description": "Carne, pește, ouă; suplimente dacă e cazul"
+    },
+    "obezitate": {
+      "label": "Obezitate / management greutate",
+      "description": "Echilibru caloric, nutrienți de calitate"
+    },
+    "colesterol_ridicat": {
+      "label": "Colesterol ridicat",
+      "description": "Grăsimi nesaturate, fibre, evitat trans"
+    },
+    "gout": {
+      "label": "Gută",
+      "description": "Limitare purine (carne roșie, fructe de mare), hidratare"
+    }
+  },
+  "categories": {
+    "carne": "Carne",
+    "peste": "Pește",
+    "legume": "Legume",
+    "lactate": "Lactate",
+    "cereale": "Cereale",
+    "fructe_seci": "Fructe seci",
+    "seminte": "Semințe",
+    "fructe": "Fructe",
+    "leguminoase": "Leguminoase",
+    "oua": "Ouă",
+    "unt": "Unt",
+    "ulei": "Ulei",
+    "ciuperci": "Ciuperci",
+    "nuci": "Nuci",
+    "soia": "Soia",
+    "alune": "Alune",
+    "bauturi": "Băuturi",
+    "deserturi": "Deserturi",
+    "suplimente": "Suplimente",
+    "condimente": "Condimente",
+    "gustari": "Gustări",
+    "mese": "Mese",
+    "proteine": "Proteine",
+    "paste": "Paste"
+  },
+  "apiErrors": {
+    "unexpected": "A apărut o eroare neașteptată",
+    "invalidCredentials": "Email sau parolă incorectă.",
+    "emailTaken": "Acest email este deja înregistrat.",
+    "emailRequired": "Introdu adresa de email.",
+    "invalidEmail": "Adresa de email nu este validă.",
+    "fullNameRequired": "Completează numele complet.",
+    "passwordRequired": "Introdu parola.",
+    "passwordBlank": "Parola nu poate conține doar spații.",
+    "passwordTooShort": "Parola trebuie să aibă minim 6 caractere.",
+    "sessionMissing": "Sesiunea a expirat. Autentifică-te din nou.",
+    "sessionExpired": "Sesiunea a expirat. Autentifică-te din nou.",
+    "profileNotFound": "Profilul nu a fost găsit.",
+    "forbidden": "Nu ai acces la această resursă.",
+    "apiRouteMissing": "Ruta către API nu există (404). Verifică VITE_API_URL la build (ex. https://backend.com/api) și că serviciul backend este ultima versiune.",
+    "timeout": "Serverul a răspuns prea lent (timeout). Reîncearcă sau verifică conexiunea; recomandările se regenerează după modificarea profilului.",
+    "network": "Nu s-a putut contacta serverul. Verifică dacă API-ul rulează și conexiunea la internet.",
+    "gateway": "Gateway timeout (504): proxy-ul sau hosting-ul a întrerupt cererea prea devreme. Mărește timeout-ul la proxy sau reîncearcă.",
+    "unavailable": "Server temporar indisponibil (502/503). Reîncearcă peste câteva momente."
+  },
+  "auth": {
+    "fields": {
+      "email": "Email",
+      "emailPlaceholder": "exemplu@email.com",
+      "password": "Parolă",
+      "passwordPlaceholder": "••••••••",
+      "fullName": "Nume complet",
+      "fullNamePlaceholder": "Nume Prenume",
+      "confirmPassword": "Confirmare parolă",
+      "confirmPasswordPlaceholder": "Repetă parola"
+    },
+    "login": {
+      "heroTitle": "Bine ai venit la",
+      "heroText": "Hrănește-ți echilibrul și lasă-ți energia să revină la nivelul ei natural.",
+      "cardTitle": "Autentificare",
+      "cardSubtitle": "Introdu emailul și parola pentru a-ți accesa contul.",
+      "submit": "Conectare",
+      "submitting": "Se conectează...",
+      "noAccount": "Nu ai cont încă?",
+      "createAccount": "Creează cont"
+    },
+    "register": {
+      "eyebrow": "Creează-ți spațiul",
+      "heroTitle": "Cont nou",
+      "heroText": "Completează profilul medical și analizele într-un flux simplu, apoi primești recomandări alimentare personalizate.",
+      "cardTitle": "Creare cont",
+      "cardSubtitle": "Completează informațiile de mai jos.",
+      "passwordHint": "Minim 6 caractere.",
+      "passwordMismatch": "Parolele nu coincid.",
+      "avatarLabel": "Poză de profil",
+      "avatarChoose": "Alege o imagine",
+      "avatarAlt": "Previzualizare poză de profil",
+      "submit": "Înregistrare",
+      "submitting": "Se creează contul...",
+      "haveAccount": "Ai deja cont?",
+      "backToLogin": "Înapoi la logare"
+    }
+  },
+  "profile": {
+    "create": {
+      "title": "Profilul tău medical",
+      "subtitle": "Completează informațiile pentru recomandări personalizate",
+      "submit": "Continuă",
+      "saving": "Se salvează..."
+    },
+    "edit": {
+      "title": "Actualizează profilul",
+      "subtitle": "Modifică informațiile tale personale",
+      "backToRecs": "Înapoi la recomandări",
+      "regenerating": "Se generează recomandările actualizate…",
+      "success": "Profilul a fost actualizat cu succes!",
+      "labsPrompt": "Actualizează și rezultatele analizelor medicale pentru recomandări mai precise pe baza valorilor tale (hemoglobină, feritină, vitamine etc.).",
+      "labsButton": "Actualizează analize medicale",
+      "save": "Salvează modificările",
+      "saving": "Se salvează..."
+    },
+    "fields": {
+      "name": "Nume complet",
+      "namePlaceholder": "Nume Prenume",
+      "email": "Email",
+      "emailPlaceholder": "exemplu@email.com",
+      "age": "Vârstă",
+      "sex": "Sex",
+      "weight": "Greutate (kg)",
+      "height": "Înălțime (cm)",
+      "activity": "Nivel de activitate",
+      "diet": "Tip de dietă",
+      "caloricGoal": "Obiectiv caloric zilnic (kcal)",
+      "caloricGoalHint": "Doar informativ: îl comparăm cu caloriile recomandate pe panou; nu schimbă recomandările. Între {{min}} și {{max}} kcal.",
+      "allergies": "Alergii",
+      "conditions": "Condiții medicale"
+    },
+    "options": {
+      "sex": {
+        "F": "Feminin",
+        "M": "Masculin",
+        "other": "Altul"
+      },
+      "activity": {
+        "sedentary": "Sedentar",
+        "moderate": "Moderat",
+        "active": "Activ",
+        "very_active": "Foarte activ"
+      },
+      "diet": {
+        "omnivore": "Omnivor",
+        "vegetarian": "Vegetarian",
+        "vegan": "Vegan",
+        "pescatarian": "Pescetarian"
+      }
+    },
+    "errors": {
+      "ageRequired": "Vârsta este obligatorie.",
+      "weightRequired": "Greutatea este obligatorie.",
+      "heightRequired": "Înălțimea este obligatorie.",
+      "caloricGoalRange": "Obiectivul caloric trebuie să fie între {{min}} și {{max}} kcal.",
+      "saveFailed": "Eroare la salvarea profilului. Te rugăm să încerci din nou.",
+      "updateFailed": "Eroare la salvarea modificărilor. Te rugăm să încerci din nou."
+    },
+    "summary": {
+      "title": "Profil utilizator",
+      "weight": "Greutate",
+      "height": "Înălțime",
+      "age": "Vârstă",
+      "years_one": "{{count}} an",
+      "years_few": "{{count}} ani",
+      "years_other": "{{count}} de ani",
+      "sex": "Sex",
+      "activity": "Nivel activitate",
+      "diet": "Tip dietă",
+      "caloricGoal": "Obiectiv caloric",
+      "na": "N/A"
+    }
+  },
+  "labs": {
+    "title": "Rezultate analize medicale",
+    "subtitle": "Introdu valorile din analizele recente (opțional)",
+    "noteTitle": "Notă:",
+    "noteBody": "Dacă nu ai analize recente, poți sări peste acest pas. Poți șterge orice valoare (sau toate) și salva – recomandările se vor actualiza pe baza noilor date și a profilului tău.",
+    "regenerating": "Se generează recomandările actualizate…",
+    "saving": "Se salvează...",
+    "loadingExisting": "Se încarcă analizele existente...",
+    "clearAll": "Șterge toate valorile",
+    "skip": "Sari peste",
+    "approximate": "orientativ",
+    "vitaminKPlaceholder": "filochinonă / vit. K1",
+    "errors": {
+      "saveFailed": "Eroare la salvarea analizelor. Poți continua oricum."
+    },
+    "names": {
+      "hemoglobin": "Hemoglobină",
+      "ferritin": "Feritină",
+      "vitamin_d": "Vitamina D",
+      "vitamin_b12": "Vitamina B12",
+      "calcium": "Calciu",
+      "magnesium": "Magneziu",
+      "zinc": "Zinc",
+      "protein": "Proteine",
+      "folate": "Folat / Acid folic",
+      "vitamin_a": "Vitamina A",
+      "vitamin_c": "Vitamina C",
+      "iodine": "Iod",
+      "vitamin_k": "Vitamina K",
+      "potassium": "Potasiu"
+    },
+    "pdf": {
+      "title": "Încarcă raport medical PDF",
+      "description": "atașează raportul tău medical în format PDF și sistemul va extrage automat valorile pentru câmpurile disponibile.",
+      "choose": "Alege raport PDF",
+      "processing": "Se procesează PDF-ul...",
+      "notPdf": "Te rugăm să încarci un fișier PDF.",
+      "noText": "Nu s-a putut extrage text din PDF. Poate fișierul este scanat sau protejat.",
+      "nothingFound": "Nu s-au identificat valori cunoscute în raport. Introdu manual.",
+      "extracted": "S-au extras {{count}} valori: {{names}}. Verifică și completează manual dacă e cazul.",
+      "lowConfidence": "{{count}} valori au încredere scăzută — verifică-le înainte de salvare.",
+      "failed": "Eroare la procesarea PDF-ului. Încearcă din nou sau introdu manual."
+    },
+    "notes": {
+      "label": "Observații sau diagnostic medical",
+      "placeholder": "Adaugă orice observații sau informații suplimentare...",
+      "suggestionsTitle": "Sugestii utile pentru observații (apasă pentru a adăuga):"
+    },
+    "suggestions": {
+      "ironAnemia": "Anemie feriprivă confirmată",
+      "vitaminD": "Deficiență de vitamina D",
+      "vitaminB12": "Deficiență de vitamina B12",
+      "magnesium": "Deficiență de magneziu",
+      "zinc": "Deficiență de zinc",
+      "folate": "Deficiență de folat (vitamina B9)",
+      "calcium": "Deficiență de calciu",
+      "iodine": "Deficiență de iod",
+      "potassium": "Deficiență de potasiu",
+      "lactose": "Intoleranță la lactoză",
+      "gluten": "Intoleranță la gluten / boală celiacă",
+      "hypertension": "Hipertensiune arterială",
+      "diabetes": "Diabet zaharat / prediabet",
+      "reflux": "Reflux gastroesofagian",
+      "kidney": "Boală renală cronică",
+      "noFish": "Nu pot consuma pește",
+      "noDairy": "Nu pot consuma lactate",
+      "noSeeds": "Nu pot consuma semințe"
+    }
+  },
+  "recommendations": {
+    "title": "Recomandările tale",
+    "subtitle": "Alimente personalizate pentru nevoile tale nutriționale",
+    "exportPdf": "Exportă PDF",
+    "showMore": "Vezi mai multe",
+    "loading": "Se încarcă recomandările...",
+    "empty": "Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele.",
+    "categoryOther": "Altele",
+    "backgroundRefresh": "Lista se actualizează în fundal; cardurile noi apar automat când sunt gata.",
+    "contentLanguageNote": "Numele alimentelor și explicațiile detaliate sunt generate de server în limba română; restul interfeței urmează limba aleasă.",
+    "errors": {
+      "noUserId": "ID-ul utilizatorului lipsește. Vă rugăm să vă conectați din nou.",
+      "noneFound": "Nu s-au găsit recomandări. Verifică profilul și analizele medicale.",
+      "retryHint": "Se încearcă generarea automată. Dacă nu apare nimic în câteva secunde, verifică profilul și analizele medicale.",
+      "refreshFailed": "Actualizarea recomandărilor a eșuat. Lista anterioară rămâne afișată."
+    },
+    "updating": {
+      "title": "Se actualizează recomandările",
+      "body": "după modificarea profilului sau analizelor. Poți vedea mai jos lista anterioară până la finalizare."
+    },
+    "categories": {
+      "title": "Categorii recomandate",
+      "subtitle": "Poți filtra recomandările pe categorii alimentare.",
+      "all": "Toate ({{count}})"
+    },
+    "chart": {
+      "title": "Comparație acoperire deficit - Top 5 recomandări",
+      "series": "Acoperire deficit",
+      "yAxis": "Acoperire (%)"
+    },
+    "caloric": {
+      "title": "Obiectiv caloric zilnic",
+      "subtitle": "Caloriile porțiilor sugerate, raportate la obiectivul tău",
+      "noData": "Nu avem date calorice pentru alimentele recomandate.",
+      "valueText": "{{total}} din {{goal}} kcal ({{percent}}%)",
+      "over": "Cu ≈ {{diff}} kcal peste obiectiv dacă ai consuma toate porțiile sugerate.",
+      "remaining": "Mai rămân ≈ {{diff}} kcal până la obiectiv dacă ai consuma toate porțiile sugerate.",
+      "disclaimer_one": "Informativ: suma caloriilor porțiilor sugerate ({{count}} aliment), estimată din valorile la 100 g. Nu este un plan alimentar și nu influențează recomandările.",
+      "disclaimer_few": "Informativ: suma caloriilor porțiilor sugerate ({{count}} alimente), estimată din valorile la 100 g. Nu este un plan alimentar și nu influențează recomandările.",
+      "disclaimer_other": "Informativ: suma caloriilor porțiilor sugerate ({{count}} de alimente), estimată din valorile la 100 g. Nu este un plan alimentar și nu influențează recomandările.",
+      "missing_one": "Pentru {{count}} aliment lipsesc datele calorice.",
+      "missing_few": "Pentru {{count}} alimente lipsesc datele calorice.",
+      "missing_other": "Pentru {{count}} de alimente lipsesc datele calorice."
+    },
+    "card": {
+      "summary": "Rezumat",
+      "nutrientDetail": "Detaliu nutrienți",
+      "portion": "Porție sugerată:",
+      "kcalHint": "Estimare orientativă a caloriilor porției sugerate",
+      "whyTitle": "De ce îl recomand:",
+      "tipsTitle": "Sfaturi",
+      "alternatives": "Alternative similare:",
+      "feedbackQuestion": "Cum ți se pare această recomandare?",
+      "like": "Îmi place această recomandare",
+      "dislike": "Nu îmi place această recomandare",
+      "thanks": "Mulțumim pentru feedback, îl folosim pentru a ajusta recomandările viitoare.",
+      "errors": {
+        "feedback": "Nu s-a putut trimite feedback-ul. Încearcă din nou.",
+        "dislike": "Nu s-a putut salva dislike-ul. Încearcă din nou.",
+        "replace": "Nu s-a putut înlocui recomandarea. Dislike-ul a fost înregistrat."
+      },
+      "dislikeTitle": "Nu ți se potrivește?",
+      "dislikeBody": "Vrei să îți schimb această recomandare cu o alternativă potrivită nevoilor tale?",
+      "replacing": "Se înlocuiește...",
+      "yes": "Da",
+      "no": "Nu"
+    }
+  },
+  "pdf": {
+    "subtitle": "Raport de Recomandări Nutriționale Personalizate",
+    "beneficiary": "Beneficiar",
+    "defaultUser": "Utilizator",
+    "generatedAt": "Data generării",
+    "important": "IMPORTANT:",
+    "disclaimer": "Aceste recomandări sunt sugestii generale bazate pe informațiile furnizate și nu înlocuiesc consultul medical profesional. Consultați un medic sau nutriționist autorizat înainte de modificări majore în dietă.",
+    "section": "RECOMANDĂRI NUTRIȚIONALE",
+    "category": "Categorie",
+    "portion": "Porție sugerată",
+    "coverage": "Acoperire deficit",
+    "description": "Descriere",
+    "motivation": "Motivație",
+    "rights": "Toate drepturile rezervate.",
+    "fileName": "Recomandari"
+  }
+}

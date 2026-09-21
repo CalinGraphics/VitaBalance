@@ -10,6 +10,8 @@ export interface User {
   diet_type: string
   allergies?: string
   medical_conditions?: string
+  /** Obiectiv caloric zilnic (kcal) — opțional, doar informativ; nu influențează recomandările. */
+  caloric_goal?: number | null
   /** ISO datetime de la API — folosit la polling după regenerare async */
   updated_at?: string | null
 }
@@ -20,4 +22,4 @@ export interface AuthUser {
   avatarUrl: string | null
 }
 
-export type Route = 'login' | 'register' | 'auth-verify' | 'medical-profile' | 'lab-results' | 'recommendations' | 'edit-profile'
+export type Route = 'login' | 'register' | 'medical-profile' | 'lab-results' | 'recommendations' | 'edit-profile'

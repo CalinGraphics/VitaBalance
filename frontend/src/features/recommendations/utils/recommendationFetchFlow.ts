@@ -1,3 +1,4 @@
+import i18n from '../../../shared/i18n'
 import { isAxiosError } from 'axios'
 import {
   recommendationsService,
@@ -24,8 +25,11 @@ export function syncMetaIsFresh(meta: {
   user_updated_at: string | null
   latest_rec_created_at: string | null
   labs_fresh_at?: string | null
+  explanations_outdated?: boolean
 }): boolean {
   if (!meta.latest_rec_created_at) return false
+  // Explicații vechi (fără fapte): se regenerează o dată, ca să fie specifice pacientului și disponibile în RO/EN.
+  if (meta.explanations_outdated) return false
   const rec = new Date(meta.latest_rec_created_at).getTime()
   const profileT = meta.user_updated_at ? new Date(meta.user_updated_at).getTime() : 0
   const labT = meta.labs_fresh_at ? new Date(meta.labs_fresh_at).getTime() : 0
@@ -88,7 +92,7 @@ export async function pollRecommendationRefresh(
     if (meta.refresh_status === 'failed') {
       options.onFailed(
         meta.refresh_error?.trim() ||
-          'Actualizarea recomandărilor a eșuat. Lista anterioară rămâne afișată.'
+          i18n.t('recommendations.errors.refreshFailed')
       )
       return 'failed'
     }

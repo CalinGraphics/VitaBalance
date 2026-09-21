@@ -5,8 +5,8 @@ import { profileService, authService } from '../../services/api'
 import { getToken, setToken, clearToken } from '../../services/authStorage'
 
 // Un profil medical este considerat "complet" doar dacă are valorile de bază setate.
-// Utilizatorii creați automat la verify_magic_link au câmpurile numerice 0 / implicite,
-// așa că pentru ei vom forța trecerea prin ecranul de creare profil.
+// Un cont proaspăt înregistrat are câmpurile numerice 0 / implicite,
+// așa că îl trimitem prin ecranul de creare profil.
 const hasCompleteMedicalProfile = (profile: User | null | undefined): boolean => {
   if (!profile || !profile.id) return false
   if (!profile.age || profile.age <= 0) return false
@@ -42,7 +42,7 @@ export const useAppNavigation = () => {
           setMedicalUser(existingProfile)
           setRoute('recommendations')
         } else {
-          // Nu are profil complet (sau e utilizator nou creat automat) – merge la crearea profilului
+          // Nu are profil complet (cont nou) – merge la crearea profilului
           setMedicalUser(null)
           setRoute('medical-profile')
         }
@@ -96,22 +96,6 @@ export const useAppNavigation = () => {
   }, [])
 
   useEffect(() => {
-    // Token din query (?token=) sau din hash (#token=) – pentru compatibilitate cu diverse redirecturi.
-    // Îl salvăm și în sessionStorage ca fallback, pentru cazuri în care URL-ul este modificat de browser/hosting.
-    const queryParams = new URLSearchParams(window.location.search)
-    const hashPart = window.location.hash.replace(/^#/, '').replace(/^\?/, '')
-    const hashParams = new URLSearchParams(hashPart)
-    const magicToken = queryParams.get('token') || hashParams.get('token')
-    if (magicToken) {
-      try {
-        sessionStorage.setItem('vitabalance_magic_token', magicToken)
-      } catch {
-        // ignoră dacă sessionStorage nu este disponibil
-      }
-      setRoute('auth-verify')
-      setIsLoading(false)
-      return
-    }
     const token = getToken()
     if (!token) {
       setIsLoading(false)

@@ -1,15 +1,18 @@
 """
 Materializare recomandări (motor + persistare) — apelabil din HTTP sau BackgroundTasks.
+
+Explicațiile se salvează ca FAPTE structurate (explanation_json.facts) și se randează la citire în limba cerută
+(RO/EN) — vezi explanation_facts.py / explanation_renderer.py.
 """
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from fastapi import HTTPException
 
-from domain.models import UserProfile
+from domain.models import UserProfile, food_display_name
 from repositories import (
     UserRepository,
     FoodRepository,
@@ -19,7 +22,9 @@ from repositories import (
 )
 from domain.models import FoodItem, RecommendationItem
 from services.deficit_calculator import DeficitCalculator
-from services.explanation_generator import ExplanationGenerator
+from services.explanation_facts import alternatives_for, build_facts, has_facts, parse_explanation_json
+from services.explanation_i18n import DEFAULT_LANG, normalize_lang
+from services.explanation_renderer import render_explanation
 from services.explanation_storage import explanation_from_db_row, explanation_to_db_fields
 from services.portion_calculator import suggest_portion
 from services.recommender import RecommenderService
@@ -27,55 +32,6 @@ from services.recommendation_fast_context import enter_fast_bulk_mode, exit_fast
 
 ACTIVE_REC_LIMIT = 20
 FEEDBACK_REC_LOOKUP_LIMIT = 25
-
-
-def _build_explanation_for_insert(
-    food: FoodItem,
-    user: UserProfile,
-    rec_dict: dict,
-    has_lab_data: bool,
-    *,
-    fast: bool,
-) -> dict:
-    ps = suggest_portion(food, user)
-    if fast:
-        texts = rec_dict.get("explanations") or []
-        main = ""
-        if texts:
-            main = str(texts[0]).strip()
-            if len(texts) > 1:
-                main = ". ".join(str(t).strip() for t in texts[:2] if str(t).strip())
-        if not main:
-            main = f"Recomandat pentru profilul tău: {food.name}."
-        reasons = (
-            ["Adaptat profilului și analizelor tale."]
-            if has_lab_data
-            else ["Adaptat profilului tău."]
-        )
-        return {
-            "text": main[:1200],
-            "portion": ps.amount,
-            "portion_unit": ps.unit,
-            "reasons": reasons,
-            "tips": ["Folosește porția sugerată în mesele zilnice."],
-            "alternatives": None,
-        }
-    explanation_gen = ExplanationGenerator()
-    explanation = explanation_gen.generate_explanation(
-        food=food,
-        user=user,
-        deficits={},
-        score=rec_dict["score"],
-        coverage=rec_dict["coverage"],
-        explanations=rec_dict.get("explanations"),
-        matched_rules=rec_dict.get("matched_rules"),
-        has_lab_data=has_lab_data,
-        nutrients_covered=rec_dict.get("nutrients_covered"),
-        portion_grams=ps.grams_equivalent,
-    )
-    explanation["portion"] = ps.amount
-    explanation["portion_unit"] = ps.unit
-    return explanation
 
 
 def _has_lab_data(lab_results) -> bool:
@@ -90,66 +46,163 @@ def _has_lab_data(lab_results) -> bool:
     return False
 
 
-def _build_feedback_by_food(
-    user_feedbacks,
-    active_recs: List[RecommendationItem],
-    feedback_food_by_rec_id: Dict[int, int],
-) -> dict:
+def _build_feedback_by_food(user_feedbacks) -> dict:
+    """Feedback-ul e legat direct de aliment, deci rămâne valabil după regenerarea/înlocuirea recomandărilor."""
     feedback_by_food: dict = {}
-    rec_by_id = {r.id: r for r in active_recs}
     for fb in user_feedbacks:
-        if fb.recommendation_id is None:
-            continue
-        fid = getattr(fb, "food_id", None)
-        if fid is None:
-            rec = rec_by_id.get(fb.recommendation_id)
-            fid = rec.food_id if rec else feedback_food_by_rec_id.get(fb.recommendation_id)
-        if fid is None:
-            continue
-        if fid not in feedback_by_food:
-            feedback_by_food[fid] = []
-        feedback_by_food[fid].append(fb)
+        feedback_by_food.setdefault(fb.food_id, []).append(fb)
     return feedback_by_food
+
+
+def _rating_by_food(user_feedbacks) -> Dict[int, int]:
+    return {fb.food_id: fb.rating for fb in user_feedbacks}
+
+
+def kcal_per_100g_for_display(food: FoodItem) -> Optional[float]:
+    """
+    kcal / 100 g pentru afișarea informativă a obiectivului caloric (NU intră în scorare).
+
+    Catalogul conține și preparate ("Mese/...": ex. Gyros, Burrito) cu valori per porție, nu per 100 g:
+    macronutrienții lor însumează > 100 g la 100 g, ceea ce e imposibil. Pentru ele returnăm None,
+    ca estimarea porției să nu fie umflată artificial.
+    """
+    kcal = float(getattr(food, "calories", 0) or 0)
+    if kcal <= 0:
+        return None
+    macros = (
+        float(getattr(food, "protein", 0) or 0)
+        + float(getattr(food, "fat", 0) or 0)
+        + float(getattr(food, "carbs", 0) or 0)
+    )
+    if macros > 100.5:
+        return None
+    return kcal
+
+
+def _explanation_for_api(
+    rec: RecommendationItem, food: FoodItem, food_by_id: Dict[int, FoodItem], lang: str
+) -> dict:
+    """Explicația în limba cerută: randată din fapte; rândurile vechi (fără fapte) rămân în textul salvat (RO)."""
+
+    def name_of(fid: int) -> Optional[str]:
+        other = food_by_id.get(fid)
+        return food_display_name(other, lang) if other else None
+
+    return explanation_from_db_row(
+        {
+            "explanation": rec.explanation,
+            "portion_suggested": rec.portion_suggested,
+            "explanation_json": rec.explanation_json,
+            "reasons": rec.reasons,
+            "tips": rec.tips,
+        },
+        fallback_text=rec.explanation or "",
+        fallback_portion=float(rec.portion_suggested or 0),
+        lang=lang,
+        food_name=food_display_name(food, lang),
+        name_of=name_of,
+    )
 
 
 def _api_item_from_rec(
     rec: RecommendationItem,
     food: FoodItem,
-    expl: dict,
+    food_by_id: Dict[int, FoodItem],
     feedback_counts: Dict[int, Dict[str, int]],
-    user_feedback_by_rec: Dict[int, int],
+    user_rating_by_food: Dict[int, int],
+    lang: str = DEFAULT_LANG,
 ) -> dict:
     counts = feedback_counts.get(rec.food_id, {"likes": 0, "dislikes": 0})
     return {
         "food_id": food.id,
-        "food": {"id": food.id, "name": food.name, "category": food.category},
+        "food": {
+            "id": food.id,
+            "name": food_display_name(food, lang),
+            "category": food.category,
+            # kcal / 100 g — folosit doar pentru afișarea informativă față de obiectivul caloric
+            "calories": kcal_per_100g_for_display(food),
+        },
         "score": rec.score,
         "coverage": rec.coverage_percentage or 0,
-        "explanation": expl,
+        "explanation": _explanation_for_api(rec, food, food_by_id, lang),
         "recommendation_id": rec.id,
         "feedback": counts,
-        "my_rating": user_feedback_by_rec.get(rec.id),
+        "my_rating": user_rating_by_food.get(rec.food_id),
     }
 
 
-def _insert_row_from_explanation(user_id: int, food_id: int, rec_dict: dict, expl: dict) -> dict:
-    row = {
-        "user_id": user_id,
-        "food_id": food_id,
-        "score": rec_dict["score"],
-        "coverage_percentage": rec_dict["coverage"],
-    }
-    row.update(explanation_to_db_fields(expl))
-    return row
+def _facts_nutrient_keys(explanation_json) -> List[str]:
+    facts = (parse_explanation_json(explanation_json) or {}).get("facts") or {}
+    return [n["key"] for n in facts.get("nutrients") or [] if n.get("key")]
 
 
-def list_stored_recommendations_fast(user_id: int, _user_verified: bool = False) -> List[dict]:
+def _prepare_insert_rows(
+    *,
+    user: UserProfile,
+    lab_results,
+    deficits: Dict[str, float],
+    has_lab_data: bool,
+    rec_list: List[dict],
+    food_by_id: Dict[int, FoodItem],
+    context_recs: Iterable[RecommendationItem] = (),
+) -> List[dict]:
     """
-    Citire rapidă din DB — fără ExplanationGenerator (țintă < 800ms).
+    Rânduri pentru `recommendations`: fapte structurate + explicația RO derivată din ele (compatibilitate cu
+    coloanele explanation/reasons/tips). `context_recs` = recomandări deja existente, folosite doar pentru alternative.
+    """
+    entries = []
+    for rec in rec_list[:ACTIVE_REC_LIMIT]:
+        food = food_by_id.get(rec["food_id"])
+        if not food:
+            continue
+        facts = build_facts(
+            food=food,
+            user=user,
+            lab_results=lab_results,
+            deficits=deficits,
+            rec=rec,
+            portion=suggest_portion(food, user),
+            has_lab_data=has_lab_data,
+        )
+        entries.append((food, rec, facts))
+
+    nutrients_by_food = {c.food_id: _facts_nutrient_keys(c.explanation_json) for c in context_recs}
+    nutrients_by_food.update({f.id: [n["key"] for n in facts["nutrients"]] for f, _, facts in entries})
+    pool = [{"food_id": f.id} for f, _, _ in entries] + [{"food_id": fid} for fid in nutrients_by_food if fid not in {f.id for f, _, _ in entries}]
+    alts = alternatives_for(pool, nutrients_by_food)
+
+    rows: List[dict] = []
+    for food, rec, facts in entries:
+        facts["alternatives"] = alts.get(food.id, [])
+        expl = render_explanation(
+            facts,
+            food_name=food.name,
+            lang=DEFAULT_LANG,
+            name_of=lambda fid: food_by_id[fid].name if fid in food_by_id else None,
+        )
+        expl["facts"] = facts
+        row = {
+            "user_id": user.id,
+            "food_id": food.id,
+            "score": rec["score"],
+            "coverage_percentage": rec["coverage"],
+        }
+        row.update(explanation_to_db_fields(expl))
+        rows.append(row)
+    return rows
+
+
+def list_stored_recommendations_fast(
+    user_id: int, _user_verified: bool = False, lang: str = DEFAULT_LANG
+) -> List[dict]:
+    """
+    Citire rapidă din DB — fără recalcularea recomandărilor (țintă < 800ms); explicația se randează din faptele
+    salvate, în limba cerută.
 
     Parametru _user_verified=True: sare verificarea existenței utilizatorului
     (apelat din endpoint-uri cu autentificare deja validată).
     """
+    lang = normalize_lang(lang)
     rec_repo = RecommendationRepository()
     feedback_repo = FeedbackRepository()
     food_repo = FoodRepository()
@@ -171,32 +224,14 @@ def list_stored_recommendations_fast(user_id: int, _user_verified: bool = False)
 
     foods = food_repo.get_all()
     food_by_id = {f.id: f for f in foods}
-    user_feedback_by_rec = {
-        fb.recommendation_id: fb.rating
-        for fb in user_feedbacks
-        if fb.recommendation_id is not None
-    }
+    user_rating_by_food = _rating_by_food(user_feedbacks)
 
     recommendations: List[dict] = []
     for rec in existing_recs[:ACTIVE_REC_LIMIT]:
         food = food_by_id.get(rec.food_id)
         if not food:
             continue
-        row = {
-            "explanation": rec.explanation,
-            "portion_suggested": rec.portion_suggested,
-            "explanation_json": rec.explanation_json,
-            "reasons": rec.reasons,
-            "tips": rec.tips,
-        }
-        expl = explanation_from_db_row(
-            row,
-            fallback_text=rec.explanation or "",
-            fallback_portion=float(rec.portion_suggested or 0),
-        )
-        recommendations.append(
-            _api_item_from_rec(rec, food, expl, {}, user_feedback_by_rec)
-        )
+        recommendations.append(_api_item_from_rec(rec, food, food_by_id, {}, user_rating_by_food, lang))
 
     response_food_ids = [int(r["food_id"]) for r in recommendations if r.get("food_id") is not None]
     if response_food_ids:
@@ -224,7 +259,9 @@ def materialize_recommendations(
     force_regenerate: bool = False,
     replace_recommendation_id: Optional[int] = None,
     exclude_food_ids: Optional[List[int]] = None,
+    lang: str = DEFAULT_LANG,
 ) -> List[dict]:
+    lang = normalize_lang(lang)
     # _ensure_owner returnează UserProfile deja — nu mai re-cerem prin get_by_id
     user = _ensure_owner(owner_email, user_id)
 
@@ -248,11 +285,8 @@ def materialize_recommendations(
         all_user_recommendation_rows = fut_recs.result()
 
     feedback_counts_by_food: Dict[int, Dict[str, int]] = {}
-    user_feedback_by_rec = {
-        fb.recommendation_id: fb.rating for fb in user_feedbacks if fb.recommendation_id is not None
-    }
+    user_rating_by_food = _rating_by_food(user_feedbacks)
 
-    feedback_food_by_rec_id: Dict[int, int] = {}
     existing_recs_for_user = all_user_recommendation_rows[:ACTIVE_REC_LIMIT]
 
     # Cel mai recent rec după created_at — înlocuiește apelul redundant get_first_by_user_id
@@ -294,6 +328,10 @@ def materialize_recommendations(
         user_dt = _to_dt(getattr(user, "updated_at", None))
         if user_dt and (rec_dt is None or user_dt > rec_dt):
             should_generate = True
+        # Recomandările create înainte de explicațiile pe bază de fapte se regenerează o singură dată,
+        # ca să poată fi randate specific pacientului și în ambele limbi.
+        if any(not has_facts(r.explanation_json) for r in existing_recs_for_user):
+            should_generate = True
 
     exclude_ids = set(exclude_food_ids or [])
     is_replace_only = False
@@ -303,14 +341,11 @@ def materialize_recommendations(
             None,
         )
         if rec_to_replace:
-            feedback_food_by_rec_id[replace_recommendation_id] = rec_to_replace.food_id
             exclude_ids.add(rec_to_replace.food_id)
             rec_repo.delete_by_id(replace_recommendation_id)
             is_replace_only = True
 
-    feedback_by_food = _build_feedback_by_food(
-        user_feedbacks, existing_recs_for_user, feedback_food_by_rec_id
-    )
+    feedback_by_food = _build_feedback_by_food(user_feedbacks)
 
     if is_replace_only:
         for r in existing_recs_for_user:
@@ -333,21 +368,23 @@ def materialize_recommendations(
             user_feedbacks=user_feedbacks,
             feedback_by_food=feedback_by_food,
         )
-        inserted_row_ids: Dict[int, dict] = {}
         inserted_recs: List = []
+        remaining_recs = [r for r in existing_recs_for_user if r.id != replace_recommendation_id]
         if rec_list:
-            food = next((f for f in foods_filtered if f.id == rec_list[0]["food_id"]), None)
-            if food:
-                # Cale rapidă — fără ExplanationGenerator complet (identică cu generate principal)
-                expl = _build_explanation_for_insert(food, user, rec_list[0], has_lab_data, fast=True)
-                inserted_recs = rec_repo.insert_many(
-                    [_insert_row_from_explanation(user.id, food.id, rec_list[0], expl)]
-                )
-                for ins in inserted_recs:
-                    inserted_row_ids[ins.id] = expl
+            rows = _prepare_insert_rows(
+                user=user,
+                lab_results=lab_results,
+                deficits=deficits,
+                has_lab_data=has_lab_data,
+                rec_list=rec_list[:1],
+                food_by_id=food_by_id,
+                context_recs=remaining_recs,
+            )
+            if rows:
+                inserted_recs = rec_repo.insert_many(rows)
 
         # Reconstruiește lista din memorie — elimină query extra get_by_user_id
-        updated_recs = [r for r in existing_recs_for_user if r.id != replace_recommendation_id]
+        updated_recs = list(remaining_recs)
         updated_recs.extend(inserted_recs)
         updated_recs.sort(
             key=lambda r: (float(r.coverage_percentage or 0), float(r.score or 0)),
@@ -364,22 +401,8 @@ def materialize_recommendations(
             food = food_by_id.get(rec.food_id)
             if not food:
                 continue
-            if rec.id in inserted_row_ids:
-                expl = inserted_row_ids[rec.id]
-            else:
-                expl = explanation_from_db_row(
-                    {
-                        "explanation": rec.explanation,
-                        "portion_suggested": rec.portion_suggested,
-                        "explanation_json": rec.explanation_json,
-                        "reasons": rec.reasons,
-                        "tips": rec.tips,
-                    },
-                    fallback_text=rec.explanation or "",
-                    fallback_portion=float(rec.portion_suggested or 0),
-                )
             recommendations.append(
-                _api_item_from_rec(rec, food, expl, feedback_counts_by_food, user_feedback_by_rec)
+                _api_item_from_rec(rec, food, food_by_id, feedback_counts_by_food, user_rating_by_food, lang)
             )
     elif should_generate:
         fast_token = enter_fast_bulk_mode()
@@ -393,57 +416,36 @@ def materialize_recommendations(
                 user_feedbacks=user_feedbacks,
                 feedback_by_food=feedback_by_food,
             )
-            to_insert = []
-            explanation_by_food_id: Dict[int, dict] = {}
-            for rec in rec_list[:20]:
-                food = food_by_id.get(rec["food_id"])
-                if not food:
-                    continue
-                explanation = _build_explanation_for_insert(
-                    food, user, rec, has_lab_data, fast=True
-                )
-                to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
-                explanation_by_food_id[food.id] = explanation
+            to_insert = _prepare_insert_rows(
+                user=user,
+                lab_results=lab_results,
+                deficits=deficits,
+                has_lab_data=has_lab_data,
+                rec_list=rec_list,
+                food_by_id=food_by_id,
+            )
             if to_insert:
                 if existing is not None and not is_replace_only:
                     rec_repo.delete_by_user_id(user_id)
                 inserted = rec_repo.insert_many(to_insert)
-                for i, rec in enumerate(inserted):
-                    if i >= len(rec_list):
-                        break
+                for rec in inserted:
                     food = food_by_id.get(rec.food_id)
                     if not food:
                         continue
-                    expl = explanation_by_food_id.get(food.id)
-                    if not expl:
-                        continue
                     recommendations.append(
                         _api_item_from_rec(
-                            rec, food, expl, feedback_counts_by_food, user_feedback_by_rec
+                            rec, food, food_by_id, feedback_counts_by_food, user_rating_by_food, lang
                         )
                     )
         finally:
             exit_fast_bulk_mode(fast_token)
     else:
-        existing_recs = existing_recs_for_user[:ACTIVE_REC_LIMIT]
-        food_by_id = {f.id: f for f in foods}
-        for rec in existing_recs:
+        for rec in existing_recs_for_user[:ACTIVE_REC_LIMIT]:
             food = food_by_id.get(rec.food_id)
             if not food:
                 continue
-            expl = explanation_from_db_row(
-                {
-                    "explanation": rec.explanation,
-                    "portion_suggested": rec.portion_suggested,
-                    "explanation_json": rec.explanation_json,
-                    "reasons": rec.reasons,
-                    "tips": rec.tips,
-                },
-                fallback_text=rec.explanation or "",
-                fallback_portion=float(rec.portion_suggested or 0),
-            )
             recommendations.append(
-                _api_item_from_rec(rec, food, expl, feedback_counts_by_food, user_feedback_by_rec)
+                _api_item_from_rec(rec, food, food_by_id, feedback_counts_by_food, user_rating_by_food, lang)
             )
 
     if not recommendations and should_generate:
@@ -460,30 +462,22 @@ def materialize_recommendations(
             )
             if not rec_list:
                 return []
-            to_insert = []
-            explanation_by_food_id: Dict[int, dict] = {}
-            for rec in rec_list[:20]:
-                food = food_by_id.get(rec["food_id"])
-                if not food:
-                    continue
-                explanation = _build_explanation_for_insert(
-                    food, user, rec, has_lab_data, fast=True
-                )
-                to_insert.append(_insert_row_from_explanation(user.id, food.id, rec, explanation))
-                explanation_by_food_id[food.id] = explanation
+            to_insert = _prepare_insert_rows(
+                user=user,
+                lab_results=lab_results,
+                deficits={},
+                has_lab_data=has_lab_data,
+                rec_list=rec_list,
+                food_by_id=food_by_id,
+            )
             inserted = rec_repo.insert_many(to_insert)
-            for i, rec in enumerate(inserted):
-                if i >= len(rec_list):
-                    break
+            for rec in inserted:
                 food = food_by_id.get(rec.food_id)
                 if not food:
                     continue
-                expl = explanation_by_food_id.get(food.id)
-                if not expl:
-                    continue
                 recommendations.append(
                     _api_item_from_rec(
-                        rec, food, expl, feedback_counts_by_food, user_feedback_by_rec
+                        rec, food, food_by_id, feedback_counts_by_food, user_rating_by_food, lang
                     )
                 )
         finally:
@@ -513,5 +507,3 @@ def materialize_recommendations(
             rec["feedback"] = feedback_counts_by_food.get(int(fid), {"likes": 0, "dislikes": 0})
 
     return unique_recommendations
-
-

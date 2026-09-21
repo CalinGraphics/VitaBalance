@@ -1,10 +1,12 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, Info, ThumbsUp, ThumbsDown, X } from 'lucide-react'
+import { CheckCircle2, Flame, Info, Lightbulb, ThumbsUp, ThumbsDown, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
 import { feedbackService } from '../../../services/api'
 import { formatPortionSuggestion } from '../utils/formatPortion'
+import { estimatePortionCalories } from '../utils/calories'
 
 /** Elimină prefixul [context: ...] și normalizează spațiile pe un singur rând (motivații, sfaturi). */
 function faraPrefixContext(s: string): string {
@@ -72,7 +74,7 @@ function renderInlineBold(text: string): ReactNode[] {
   return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={i} className="font-semibold text-slate-50">
+        <strong key={i} className="font-semibold text-zinc-50">
           {part.slice(2, -2)}
         </strong>
       )
@@ -130,7 +132,7 @@ function ReadableParagraphs({ text }: { text: string }) {
   const chunks = splitReadableChunks(text)
   if (chunks.length <= 1) {
     return (
-      <p className="text-slate-200 text-base sm:text-sm leading-relaxed break-words whitespace-pre-line">
+      <p className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words whitespace-pre-line">
         {renderInlineBold(chunks[0] ?? '')}
       </p>
     )
@@ -138,8 +140,8 @@ function ReadableParagraphs({ text }: { text: string }) {
   return (
     <ul className="space-y-2.5 list-none pl-0 m-0">
       {chunks.map((chunk, idx) => (
-        <li key={idx} className="flex gap-2.5 text-slate-200 text-base sm:text-sm leading-relaxed break-words">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neonCyan/90" aria-hidden />
+        <li key={idx} className="flex gap-2.5 text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/90" aria-hidden />
           <span className="min-w-0">{renderInlineBold(chunk)}</span>
         </li>
       ))}
@@ -148,6 +150,7 @@ function ReadableParagraphs({ text }: { text: string }) {
 }
 
 function ExplanationSections({ rawText }: { rawText: string }) {
+  const { t } = useTranslation()
   const normalized = stripMedicalDisclaimersFromExplanation(normalizeExplanationRaw(rawText))
   const parts = splitExplanationSections(normalized)
   if (parts.length <= 1) {
@@ -164,16 +167,16 @@ function ExplanationSections({ rawText }: { rawText: string }) {
     return (
       <div className="space-y-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">Rezumat</p>
-          <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">{t('recommendations.card.summary')}</p>
+          <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
             <ReadableParagraphs text={first} />
           </div>
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
-            Detaliu nutrienți
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">
+            {t('recommendations.card.nutrientDetail')}
           </p>
-          <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+          <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
             <ReadableParagraphs text={last} />
           </div>
         </div>
@@ -184,24 +187,24 @@ function ExplanationSections({ rawText }: { rawText: string }) {
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">Rezumat</p>
-        <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">{t('recommendations.card.summary')}</p>
+        <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
           <ReadableParagraphs text={first} />
         </div>
       </div>
       {middleText ? (
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-neonCyan/85 mb-1.5">
-            Detaliu nutrienți
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">
+            {t('recommendations.card.nutrientDetail')}
           </p>
-          <div className="text-slate-200 text-base sm:text-sm leading-relaxed break-words">
+          <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
             <ReadableParagraphs text={middleText} />
           </div>
         </div>
       ) : null}
       {parts.length >= 2 ? (
-        <div className="rounded-lg border border-white/5 bg-slate-900/35 px-3 py-2.5">
-          <div className="text-xs text-slate-400 leading-relaxed break-words">
+        <div className="rounded-lg border border-line bg-white/[0.02] px-3 py-2.5">
+          <div className="text-xs text-zinc-400 leading-relaxed break-words">
             <ReadableParagraphs text={last} />
           </div>
         </div>
@@ -217,6 +220,7 @@ interface RecommendationCardProps {
       id: number
       name: string
       category: string
+      calories?: number
     }
     score: number
     coverage: number
@@ -243,12 +247,13 @@ interface RecommendationCardProps {
 
 const RecommendationCard = ({
   recommendation,
-  index: _index,
   userId,
   onFeedbackSent,
   onReplaceRequested,
 }: RecommendationCardProps) => {
+  const { t } = useTranslation()
   const { food, explanation, coverage, feedback } = recommendation
+  const portionKcal = estimatePortionCalories(recommendation)
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'sent' | 'error'>('idle')
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false)
@@ -301,7 +306,7 @@ const RecommendationCard = ({
       const msg =
         (err as { message?: string })?.message ||
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Nu s-a putut trimite feedback-ul. Încearcă din nou.'
+        t('recommendations.card.errors.feedback')
       setFeedbackError(msg)
       return false
     } finally {
@@ -352,7 +357,7 @@ const RecommendationCard = ({
         const msg =
           (err as { message?: string })?.message ||
           (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Nu s-a putut salva dislike-ul. Încearcă din nou.'
+          t('recommendations.card.errors.dislike')
         setFeedbackError(msg)
         onFeedbackSent?.(
           recommendation.recommendation_id,
@@ -375,7 +380,7 @@ const RecommendationCard = ({
       const msg =
         (err as { message?: string })?.message ||
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Nu s-a putut înlocui recomandarea. Dislike-ul a fost înregistrat.'
+        t('recommendations.card.errors.replace')
       setFeedbackError(msg)
       setFeedbackStatus('error')
     } finally {
@@ -386,6 +391,15 @@ const RecommendationCard = ({
   const handleDislikeCancel = () => {
     setShowDislikeModal(false)
   }
+
+  useEffect(() => {
+    if (!showDislikeModal) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowDislikeModal(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [showDislikeModal])
 
   const hasLiked = myRating !== undefined && myRating !== null && myRating >= 4
   const hasDisliked = myRating !== undefined && myRating !== null && myRating <= 2
@@ -398,34 +412,45 @@ const RecommendationCard = ({
         transition={{ duration: 0.18, ease: 'easeOut' }}
         className="h-full"
       >
-        <GlassCard className="h-full min-h-[440px] flex flex-col hover:shadow-neon transition-all duration-300">
+        <GlassCard className="h-full min-h-[440px] flex flex-col hover:border-line-strong transition-colors duration-200">
           {/* Conținut principal */}
           <div className="flex-1">
             {/* Header */}
             <div className="flex items-start justify-between mb-4 min-w-0">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <h3 className="text-lg sm:text-xl font-bold text-slate-100 break-words">{food.name}</h3>
-                  <span className="text-xs bg-gradient-to-r from-neonCyan/20 to-neonPurple/20 text-neonCyan px-3 py-1 rounded-full border border-neonCyan/30 flex-shrink-0">
+                  <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-50 break-words">{food.name}</h3>
+                  <span className="flex-shrink-0 rounded-md border border-accent-border bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
                     {formatFoodCategory(food.category)}
                   </span>
                 </div>
-                <p className="text-base sm:text-sm text-slate-300 mb-3">
-                  Porție sugerată:{' '}
-                  <strong className="text-neonCyan">
-                    {formatPortionSuggestion(explanation.portion, explanation.portion_unit, food.category)}
-                  </strong>
+                <p className="text-base sm:text-sm text-zinc-300 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>
+                    {t('recommendations.card.portion')}{' '}
+                    <strong className="text-accent">
+                      {formatPortionSuggestion(explanation.portion, explanation.portion_unit, food.category)}
+                    </strong>
+                  </span>
+                  {portionKcal != null && (
+                    <span
+                      className="inline-flex items-center gap-1 text-zinc-400"
+                      title={t('recommendations.card.kcalHint')}
+                    >
+                      <Flame aria-hidden="true" className="h-3.5 w-3.5" />
+                      <span className="tabular-nums">≈ {portionKcal} kcal</span>
+                    </span>
+                  )}
                 </p>
                 <div className="flex items-center gap-2 mb-4 min-w-0">
-                  <div className="flex-1 min-w-0 bg-slate-800 rounded-full h-3 sm:h-2.5 overflow-hidden">
+                  <div className="flex-1 min-w-0 bg-white/10 rounded-full h-3 sm:h-2.5 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(coverage, 100)}%` }}
                       transition={{ duration: 0.22, ease: 'easeOut' }}
-                      className="bg-gradient-to-r from-neonCyan via-neonPurple to-neonMagenta h-3 sm:h-2.5 rounded-full shadow-neon"
+                      className="bg-accent h-3 sm:h-2.5 rounded-full"
                     />
                   </div>
-                  <span className="text-base sm:text-sm font-semibold text-neonCyan min-w-[56px] text-right tabular-nums">
+                  <span className="text-base sm:text-sm font-semibold text-accent min-w-[56px] text-right tabular-nums">
                     {coverage.toFixed(1)}%
                   </span>
                 </div>
@@ -433,23 +458,23 @@ const RecommendationCard = ({
             </div>
 
             {/* Explanation */}
-            <div className="mb-5 p-4 rounded-xl bg-slate-800/50 border border-neonCyan/20">
+            <div className="mb-5 rounded-lg border border-line bg-white/[0.03] p-4">
               <ExplanationSections rawText={explanation.text} />
             </div>
 
             {explanation.reasons && explanation.reasons.length > 0 && (
               <div className="mb-4 space-y-2">
-                <p className="text-base sm:text-sm font-semibold text-neonPurple mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                  De ce îl recomand:
+                <p className="text-base sm:text-sm font-semibold text-accent mb-3 flex items-center gap-2">
+                  <CheckCircle2 aria-hidden="true" className="w-4 h-4 flex-shrink-0" />
+                  {t('recommendations.card.whyTitle')}
                 </p>
                 <ul className="space-y-2">
                   {explanation.reasons.map((reason, idx) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-2 text-base sm:text-sm text-slate-300 leading-relaxed break-words"
+                      className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 leading-relaxed break-words"
                     >
-                      <CheckCircle2 className="w-4 h-4 text-neonCyan mt-0.5 flex-shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
                       <span className="leading-relaxed whitespace-pre-line">{faraPrefixContext(reason)}</span>
                     </li>
                   ))}
@@ -458,15 +483,16 @@ const RecommendationCard = ({
             )}
 
             {explanation.tips && explanation.tips.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-base sm:text-sm font-semibold text-neonMagenta mb-2 flex items-center gap-2">
-                  <Info className="w-4 h-4 flex-shrink-0" />
-                  Sfaturi
+              <div className="mt-4 pt-4 border-t border-line">
+                <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2 flex items-center gap-2">
+                  <Info aria-hidden="true" className="w-4 h-4 flex-shrink-0 text-accent" />
+                  {t('recommendations.card.tipsTitle')}
                 </p>
                 <ul className="space-y-2">
                   {explanation.tips.map((tip, idx) => (
-                    <li key={idx} className="text-base sm:text-sm text-slate-300 bg-slate-800/50 border border-neonMagenta/20 p-3 rounded-lg break-words">
-                      💡 {faraPrefixContext(tip)}
+                    <li key={idx} className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 bg-white/[0.03] border border-line p-3 rounded-lg break-words">
+                      <Lightbulb aria-hidden="true" className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
+                      <span>{faraPrefixContext(tip)}</span>
                     </li>
                   ))}
                 </ul>
@@ -474,9 +500,9 @@ const RecommendationCard = ({
             )}
 
             {explanation.alternatives && explanation.alternatives.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-base sm:text-sm font-semibold text-slate-200 mb-2">Alternative similare:</p>
-                <p className="text-base sm:text-sm text-slate-300 break-words">{explanation.alternatives.join(', ')}</p>
+              <div className="mt-4 pt-4 border-t border-line">
+                <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2">{t('recommendations.card.alternatives')}</p>
+                <p className="text-base sm:text-sm text-zinc-300 break-words">{explanation.alternatives.join(', ')}</p>
               </div>
             )}
           </div>
@@ -484,18 +510,20 @@ const RecommendationCard = ({
           {/* Zona de feedback fixată la baza cardului */}
           <div className="mt-auto pt-4">
             <div className="flex flex-row items-center justify-between">
-              <p className="text-xs sm:text-sm text-slate-300">
-                Cum ți se pare această recomandare?
+              <p className="text-xs sm:text-sm text-zinc-300">
+                {t('recommendations.card.feedbackQuestion')}
               </p>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => sendFeedback(5)}
+                  aria-label={t('recommendations.card.like')}
+                  aria-pressed={hasLiked}
                   disabled={feedbackSubmitting || replaceLoading || hasLiked}
-                  className={`min-h-[36px] inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
+                  className={`min-h-[40px] inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-colors ${
                     hasLiked
-                      ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300 cursor-default'
-                      : 'border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-60 disabled:cursor-default'
+                      ? 'border-accent-border bg-accent-soft text-accent cursor-default'
+                      : 'border-line-strong text-zinc-300 hover:bg-accent-soft hover:text-accent disabled:opacity-60 disabled:cursor-default'
                   }`}
                 >
                   <ThumbsUp className="w-4 h-4 flex-shrink-0" />
@@ -504,11 +532,13 @@ const RecommendationCard = ({
                 <button
                   type="button"
                   onClick={handleDislikeClick}
+                  aria-label={t('recommendations.card.dislike')}
+                  aria-pressed={hasDisliked}
                   disabled={feedbackSubmitting || replaceLoading || hasDisliked}
-                  className={`min-h-[36px] inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-all ${
+                  className={`min-h-[40px] inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold touch-manipulation transition-colors ${
                     hasDisliked
-                      ? 'border-rose-400 bg-rose-500/20 text-rose-300 cursor-default'
-                      : 'border-rose-400/50 text-rose-300 hover:bg-rose-500/10 disabled:opacity-60 disabled:cursor-default'
+                      ? 'border-red-500/40 bg-red-500/10 text-red-300 cursor-default'
+                      : 'border-line-strong text-zinc-300 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60 disabled:cursor-default'
                   }`}
                 >
                   <ThumbsDown className="w-4 h-4 flex-shrink-0" />
@@ -518,12 +548,12 @@ const RecommendationCard = ({
             </div>
 
             {feedbackStatus === 'sent' && (
-              <p className="mt-2 text-xs text-emerald-300">
-                Mulțumim pentru feedback, îl folosim pentru a ajusta recomandările viitoare.
+              <p className="mt-2 text-xs text-accent">
+                {t('recommendations.card.thanks')}
               </p>
             )}
             {feedbackStatus === 'error' && feedbackError && (
-              <p className="mt-2 text-xs text-rose-300">{feedbackError}</p>
+              <p className="mt-2 text-xs text-red-300">{feedbackError}</p>
             )}
           </div>
         </GlassCard>
@@ -535,45 +565,49 @@ const RecommendationCard = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
             onClick={(e) => e.target === e.currentTarget && handleDislikeCancel()}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-slate-800 border border-neonCyan/30 rounded-xl p-6 max-w-sm w-full shadow-neon"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="dislike-dialog-title"
+              className="w-full max-w-sm rounded-card border border-line-strong bg-surface p-6 shadow-pop"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-100">Nu ți se potrivește?</h3>
+                <h3 id="dislike-dialog-title" className="text-lg font-semibold text-zinc-50">{t('recommendations.card.dislikeTitle')}</h3>
                 <button
                   type="button"
                   onClick={handleDislikeCancel}
-                  className="p-1 rounded-lg hover:bg-slate-700 text-slate-400"
+                  aria-label={t('common.close')}
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
                 >
-                  <X className="w-5 h-5" />
+                  <X aria-hidden="true" className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-slate-300 text-sm mb-5">
-                Vrei să îți schimb această recomandare cu o alternativă potrivită nevoilor tale?
+              <p className="text-zinc-300 text-sm mb-5">
+                {t('recommendations.card.dislikeBody')}
               </p>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => handleDislikeConfirm(true)}
                   disabled={replaceLoading}
-                  className="flex-1 min-h-[44px] rounded-full border border-neonCyan/60 bg-gradient-to-r from-neonCyan/40 via-neonPurple/60 to-neonMagenta/60 text-slate-50 font-semibold shadow-[0_0_18px_rgba(0,245,255,0.5)] hover:shadow-[0_0_28px_rgba(0,245,255,0.9)] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-center"
+                  className="flex-1 min-h-[44px] cursor-pointer rounded-lg bg-accent text-center text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {replaceLoading ? 'Se înlocuiește...' : 'Da'}
+                  {replaceLoading ? t('recommendations.card.replacing') : t('recommendations.card.yes')}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDislikeConfirm(false)}
                   disabled={replaceLoading}
-                  className="flex-1 min-h-[44px] rounded-full border border-slate-500/80 bg-slate-800/60 text-slate-200 font-semibold hover:bg-slate-700/80 hover:border-slate-300 transition-all min-w-[0] text-center"
+                  className="flex-1 min-h-[44px] cursor-pointer rounded-lg border border-line-strong text-center text-sm font-semibold text-zinc-200 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Nu
+                  {t('recommendations.card.no')}
                 </button>
               </div>
             </motion.div>

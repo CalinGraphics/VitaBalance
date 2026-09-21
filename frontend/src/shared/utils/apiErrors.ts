@@ -1,4 +1,5 @@
 import { isAxiosError } from 'axios'
+import i18n from '../i18n'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -31,9 +32,36 @@ export function formatApiDetail(detail: unknown): string {
 }
 
 /**
- * Mesaj lizibil din eroarea Axios (folosit de interceptorul din `api.ts`).
+ * Backend-ul răspunde cu mesaje în română. Le recunoaștem după conținut și le mapăm pe chei i18n
+ * (`apiErrors.<cod>`), ca utilizatorul să vadă eroarea în limba aleasă. Mesajele necunoscute rămân neschimbate.
  */
-export function extractErrorMessage(error: unknown): string {
+const KNOWN_API_ERRORS: Array<{ code: string; match: RegExp }> = [
+  { code: 'invalidCredentials', match: /email sau parol[aă] incorect/i },
+  { code: 'emailTaken', match: /deja [iî]nregistrat/i },
+  { code: 'emailRequired', match: /^email-ul este obligatoriu/i },
+  { code: 'invalidEmail', match: /not a valid email|valid email address/i },
+  { code: 'fullNameRequired', match: /numele complet este obligatoriu/i },
+  { code: 'passwordRequired', match: /^parola este obligatorie/i },
+  { code: 'passwordBlank', match: /doar spa[țt]ii/i },
+  { code: 'passwordTooShort', match: /minim 6 caractere/i },
+  { code: 'sessionMissing', match: /lipse[șs]te tokenul de autentificare/i },
+  { code: 'sessionExpired', match: /token invalid sau expirat/i },
+  { code: 'profileNotFound', match: /profilul nu a fost g[aă]sit|utilizatorul nu a fost g[aă]sit/i },
+  { code: 'forbidden', match: /nu ai acces|po[țt]i actualiza doar propriul profil/i },
+]
+
+/** Codul erorii cunoscute pentru un mesaj brut de la backend, sau `null`. */
+export function classifyApiMessage(raw: string): string | null {
+  return KNOWN_API_ERRORS.find(({ match }) => match.test(raw))?.code ?? null
+}
+
+/** Traduce mesajul dacă e unul cunoscut; altfel îl returnează neschimbat. */
+export function localizeApiMessage(raw: string): string {
+  const code = classifyApiMessage(raw)
+  return code ? i18n.t(`apiErrors.${code}`) : raw
+}
+
+function rawErrorMessage(error: unknown): string {
   if (isAxiosError(error)) {
     const data = error.response?.data
     if (isRecord(data) && 'detail' in data) {
@@ -44,38 +72,48 @@ export function extractErrorMessage(error: unknown): string {
       return data.message
     }
     if (error.message) return error.message
-    return 'A apărut o eroare neașteptată'
+    return ''
   }
   if (error instanceof Error && error.message) {
     return error.message
   }
-  return 'A apărut o eroare neașteptată'
+  return ''
 }
 
-const msg404Recommendations =
-  'Ruta către API nu există (404). Verifică VITE_API_URL la build (ex. https://backend.com/api) și că serviciul backend este ultima versiune.'
+/** Cod de eroare cunoscut (vezi `KNOWN_API_ERRORS`) pentru o eroare Axios, sau `null`. */
+export function extractErrorCode(error: unknown): string | null {
+  return classifyApiMessage(rawErrorMessage(error))
+}
+
+/**
+ * Mesaj lizibil din eroarea Axios (folosit de interceptorul din `api.ts`), tradus în limba curentă.
+ */
+export function extractErrorMessage(error: unknown): string {
+  const raw = rawErrorMessage(error)
+  return raw ? localizeApiMessage(raw) : i18n.t('apiErrors.unexpected')
+}
 
 /** Mesaje prietenoase pentru ecranul de recomandări (timeout, gateway, rețea). */
 export function humanizeRecommendationClientError(error: unknown): string {
   if (isAxiosError(error) && error.response?.status === 404) {
-    return msg404Recommendations
+    return i18n.t('apiErrors.apiRouteMissing')
   }
   const base = extractErrorMessage(error)
   const lower = base.toLowerCase()
   if (lower === 'not found') {
-    return msg404Recommendations
+    return i18n.t('apiErrors.apiRouteMissing')
   }
   if (lower.includes('timeout') || lower.includes('exceeded')) {
-    return 'Serverul a răspuns prea lent (timeout). Reîncearcă sau verifică conexiunea; recomandările se regenerează după modificarea profilului.'
+    return i18n.t('apiErrors.timeout')
   }
   if (lower.includes('network') || lower.includes('econnrefused') || lower.includes('err_network')) {
-    return 'Nu s-a putut contacta serverul. Verifică dacă API-ul rulează și conexiunea la internet.'
+    return i18n.t('apiErrors.network')
   }
   if (base.includes('504') || lower.includes('gateway')) {
-    return 'Gateway timeout (504): proxy-ul sau hosting-ul a întrerupt cererea prea devreme. Mărește timeout-ul la proxy sau reîncearcă.'
+    return i18n.t('apiErrors.gateway')
   }
   if (base.includes('502') || base.includes('503')) {
-    return 'Server temporar indisponibil (502/503). Reîncearcă peste câteva momente.'
+    return i18n.t('apiErrors.unavailable')
   }
   return base
 }

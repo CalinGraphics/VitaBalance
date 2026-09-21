@@ -4,21 +4,23 @@ import { motion } from 'framer-motion';
 interface GlassCardProps {
   children: ReactNode;
   className?: string;
+  /** Padding intern; dezactivează-l pentru carduri cu conținut edge-to-edge. */
+  padded?: boolean;
 }
 
-const GlassCard: React.FC<GlassCardProps> = ({ children, className = '' }) => (
+/**
+ * Card de suprafață: fundal solid aproape negru, bordură fină de 1px, fără blur sau glow.
+ * (Numele `GlassCard` e păstrat pentru compatibilitate cu importurile existente.)
+ */
+const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', padded = true }) => (
   <motion.div
-    initial={{ opacity: 0, y: 32, scale: 0.97 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.5, ease: 'easeOut' }}
-    className={`relative w-full max-w-full rounded-2xl md:rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-xl shadow-[0_0_60px_rgba(15,23,42,0.6)] overflow-hidden ${className}`}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.25, ease: 'easeOut' }}
+    className={`relative w-full max-w-full rounded-card border border-line bg-surface shadow-card ${className}`}
   >
-    {/* Border glow effect */}
-    <div className="pointer-events-none absolute inset-px rounded-[14px] md:rounded-[22px] bg-gradient-to-br from-white/15 via-transparent to-neonMagenta/40 opacity-70" />
-    {/* Content */}
-    <div className="relative p-5 sm:p-6 md:p-8">{children}</div>
+    <div className={padded ? 'relative p-5 sm:p-6 md:p-8' : 'relative'}>{children}</div>
   </motion.div>
 );
 
 export default GlassCard;
-

@@ -1,109 +1,122 @@
 import React, { useState } from 'react';
-import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import { motion } from 'framer-motion';
-import type { AuthUser } from '../../../shared/types';
+import { useTranslation } from 'react-i18next';
+import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
+import type { AuthUser, Route } from '../../../shared/types';
 import { authService } from '../../../services/api';
+import { extractErrorMessage } from '../../../shared/utils/apiErrors';
 
 interface LoginPageProps {
-  onNavigate?: (page: 'register' | 'login') => void;
-  onLogin?: (user: AuthUser, accessToken?: string) => void;
+  onNavigate: (route: Route) => void;
+  onLogin: (user: AuthUser, accessToken?: string) => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = () => {
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email?.trim()) {
-      setMagicLinkError('Introdu adresa de email.');
-      return;
-    }
-    setMagicLinkError(null);
+    if (isLoading) return;
+
+    const errors: { email?: string; password?: string } = {};
+    if (!email.trim()) errors.email = t('apiErrors.emailRequired');
+    else if (!EMAIL_PATTERN.test(email.trim())) errors.email = t('apiErrors.invalidEmail');
+    if (!password) errors.password = t('apiErrors.passwordRequired');
+    setFieldErrors(errors);
+    setFormError(null);
+    if (Object.keys(errors).length > 0) return;
+
     setIsLoading(true);
     try {
-      await authService.requestMagicLink(email.trim());
-      setMagicLinkSent(true);
+      const session = await authService.login(email, password);
+      onLogin(
+        { email: session.email, fullName: session.fullName, avatarUrl: null },
+        session.access_token
+      );
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setMagicLinkError(e?.message || 'Eroare la trimitere. Încearcă din nou.');
+      setFormError(extractErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6 sm:gap-8 md:flex-row max-w-full">
-      {/* Text lateral - stacked on mobile */}
+    <div className="flex w-full max-w-full flex-col items-center justify-center gap-8 md:flex-row md:gap-16">
       <motion.div
-        initial={{ opacity: 0, x: -40 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-sm text-center md:text-left"
       >
-        <h2 className="mb-3 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-slate-100">
-          Bine ai venit la <span className="text-neonCyan">VitaBalance</span>
-        </h2>
-        <p className="text-base sm:text-sm text-slate-300 leading-relaxed">
-          Hrănește-ți echilibrul și lasă-ți energia
-          să revină la nivelul ei natural.
-        </p>
+        <h1 className="mb-3 text-3xl font-semibold tracking-tight text-zinc-50 md:text-4xl">
+          {t('auth.login.heroTitle')} <span className="text-accent">VitaBalance</span>
+        </h1>
+        <p className="text-base leading-relaxed text-zinc-400 md:text-sm">{t('auth.login.heroText')}</p>
       </motion.div>
 
-      {/* Card login - full width on mobile */}
       <GlassCard className="w-full max-w-full md:max-w-md">
-        <div className="mb-5 sm:mb-6">
-          <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-100">
-            Autentificare
-          </h3>
-          <p className="mt-1 text-xs sm:text-xs text-slate-400 leading-relaxed">
-            Introdu email-ul și primești un link de conectare. Dacă nu ai cont, îți va fi creat automat la prima utilizare.
-          </p>
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-50">{t('auth.login.cardTitle')}</h2>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400">{t('auth.login.cardSubtitle')}</p>
         </div>
 
-        {magicLinkSent ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-neonCyan/40 bg-neonCyan/10 px-4 py-4">
-              <p className="text-sm text-neonCyan font-medium">
-                Linkul a fost trimis la {email}
-              </p>
-              <p className="mt-2 text-xs text-slate-300">
-                Verifică inbox-ul (și spam-ul) și apasă pe link. Expiră în 24h. Dacă nu ai cont, acesta va fi creat automat.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => { setMagicLinkSent(false); setEmail(''); setMagicLinkError(null); }}
-              className="min-h-[44px] inline-flex items-center justify-center px-3 py-2 text-sm text-slate-400 hover:text-neonCyan transition touch-manipulation"
+        <form onSubmit={handleSubmit} noValidate>
+          <InputField
+            label={t('auth.fields.email')}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t('auth.fields.emailPlaceholder')}
+            error={fieldErrors.email}
+            autoComplete="email"
+            inputMode="email"
+          />
+          <InputField
+            label={t('auth.fields.password')}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={t('auth.fields.passwordPlaceholder')}
+            error={fieldErrors.password}
+            autoComplete="current-password"
+          />
+
+          {formError && (
+            <p
+              role="alert"
+              className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300"
             >
-              Trimite din nou la altă adresă
-            </button>
+              {formError}
+            </p>
+          )}
+
+          <div className="mt-6">
+            <PrimaryButton type="submit" disabled={isLoading}>
+              {isLoading ? t('auth.login.submitting') : t('auth.login.submit')}
+            </PrimaryButton>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} noValidate>
-            <InputField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                setEmail(e.target.value)
-              }
-              placeholder="exemplu@email.com"
-              error={magicLinkError ?? undefined}
-            />
-            <div className="mt-6">
-              <PrimaryButton type="submit" disabled={isLoading}>
-                <span>{isLoading ? 'Se trimite...' : 'Trimite link de conectare'}</span>
-              </PrimaryButton>
-            </div>
-          </form>
-        )}
+        </form>
+
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-5 text-sm">
+          <span className="text-zinc-400">{t('auth.login.noAccount')}</span>
+          <button
+            type="button"
+            onClick={() => onNavigate('register')}
+            className="min-h-[44px] cursor-pointer px-1 font-semibold text-accent transition-colors hover:text-accent-hover touch-manipulation"
+          >
+            {t('auth.login.createAccount')}
+          </button>
+        </div>
       </GlassCard>
     </div>
   );
 };
 
 export default LoginPage;
-

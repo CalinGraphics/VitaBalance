@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
+import i18n from './shared/i18n'
 
 interface Props {
   children: ReactNode
@@ -25,26 +26,25 @@ class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      // Clasa nu poate folosi hook-uri; citim traducerile direct din instanța i18n.
+      const t = i18n.t.bind(i18n)
       return (
-        <div className="min-h-screen app-gradient-dark text-slate-100 flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center">
-            <h1 className="text-2xl font-bold text-red-400 mb-4">Eroare</h1>
-            <p className="text-slate-300 mb-4">
-              A apărut o eroare în aplicație. Te rugăm să reîncarci pagina.
-            </p>
+        <div className="app-bg flex min-h-screen items-center justify-center p-4 text-zinc-100">
+          <div className="w-full max-w-md text-center">
+            <h1 className="mb-3 text-2xl font-semibold text-red-400">{t('app.boundary.title')}</h1>
+            <p className="mb-4 text-zinc-300">{t('app.boundary.message')}</p>
             {this.state.error && (
-              <details className="text-left bg-slate-900/40 p-4 rounded-lg mb-4">
-                <summary className="cursor-pointer text-slate-400 mb-2">Detalii eroare</summary>
-                <pre className="text-xs text-red-400 overflow-auto">
-                  {this.state.error.toString()}
-                </pre>
+              <details className="mb-4 rounded-lg border border-line bg-surface p-4 text-left">
+                <summary className="mb-2 cursor-pointer text-zinc-400">{t('app.boundary.details')}</summary>
+                <pre className="overflow-auto text-xs text-red-400">{this.state.error.toString()}</pre>
               </details>
             )}
             <button
+              type="button"
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition"
+              className="min-h-[44px] cursor-pointer rounded-lg bg-accent px-5 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
             >
-              Reîncarcă pagina
+              {t('app.boundary.reload')}
             </button>
           </div>
         </div>
@@ -56,4 +56,3 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary
-

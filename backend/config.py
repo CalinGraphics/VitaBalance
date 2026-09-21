@@ -34,6 +34,8 @@ def _supabase_key_role(supabase_key: str) -> Optional[str]:
 
 load_dotenv()
 
+DEFAULT_JWT_SECRET = "change-me-in-production-use-long-random-string"
+
 
 class Settings(BaseSettings):
     app_name: str = os.getenv("APP_NAME", "VitaBalance API")
@@ -43,15 +45,10 @@ class Settings(BaseSettings):
     supabase_key: Optional[str] = os.getenv("SUPABASE_KEY")
     supabase_service_role_key: Optional[str] = None
 
-    jwt_secret: str = os.getenv("JWT_SECRET", "change-me-in-production-use-long-random-string")
+    jwt_secret: str = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_expire_minutes: int = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
-    magic_link_expire_hours: int = int(os.getenv("MAGIC_LINK_EXPIRE_HOURS", "24"))
 
-    resend_api_key: Optional[str] = os.getenv("RESEND_API_KEY")
-    resend_from_email: str = os.getenv("RESEND_FROM_EMAIL", "VitaBalance <onboarding@resend.dev>")
-    resend_test_recipient: Optional[str] = os.getenv("RESEND_TEST_RECIPIENT")
-    frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
 
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
     cors_allow_all: bool = os.getenv("CORS_ALLOW_ALL", "false").lower() in ("1", "true", "yes")
@@ -94,15 +91,14 @@ class Settings(BaseSettings):
         if self.jwt_expire_minutes <= 0:
             raise ValueError("JWT_EXPIRE_MINUTES trebuie să fie > 0.")
 
-        base = (self.frontend_base_url or "").strip()
-        if not base:
-            raise ValueError("FRONTEND_BASE_URL este obligatoriu pentru magic link.")
-        if not (base.startswith("http://") or base.startswith("https://")):
-            raise ValueError("FRONTEND_BASE_URL trebuie să înceapă cu http:// sau https://.")
-        if "localhost" in base and not self.debug:
-            print("[Config] FRONTEND_BASE_URL e localhost cu DEBUG=false.")
-        if self.jwt_secret == "change-me-in-production-use-long-random-string":
-            print("[Config] JWT_SECRET e încă valoarea implicită.")
+        if self.jwt_secret == DEFAULT_JWT_SECRET:
+            # Valoarea implicită e publică (în repo): oricine ar putea semna tokenuri valide.
+            if not self.debug:
+                raise ValueError(
+                    "JWT_SECRET nu este setat (se folosește valoarea implicită publică). "
+                    "Setează JWT_SECRET la un șir lung aleatoriu (ex.: python -c \"import secrets; print(secrets.token_urlsafe(48))\")."
+                )
+            print("[Config] JWT_SECRET e încă valoarea implicită (permis doar cu DEBUG=true).")
 
         if self.supabase_url:
             secret = self.effective_supabase_secret_key()

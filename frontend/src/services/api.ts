@@ -1,6 +1,7 @@
 import axios, { isAxiosError } from 'axios'
 import type { User } from '../shared/types'
 import { extractErrorMessage } from '../shared/utils/apiErrors'
+import { currentLanguage } from '../shared/i18n'
 import type { LabExtractFromApi, LabKey } from '../features/medical/utils/labLocalExtract'
 import { getToken, clearToken } from './authStorage'
 
@@ -45,33 +46,36 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+/** Rute care necesită sesiune: un 401 pe ele înseamnă token expirat/invalid. */
+const PROTECTED_ROUTE_MARKERS = [
+  '/auth/me',
+  '/profile',
+  '/lab-results',
+  '/recommendations',
+  '/feedback',
+  '/foods',
+]
+
+/** Handler comun de erori pentru toate instanțele axios: invalidează sesiunea la 401 și normalizează mesajul. */
+function handleResponseError(error: unknown): Promise<never> {
+  const status = isAxiosError(error) ? error.response?.status : undefined
+  const url = isAxiosError(error) ? error.config?.url || '' : ''
+  const isProtectedRoute = PROTECTED_ROUTE_MARKERS.some((marker) => url.includes(marker))
+
+  // Login/register întorc 401/400 pentru credențiale greșite: nu sunt sesiuni expirate.
+  if (status === 401 && Boolean(getToken()) && isProtectedRoute) {
+    clearToken()
+  }
+  const message = extractErrorMessage(error)
+  if (error instanceof Error) {
+    error.message = message
+  }
+  return Promise.reject(error)
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
-    const status = isAxiosError(error) ? error.response?.status : undefined
-    const url = isAxiosError(error) ? error.config?.url || '' : ''
-    const hasSession = Boolean(getToken())
-    const shouldIgnore401ForAuthFlow =
-      url.includes('/auth/verify-magic-link') || url.includes('/auth/request-magic-link')
-    const protectedRouteMarkers = [
-      '/auth/me',
-      '/profile',
-      '/lab-results',
-      '/recommendations',
-      '/feedback',
-      '/foods',
-    ]
-    const isProtectedRoute = protectedRouteMarkers.some((marker) => url.includes(marker))
-
-    if (status === 401 && hasSession && !shouldIgnore401ForAuthFlow && isProtectedRoute) {
-      clearToken()
-    }
-    const message = extractErrorMessage(error)
-    if (error instanceof Error) {
-      error.message = message
-    }
-    return Promise.reject(error)
-  }
+  handleResponseError
 )
 
 /** Feedback: timeout dedicat, fără extensia de 120s de la /recommendations. */
@@ -92,31 +96,7 @@ feedbackHttp.interceptors.request.use((config) => {
 })
 feedbackHttp.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
-    const status = isAxiosError(error) ? error.response?.status : undefined
-    const url = isAxiosError(error) ? error.config?.url || '' : ''
-    const hasSession = Boolean(getToken())
-    const shouldIgnore401ForAuthFlow =
-      url.includes('/auth/verify-magic-link') || url.includes('/auth/request-magic-link')
-    const protectedRouteMarkers = [
-      '/auth/me',
-      '/profile',
-      '/lab-results',
-      '/recommendations',
-      '/feedback',
-      '/foods',
-    ]
-    const isProtectedRoute = protectedRouteMarkers.some((marker) => url.includes(marker))
-
-    if (status === 401 && hasSession && !shouldIgnore401ForAuthFlow && isProtectedRoute) {
-      clearToken()
-    }
-    const message = extractErrorMessage(error)
-    if (error instanceof Error) {
-      error.message = message
-    }
-    return Promise.reject(error)
-  }
+  handleResponseError
 )
 
 export type LabResultsCreatePayload = {
@@ -124,16 +104,28 @@ export type LabResultsCreatePayload = {
   notes?: string | null
 } & Partial<Record<LabKey, number | null>>
 
+export type AuthSessionResponse = {
+  email: string
+  fullName: string
+  access_token: string
+  token_type: string
+}
+
 export const authService = {
-  requestMagicLink: async (email: string, fullName?: string) => {
-    const response = await api.post('/auth/request-magic-link', {
-      email: email.trim(),
-      ...(fullName ? { fullName: fullName.trim() } : {}),
-    })
+  login: async (email: string, password: string): Promise<AuthSessionResponse> => {
+    const response = await api.post('/auth/login', { email: email.trim(), password })
     return response.data
   },
-  verifyMagicLink: async (token: string) => {
-    const response = await api.post('/auth/verify-magic-link', { token })
+  register: async (
+    email: string,
+    password: string,
+    fullName: string
+  ): Promise<AuthSessionResponse> => {
+    const response = await api.post('/auth/register', {
+      email: email.trim(),
+      password,
+      fullName: fullName.trim(),
+    })
     return response.data
   },
   me: async () => {
@@ -183,12 +175,15 @@ export type RecommendationsSyncMeta = {
   refresh_status?: 'idle' | 'pending' | 'done' | 'failed' | string
   refresh_error?: string | null
   refresh_at?: string | null
+  /** Recomandări create înainte de explicațiile pe bază de fapte: se regenerează o singură dată. */
+  explanations_outdated?: boolean
 }
 
 export const recommendationsService = {
   listStored: async (userId: number) => {
     const response = await api.get(`/recommendations/stored/${userId}`, {
       timeout: REC_STORED_TIMEOUT_MS,
+      params: { lang: currentLanguage() },
     })
     return response.data
   },
@@ -210,7 +205,7 @@ export const recommendationsService = {
   },
   materializeSync: async (userId: number, forceRegenerate = false) => {
     const response = await api.post(
-      `/recommendations?force_regenerate=${forceRegenerate}`,
+      `/recommendations?force_regenerate=${forceRegenerate}&lang=${currentLanguage()}`,
       { user_id: userId },
       { timeout: REC_MATERIALIZE_TIMEOUT_MS }
     )
@@ -232,18 +227,12 @@ export const recommendationsService = {
     if (options?.replaceFeedbackRating != null) {
       body.replace_feedback_rating = options.replaceFeedbackRating
     }
-    const response = await api.post('/recommendations', body, { timeout: REC_REPLACE_TIMEOUT_MS })
+    const response = await api.post('/recommendations', body, {
+      timeout: REC_REPLACE_TIMEOUT_MS,
+      params: { lang: currentLanguage() },
+    })
     return response.data
   },
-}
-
-/** Pornește regenerarea în fundal (non-blocking) după salvare profil/analize. */
-export function prefetchRecommendationsRefresh(
-  userId: number | undefined | null,
-  forceRegenerate = true
-): void {
-  if (userId == null || userId <= 0) return
-  void recommendationsService.startRefreshAsync(userId, forceRegenerate).catch(() => {})
 }
 
 export const feedbackService = {

@@ -25,6 +25,8 @@ class UserProfile:
     rec_refresh_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    # Obiectiv caloric zilnic (kcal), opțional. Strict informativ: NU este citit de recommender/rule_engine.
+    caloric_goal: Optional[float] = None
 
 
 @dataclass
@@ -53,6 +55,14 @@ class FoodItem:
     cholesterol: float = 0    # nou
     allergens: Optional[str] = None
     created_at: Optional[datetime] = None
+    name_en: Optional[str] = None  # numele în engleză (foods.name_en); dacă lipsește se folosește `name`
+
+
+def food_display_name(food: "FoodItem", lang: str = "ro") -> str:
+    """Numele alimentului în limba cerută ('en' -> name_en, cu revenire la nume dacă nu e tradus)."""
+    if str(lang or "").lower().startswith("en") and food.name_en:
+        return food.name_en
+    return food.name
 
 
 @dataclass
@@ -96,11 +106,13 @@ class RecommendationItem:
 
 @dataclass
 class FeedbackItem:
+    """Votul unui utilizator pentru un aliment; recomandarea asociată e opțională (dispare la regenerare)."""
+
     id: int
     user_id: int
-    recommendation_id: int
+    food_id: int
+    recommendation_id: Optional[int] = None
     rating: int = 0
-    food_id: Optional[int] = None
     created_at: Optional[datetime] = None
 
 
@@ -133,6 +145,7 @@ def row_to_user(row: dict) -> UserProfile:
         rec_refresh_at=row.get("rec_refresh_at"),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
+        caloric_goal=_num(row.get("caloric_goal"), 0) or None,
     )
 
 
@@ -162,6 +175,7 @@ def row_to_food(row: dict) -> FoodItem:
         cholesterol=_num(row.get("cholesterol")), # nou
         allergens=row.get("allergens"),
         created_at=row.get("created_at"),
+        name_en=row.get("name_en") or None,
     )
 
 
@@ -210,12 +224,12 @@ def row_to_recommendation(row: dict) -> RecommendationItem:
 
 def row_to_feedback(row: dict) -> FeedbackItem:
     """Build FeedbackItem from Supabase/DB row."""
-    fid = row.get("food_id")
+    rid = row.get("recommendation_id")
     return FeedbackItem(
         id=row["id"],
         user_id=row["user_id"],
-        recommendation_id=row["recommendation_id"],
+        food_id=int(row["food_id"]),
+        recommendation_id=int(rid) if rid is not None else None,
         rating=row.get("rating", 0),
-        food_id=int(fid) if fid is not None else None,
         created_at=row.get("created_at"),
     )

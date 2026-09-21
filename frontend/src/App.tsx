@@ -1,11 +1,48 @@
+import { useTranslation } from 'react-i18next'
 import { ThemeProvider } from './shared/contexts'
 import { Layout, Disclaimer } from './shared'
-import { LoginPage, RegisterPage, AuthVerifyPage } from './features/auth/pages'
+import { LoginPage, RegisterPage } from './features/auth/pages'
 import { MedicalProfilePage, MedicalLabResultsPage, EditProfilePage } from './features/medical/pages'
 import { Recommendations } from './features/recommendations/components'
 import { useAppNavigation } from './shared/hooks'
+import type { Route } from './shared/types'
+
+const KNOWN_ROUTES: Route[] = [
+  'login',
+  'register',
+  'medical-profile',
+  'lab-results',
+  'recommendations',
+  'edit-profile',
+]
+
+/** Mesaj de eroare centrat, cu o singură acțiune de revenire. */
+const RouteNotice = ({
+  message,
+  detail,
+  actionLabel,
+  onAction,
+}: {
+  message: string
+  detail?: string
+  actionLabel: string
+  onAction: () => void
+}) => (
+  <div className="w-full max-w-md text-center">
+    <p className="mb-1 text-zinc-200">{message}</p>
+    {detail && <p className="mb-2 text-sm text-zinc-500">{detail}</p>}
+    <button
+      type="button"
+      onClick={onAction}
+      className="mt-4 min-h-[44px] cursor-pointer rounded-lg bg-accent px-5 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
+    >
+      {actionLabel}
+    </button>
+  </div>
+)
 
 function App() {
+  const { t } = useTranslation()
   const {
     route,
     authUser,
@@ -21,60 +58,30 @@ function App() {
     handleLogout,
   } = useAppNavigation()
 
+  const showNav =
+    (route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser
+
   return (
     <ThemeProvider>
-      <Layout 
-        onLogout={handleLogout}
-        showLogout={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
-        onProfileClick={() => navigate('edit-profile')}
-        showProfile={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
-        onLabResultsClick={() => navigate('lab-results')}
-        showLabResults={(route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
-        onDashboardClick={() => navigate('recommendations')}
-        showDashboard={(route === 'edit-profile' || route === 'lab-results') && !!medicalUser}
-      >
-        {/* Loading state - prioritate maximă */}
+      <Layout route={route} showNav={showNav} onNavigate={navigate} onLogout={handleLogout}>
         {isLoading ? (
-          <div className="w-full max-w-md text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neonCyan mb-4"></div>
-            <p className="text-slate-300">Se încarcă...</p>
+          <div className="w-full max-w-md py-16 text-center" role="status" aria-live="polite">
+            <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-accent" />
+            <p className="text-sm text-zinc-400">{t('common.loading')}</p>
           </div>
         ) : (
           <>
-            {route === 'login' && (
-              <LoginPage 
-                onNavigate={navigate} 
-                onLogin={handleLogin} 
-              />
-            )}
-            {route === 'register' && (
-              <RegisterPage 
-                onNavigate={navigate} 
-                onRegister={handleRegister} 
-              />
-            )}
-            {route === 'auth-verify' && (
-              <AuthVerifyPage
-                onLogin={handleLogin}
-                onNavigate={navigate}
-              />
-            )}
+            {route === 'login' && <LoginPage onNavigate={navigate} onLogin={handleLogin} />}
+            {route === 'register' && <RegisterPage onNavigate={navigate} onRegister={handleRegister} />}
             {route === 'medical-profile' && authUser && (
-              <MedicalProfilePage
-                authUser={authUser}
-                onComplete={handleMedicalProfileComplete}
-              />
+              <MedicalProfilePage authUser={authUser} onComplete={handleMedicalProfileComplete} />
             )}
             {route === 'medical-profile' && !authUser && (
-              <div className="w-full max-w-md text-center">
-                <p className="text-red-400 mb-4">Eroare: Nu există utilizator autentificat</p>
-                <button
-                  onClick={() => navigate('login')}
-                  className="mt-4 text-neonCyan hover:text-neonMagenta transition"
-                >
-                  Mergi la login
-                </button>
-              </div>
+              <RouteNotice
+                message={t('app.errors.noAuthUser')}
+                actionLabel={t('common.goToLogin')}
+                onAction={() => navigate('login')}
+              />
             )}
             {route === 'lab-results' && medicalUser && (
               <MedicalLabResultsPage
@@ -84,15 +91,11 @@ function App() {
               />
             )}
             {route === 'lab-results' && !medicalUser && (
-              <div className="w-full max-w-md text-center">
-                <p className="text-red-400 mb-4">Eroare: Profil medical lipsă</p>
-                <button
-                  onClick={() => navigate('medical-profile')}
-                  className="mt-4 text-neonCyan hover:text-neonMagenta transition"
-                >
-                  Creează profil
-                </button>
-              </div>
+              <RouteNotice
+                message={t('app.errors.noProfile')}
+                actionLabel={t('common.createProfile')}
+                onAction={() => navigate('medical-profile')}
+              />
             )}
             {route === 'recommendations' && medicalUser && (
               <div className="w-full max-w-7xl">
@@ -101,15 +104,11 @@ function App() {
               </div>
             )}
             {route === 'recommendations' && !medicalUser && (
-              <div className="w-full max-w-md text-center">
-                <p className="text-red-400 mb-4">Eroare: Profil medical lipsă pentru recomandări</p>
-                <button
-                  onClick={() => navigate('medical-profile')}
-                  className="mt-4 text-neonCyan hover:text-neonMagenta transition"
-                >
-                  Creează profil
-                </button>
-              </div>
+              <RouteNotice
+                message={t('app.errors.noProfileForRecs')}
+                actionLabel={t('common.createProfile')}
+                onAction={() => navigate('medical-profile')}
+              />
             )}
             {route === 'edit-profile' && medicalUser && (
               <EditProfilePage
@@ -120,29 +119,21 @@ function App() {
               />
             )}
             {route === 'edit-profile' && !medicalUser && (
-              <div className="w-full max-w-md text-center">
-                <p className="text-red-400 mb-4">Eroare: Profil medical lipsă</p>
-                <button
-                  onClick={() => navigate('medical-profile')}
-                  className="mt-4 text-neonCyan hover:text-neonMagenta transition"
-                >
-                  Creează profil
-                </button>
-              </div>
+              <RouteNotice
+                message={t('app.errors.noProfile')}
+                actionLabel={t('common.createProfile')}
+                onAction={() => navigate('medical-profile')}
+              />
             )}
-            
+
             {/* Fallback pentru rute necunoscute */}
-            {!['login', 'register', 'auth-verify', 'medical-profile', 'lab-results', 'recommendations', 'edit-profile'].includes(route) && (
-              <div className="w-full max-w-md text-center">
-                <p className="text-slate-300 mb-4">Rută necunoscută</p>
-                <p className="text-slate-500 text-sm mb-4">Route: {route}</p>
-                <button
-                  onClick={() => navigate('login')}
-                  className="mt-4 px-4 py-2 bg-neonCyan text-black rounded-lg hover:bg-neonMagenta transition"
-                >
-                  Mergi la login
-                </button>
-              </div>
+            {!KNOWN_ROUTES.includes(route) && (
+              <RouteNotice
+                message={t('app.errors.unknownRoute')}
+                detail={t('app.errors.route', { route })}
+                actionLabel={t('common.goToLogin')}
+                onAction={() => navigate('login')}
+              />
             )}
           </>
         )}
@@ -152,4 +143,3 @@ function App() {
 }
 
 export default App
-

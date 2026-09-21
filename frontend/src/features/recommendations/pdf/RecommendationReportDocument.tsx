@@ -2,6 +2,7 @@
  * Template PDF pentru raportul de recomandări.
  * Doar prezentare – fără logică business. Primește datele gata pregătite.
  * Textul este normalizat fără diacritice (ă,â,î,ș,ț) pentru compatibilitate font PDF.
+ * Etichetele vin traduse din exterior (`labels`), deoarece randarea PDF nu are acces la contextul React i18n.
  */
 import React from 'react'
 import {
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   header: {
-    backgroundColor: '#0096c8',
+    backgroundColor: '#0d9488',
     padding: 15,
     marginBottom: 20,
   },
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   userBox: {
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#f0fdfa',
     padding: 12,
     borderRadius: 4,
     marginBottom: 12,
@@ -104,10 +105,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#006494',
+    color: '#0f766e',
     marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#0096c8',
+    borderBottomColor: '#0d9488',
     paddingBottom: 4,
   },
   recommendationBlock: {
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   foodName: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#006494',
+    color: '#0f766e',
     marginBottom: 4,
   },
   meta: {
@@ -153,39 +154,57 @@ const styles = StyleSheet.create({
   },
 })
 
-const DISCLAIMER = faraDiacritice(
-  'Aceste recomandări sunt sugestii generale bazate pe informațiile furnizate și nu înlocuiesc consultul medical profesional. Consultați un medic sau nutriționist autorizat înainte de modificări majore în dietă.'
-)
+/** Texte statice ale raportului, în limba aleasă de utilizator (`pdf.*` din traduceri). */
+export interface PdfLabels {
+  subtitle: string
+  beneficiary: string
+  defaultUser: string
+  generatedAt: string
+  important: string
+  disclaimer: string
+  section: string
+  category: string
+  portion: string
+  coverage: string
+  description: string
+  motivation: string
+  rights: string
+}
 
 interface RecommendationReportDocumentProps {
   user: UserForPdf
   recommendations: RecommendationForPdf[]
   generatedAt: string
+  labels: PdfLabels
+  /** Categoria alimentului, deja tradusă. */
+  formatCategory: (category: string) => string
 }
 
 export const RecommendationReportDocument: React.FC<RecommendationReportDocumentProps> = ({
   user,
   recommendations,
   generatedAt,
+  labels,
+  formatCategory,
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>VitaBalance</Text>
-        <Text style={styles.headerSubtitle}>{faraDiacritice('Raport de Recomandări Nutriționale Personalizate')}</Text>
+        <Text style={styles.headerSubtitle}>{faraDiacritice(labels.subtitle)}</Text>
       </View>
 
       <View style={styles.userBox}>
-        <Text style={styles.userLabel}>Beneficiar: {faraDiacritice(user.name || 'Utilizator')}</Text>
-        <Text style={{ fontSize: 9, color: '#555' }}>Data generarii: {generatedAt}</Text>
+        <Text style={styles.userLabel}>{labels.beneficiary}: {faraDiacritice(user.name || labels.defaultUser)}</Text>
+        <Text style={{ fontSize: 9, color: '#555' }}>{labels.generatedAt}: {generatedAt}</Text>
       </View>
 
       <View style={styles.disclaimer}>
-        <Text style={{ fontWeight: 'bold', marginBottom: 2 }}>IMPORTANT:</Text>
-        <Text>{DISCLAIMER}</Text>
+        <Text style={{ fontWeight: 'bold', marginBottom: 2 }}>{faraDiacritice(labels.important)}</Text>
+        <Text>{faraDiacritice(labels.disclaimer)}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>{faraDiacritice('RECOMANDĂRI NUTRIȚIONALE')}</Text>
+      <Text style={styles.sectionTitle}>{faraDiacritice(labels.section)}</Text>
 
       {recommendations.map((rec, index) => {
         const descriere = faraDiacritice(
@@ -200,20 +219,20 @@ export const RecommendationReportDocument: React.FC<RecommendationReportDocument
               {index + 1}. {faraDiacritice(rec.food.name)}
             </Text>
             <View style={styles.meta}>
-              <Text style={styles.metaItem}>Categorie: {faraDiacritice(rec.food.category)}</Text>
+              <Text style={styles.metaItem}>{labels.category}: {faraDiacritice(formatCategory(rec.food.category))}</Text>
               <Text style={styles.metaItem}>
-                Portie sugerata:{' '}
+                {labels.portion}:{' '}
                 {rec.explanation.portion_unit === 'ml'
                   ? `${rec.explanation.portion} ml`
                   : `${rec.explanation.portion} g`}
               </Text>
-              <Text style={styles.metaItem}>Acoperire deficit: {rec.coverage.toFixed(1)}%</Text>
+              <Text style={styles.metaItem}>{labels.coverage}: {rec.coverage.toFixed(1)}%</Text>
             </View>
-            <Text style={styles.explanationLabel}>Descriere:</Text>
+            <Text style={styles.explanationLabel}>{labels.description}:</Text>
             <Text style={styles.explanationText}>{descriere}</Text>
             {motive.length > 0 && (
               <>
-                <Text style={styles.explanationLabel}>Motivatie:</Text>
+                <Text style={styles.explanationLabel}>{labels.motivation}:</Text>
                 <Text style={styles.explanationText}>{motive.join(' ')}</Text>
               </>
             )}
@@ -223,7 +242,7 @@ export const RecommendationReportDocument: React.FC<RecommendationReportDocument
 
       <View style={styles.footer} fixed>
         <Text>
-          VitaBalance © {new Date().getFullYear()}. {faraDiacritice('Toate drepturile rezervate.')}
+          VitaBalance © {new Date().getFullYear()}. {faraDiacritice(labels.rights)}
         </Text>
       </View>
     </Page>

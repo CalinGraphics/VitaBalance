@@ -1,49 +1,50 @@
-// Mapping pentru categorii de alimente
-const CATEGORY_MAPPINGS: Record<string, string> = {
-  'carne': 'Carne',
-  'peste': 'Pește',
-  'legume': 'Legume',
-  'lactate': 'Lactate',
-  'cereale': 'Cereale',
-  'fructe_seci': 'Fructe seci',
-  'fructe seci': 'Fructe seci',
-  'semințe': 'Semințe',
-  'semnite': 'Semințe', // fallback pentru fără diacritice
-  'seminte': 'Semințe',
-  'fructe': 'Fructe',
-  'leguminoase': 'Leguminoase',
-  'ouă': 'Ouă',
-  'oua': 'Ouă',
-  'unt': 'Unt',
-  'ulei': 'Ulei',
-  'ciuperci': 'Ciuperci',
-  'nuci': 'Nuci',
-  'soia': 'Soia',
-  'alune': 'Alune'
+import i18n from '../i18n'
+import { parseAllergies } from '../constants/allergies'
+import { parseMedicalConditions } from '../constants/medicalConditions'
+
+// Mapping categorie normalizată (fără diacritice, lowercase) -> cheie i18n `categories.<cheie>`
+const CATEGORY_KEYS: Record<string, string> = {
+  'carne': 'carne',
+  'peste': 'peste',
+  'legume': 'legume',
+  'lactate': 'lactate',
+  'cereale': 'cereale',
+  'fructe_seci': 'fructe_seci',
+  'fructe seci': 'fructe_seci',
+  'seminte': 'seminte',
+  'semnite': 'seminte', // fallback pentru fără diacritice
+  'fructe': 'fructe',
+  'leguminoase': 'leguminoase',
+  'oua': 'oua',
+  'unt': 'unt',
+  'ulei': 'ulei',
+  'ciuperci': 'ciuperci',
+  'nuci': 'nuci',
+  'soia': 'soia',
+  'alune': 'alune',
 }
 
 /** Categorii compuse din CSV (Cereale/Procesate) — prioritate, ca cerealele să nu apară ca lactate. */
-const COMPOUND_CATEGORY_PRIORITY: Array<{ match: string; label: string }> = [
-  { match: 'bauturi', label: 'Băuturi' },
-  { match: 'deserturi', label: 'Deserturi' },
-  { match: 'cereale', label: 'Cereale' },
-  { match: 'leguminoase', label: 'Leguminoase' },
-  { match: 'legume', label: 'Legume' },
-  { match: 'fructe', label: 'Fructe' },
-  { match: 'peste', label: 'Pește' },
-  { match: 'carne', label: 'Carne' },
-  { match: 'oua', label: 'Ouă' },
-  { match: 'ouă', label: 'Ouă' },
-  { match: 'nuci', label: 'Nuci' },
-  { match: 'semin', label: 'Semințe' },
-  { match: 'lactate', label: 'Lactate' },
-  { match: 'lapte', label: 'Lactate' },
-  { match: 'suplimente', label: 'Suplimente' },
-  { match: 'condimente', label: 'Condimente' },
-  { match: 'gustari', label: 'Gustări' },
-  { match: 'mese', label: 'Mese' },
-  { match: 'proteine', label: 'Proteine' },
-  { match: 'paste', label: 'Paste' },
+const COMPOUND_CATEGORY_PRIORITY: Array<{ match: string; key: string }> = [
+  { match: 'bauturi', key: 'bauturi' },
+  { match: 'deserturi', key: 'deserturi' },
+  { match: 'cereale', key: 'cereale' },
+  { match: 'leguminoase', key: 'leguminoase' },
+  { match: 'legume', key: 'legume' },
+  { match: 'fructe', key: 'fructe' },
+  { match: 'peste', key: 'peste' },
+  { match: 'carne', key: 'carne' },
+  { match: 'oua', key: 'oua' },
+  { match: 'nuci', key: 'nuci' },
+  { match: 'semin', key: 'seminte' },
+  { match: 'lactate', key: 'lactate' },
+  { match: 'lapte', key: 'lactate' },
+  { match: 'suplimente', key: 'suplimente' },
+  { match: 'condimente', key: 'condimente' },
+  { match: 'gustari', key: 'gustari' },
+  { match: 'mese', key: 'mese' },
+  { match: 'proteine', key: 'proteine' },
+  { match: 'paste', key: 'paste' },
 ]
 
 function normalizeCategoryPath(category: string): string {
@@ -54,75 +55,64 @@ function normalizeCategoryPath(category: string): string {
     .trim()
 }
 
-// Formatare categorie alimentară
-export const formatFoodCategory = (category: string | undefined | null): string => {
-  if (!category) return ''
+const categoryLabel = (key: string): string => i18n.t(`categories.${key}`)
+
+/**
+ * Rezolvă categoria unui aliment: `key` e stabilă (independentă de limbă — potrivită pentru filtre),
+ * `label` e tradusă în limba curentă. `null` când lipsește categoria.
+ */
+export const resolveFoodCategory = (
+  category: string | undefined | null
+): { key: string; label: string } | null => {
+  if (!category) return null
 
   const norm = normalizeCategoryPath(category)
+  const known = (key: string) => ({ key, label: categoryLabel(key) })
 
-  if (CATEGORY_MAPPINGS[norm]) {
-    return CATEGORY_MAPPINGS[norm]
-  }
+  if (CATEGORY_KEYS[norm]) return known(CATEGORY_KEYS[norm])
 
   if (norm.includes('/')) {
     const parts = norm.split('/').map((p) => p.trim())
-    for (const { match, label } of COMPOUND_CATEGORY_PRIORITY) {
-      if (parts.some((p) => p.includes(match))) {
-        return label
-      }
+    for (const { match, key } of COMPOUND_CATEGORY_PRIORITY) {
+      if (parts.some((p) => p.includes(match))) return known(key)
     }
   }
 
-  for (const { match, label } of COMPOUND_CATEGORY_PRIORITY) {
-    if (norm.includes(match)) {
-      return label
-    }
+  for (const { match, key } of COMPOUND_CATEGORY_PRIORITY) {
+    if (norm.includes(match)) return known(key)
   }
 
-  let formatted = category.replace(/_/g, ' ')
-  formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1).toLowerCase()
-  return formatted
+  const cleaned = category.replace(/_/g, ' ')
+  return { key: `raw:${norm}`, label: cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase() }
 }
 
-/** Cheie pentru grupare filtre (cereale vs cereale/procesate). */
-export const foodCategoryGroupKey = (category: string | undefined | null): string => {
-  if (!category) return 'alte'
-  const norm = normalizeCategoryPath(category)
-  for (const { match } of COMPOUND_CATEGORY_PRIORITY) {
-    if (norm.includes(match)) return match
-  }
-  return norm.split('/')[0] || 'alte'
+// Formatare categorie alimentară (tradusă în limba curentă)
+export const formatFoodCategory = (category: string | undefined | null): string =>
+  resolveFoodCategory(category)?.label ?? ''
+
+const capitalize = (raw: string): string => {
+  const cleaned = raw.replace(/_/g, ' ').trim()
+  return cleaned.length > 0 ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase() : ''
 }
 
-// Formatare alergie - folosește label-urile din COMMON_ALLERGIES
-import { COMMON_ALLERGIES } from '../constants/allergies'
-import { parseAllergies } from '../constants/allergies'
-import { COMMON_MEDICAL_CONDITIONS, parseMedicalConditions } from '../constants/medicalConditions'
-
+// Formatare alergie - eticheta tradusă din `allergies.<valoare>.label`
 export const formatAllergy = (allergyValue: string): string => {
-  const allergy = COMMON_ALLERGIES.find(a => a.value === allergyValue.toLowerCase().trim())
-  return allergy ? allergy.label : allergyValue.charAt(0).toUpperCase() + allergyValue.slice(1).toLowerCase()
+  const key = allergyValue.toLowerCase().trim()
+  return i18n.t(`allergies.${key}.label`, { defaultValue: capitalize(allergyValue) })
 }
 
 // Formatare string de alergii (comma-separated)
 export const formatAllergiesString = (allergiesString: string | undefined | null): string => {
   if (!allergiesString) return ''
-  
-  const allergies = parseAllergies(allergiesString)
-  return allergies.map(formatAllergy).join(', ')
+  return parseAllergies(allergiesString).map(formatAllergy).join(', ')
 }
 
 export const formatMedicalCondition = (conditionValue: string): string => {
   const key = conditionValue.toLowerCase().trim()
-  const item = COMMON_MEDICAL_CONDITIONS.find(c => c.value === key)
-  if (item) return item.label
-  // fallback: înlocuiește underscore-uri și capitalizează
-  const cleaned = conditionValue.replace(/_/g, ' ').trim()
-  return cleaned.length > 0 ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase() : ''
+  return i18n.t(`conditions.${key}.label`, { defaultValue: capitalize(conditionValue) })
 }
 
 export const formatMedicalConditionsString = (conditionsString: string | undefined | null): string => {
   if (!conditionsString) return ''
-  const conditions = parseMedicalConditions(conditionsString)
-  return conditions.map(formatMedicalCondition).join(', ')
+  return parseMedicalConditions(conditionsString).map(formatMedicalCondition).join(', ')
 }

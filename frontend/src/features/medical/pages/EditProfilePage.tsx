@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { UserCog, Save, FlaskConical, ArrowLeft } from 'lucide-react'
-import React from 'react'
-import { GlassCard, InputField, SelectField, PrimaryButton, AllergySelector, MedicalConditionSelector } from '../../../shared/components'
+import React, { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, FlaskConical, Save, UserCog } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { GlassCard, PrimaryButton, PageHeader, Alert, Spinner } from '../../../shared/components'
 import { profileService } from '../../../services/api'
 import { regenerateRecommendationsAfterSave } from '../../recommendations/utils/regenerateAfterSave'
-import { parseOptionalDecimal, parseOptionalInt, sanitizeDecimalInput, sanitizeIntInput } from '../../../shared/utils/numberParsing'
 import type { User } from '../../../shared/types'
+import { useProfileForm } from '../hooks/useProfileForm'
+import ProfileFormFields from '../components/ProfileFormFields'
 
 interface EditProfilePageProps {
   user: User
@@ -16,68 +16,41 @@ interface EditProfilePageProps {
 }
 
 const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResults }: EditProfilePageProps) => {
-  const [formData, setFormData] = useState<Partial<User>>({
-    email: user.email,
-    name: user.name,
-    sex: user.sex,
-    activity_level: user.activity_level,
-    diet_type: user.diet_type,
-    allergies: user.allergies || '',
-    medical_conditions: user.medical_conditions || ''
-  })
-  const [ageText, setAgeText] = useState(user.age != null ? String(user.age) : '')
-  const [weightText, setWeightText] = useState(user.weight != null ? String(user.weight) : '')
-  const [heightText, setHeightText] = useState(user.height != null ? String(user.height) : '')
-
+  const { t } = useTranslation()
+  const form = useProfileForm({ user })
   const [loading, setLoading] = useState(false)
   const [loadingNote, setLoadingNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const redirectTimer = useRef<number | undefined>(undefined)
+
+  // Nu lăsa redirectul programat să se execute după ce pagina a fost părăsită.
+  useEffect(() => () => window.clearTimeout(redirectTimer.current), [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    if (loading) return
     setError(null)
     setSuccess(false)
 
+    const result = form.buildPayload()
+    if (result.error !== undefined) {
+      setError(result.error)
+      return
+    }
+
+    setLoading(true)
     try {
-      const age = parseOptionalInt(ageText)
-      const weight = parseOptionalDecimal(weightText)
-      const height = parseOptionalDecimal(heightText)
-
-      if (age === undefined) {
-        setError('Vârsta este obligatorie.')
-        return
-      }
-      if (weight === undefined) {
-        setError('Greutatea este obligatorie.')
-        return
-      }
-      if (height === undefined) {
-        setError('Înălțimea este obligatorie.')
-        return
-      }
-
-      const payload: Partial<User> = {
-        ...formData,
-        age,
-        weight,
-        height,
-      }
-      const response = await profileService.update(user.id || 0, payload)
+      const response = await profileService.update(user.id || 0, result.payload)
 
       // Actualizează starea utilizatorului imediat după salvare,
       // indiferent dacă regenerarea recomandărilor reușește sau nu
-      const updatedUser = {
-        ...user,
-        ...response
-      }
-      onUpdate(updatedUser)
+      onUpdate({ ...user, ...response })
 
       // Regenerare recomandări — best-effort, nu blochează navigarea
       if (user.id) {
         try {
-          setLoadingNote('Se generează recomandările actualizate…')
+          setLoadingNote(t('profile.edit.regenerating'))
           await regenerateRecommendationsAfterSave(user.id)
         } catch (recErr) {
           console.error('Eroare la regenerarea recomandărilor:', recErr)
@@ -86,214 +59,71 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
       }
 
       setSuccess(true)
-      setTimeout(() => {
-        onNavigateBack()
-      }, 1500)
+      redirectTimer.current = window.setTimeout(onNavigateBack, 1500)
     } catch (err: unknown) {
       console.error('Eroare la actualizarea profilului:', err)
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Eroare la salvarea modificărilor. Te rugăm să încerci din nou.'
-      setError(errorMessage)
+      setError(err instanceof Error && err.message ? err.message : t('profile.errors.updateFailed'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="w-full max-w-full md:max-w-4xl lg:max-w-[90vw]">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <GlassCard className="w-full max-w-full md:max-w-3xl lg:max-w-none mx-auto lg:min-h-[80vh]">
-          <button
-            type="button"
-            onClick={onNavigateBack}
-            className="mb-4 min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-neonCyan transition touch-manipulation"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Înapoi la recomandări
-          </button>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-gradient-to-tr from-neonCyan to-neonPurple p-3 rounded-lg shadow-neon">
-              <UserCog className="w-6 h-6 text-black" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-100">Actualizează profilul</h2>
-              <p className="text-slate-400 text-sm">Modifică informațiile tale personale</p>
-            </div>
-          </div>
+    <div className="w-full max-w-3xl">
+      <GlassCard className="mx-auto w-full">
+        <button
+          type="button"
+          onClick={onNavigateBack}
+          className="-ml-1 mb-4 inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg px-1 text-sm font-medium text-zinc-400 transition-colors hover:text-accent touch-manipulation"
+        >
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+          {t('profile.edit.backToRecs')}
+        </button>
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 text-sm"
-            >
-              {error}
-            </motion.div>
-          )}
+        <PageHeader Icon={UserCog} title={t('profile.edit.title')} subtitle={t('profile.edit.subtitle')} />
 
-          {success && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 rounded-lg bg-green-500/20 border border-green-500/50 text-green-300 text-sm"
-            >
-              Profilul a fost actualizat cu succes!
-            </motion.div>
-          )}
+        {error && <Alert variant="error" className="mb-5">{error}</Alert>}
+        {success && <Alert variant="success" className="mb-5">{t('profile.edit.success')}</Alert>}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField
-                label="Nume complet"
-                value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nume Prenume"
-              />
+        <form onSubmit={handleSubmit} noValidate>
+          <ProfileFormFields form={form} />
 
-              <InputField
-                label="Email"
-                type="email"
-                value={formData.email || ''}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="exemplu@email.com"
-              />
-
-              <div>
-                <InputField
-                  label="Vârstă"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={ageText}
-                  onChange={(e) => setAgeText(sanitizeIntInput(e.target.value))}
-                  placeholder="25"
-                />
-              </div>
-
-              <SelectField
-                label="Sex"
-                value={formData.sex || ''}
-                onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
-                options={[
-                  { value: 'F', label: 'Feminin' },
-                  { value: 'M', label: 'Masculin' },
-                  { value: 'other', label: 'Altul' },
-                ]}
-              />
-
-              <InputField
-                label="Greutate (kg)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={weightText}
-                onChange={(e) => setWeightText(sanitizeDecimalInput(e.target.value))}
-                placeholder="70"
-              />
-
-              <InputField
-                label="Înălțime (cm)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={heightText}
-                onChange={(e) => setHeightText(sanitizeDecimalInput(e.target.value))}
-                placeholder="170"
-              />
-
-              <SelectField
-                label="Nivel de activitate"
-                value={formData.activity_level || ''}
-                onChange={(e) => setFormData({ ...formData, activity_level: e.target.value })}
-                options={[
-                  { value: 'sedentary', label: 'Sedentar' },
-                  { value: 'moderate', label: 'Moderat' },
-                  { value: 'active', label: 'Activ' },
-                  { value: 'very_active', label: 'Foarte activ' },
-                ]}
-              />
-
-              <SelectField
-                label="Tip de dietă"
-                value={formData.diet_type || ''}
-                onChange={(e) => setFormData({ ...formData, diet_type: e.target.value })}
-                options={[
-                  { value: 'omnivore', label: 'Omnivor' },
-                  { value: 'vegetarian', label: 'Vegetarian' },
-                  { value: 'vegan', label: 'Vegan' },
-                  { value: 'pescatarian', label: 'Pescetarian' },
-                ]}
-              />
-            </div>
-
-            <AllergySelector
-              label="Alergii"
-              value={formData.allergies || ''}
-              onChange={(value) => setFormData({ ...formData, allergies: value })}
-              placeholder="Selectează alergiile tale"
-            />
-
-            <MedicalConditionSelector
-              label="Condiții medicale"
-              value={formData.medical_conditions || ''}
-              onChange={(value) => setFormData({ ...formData, medical_conditions: value })}
-              placeholder="Selectează condițiile medicale"
-            />
-
-            {onNavigateToLabResults && (
-              <div className="mb-6 p-4 rounded-xl border border-neonPurple/30 bg-neonPurple/10">
-                <p className="text-sm text-slate-300 mb-3">
-                  Actualizează și rezultatele analizelor medicale pentru recomandări mai precise pe baza valorilor tale (hemoglobină, feritină, vitamine etc.).
-                </p>
-                <button
-                  type="button"
-                  onClick={onNavigateToLabResults}
-                  className="min-h-[44px] flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-neonPurple/50 text-neonPurple hover:bg-neonPurple/20 transition font-medium text-sm touch-manipulation"
-                >
-                  <FlaskConical className="w-5 h-5" />
-                  Actualizează analize medicale
-                </button>
-              </div>
-            )}
-
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <PrimaryButton type="submit" disabled={loading} full={true}>
-                {loading ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full"
-                    />
-                    <span>{loadingNote || 'Se salvează...'}</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-5 h-5" />
-                    <span>Salvează modificările</span>
-                  </>
-                )}
-              </PrimaryButton>
+          {onNavigateToLabResults && (
+            <div className="mt-6 rounded-lg border border-line bg-white/[0.02] p-4">
+              <p className="mb-3 text-sm leading-relaxed text-zinc-400">{t('profile.edit.labsPrompt')}</p>
               <button
                 type="button"
-                onClick={onNavigateBack}
-                className="w-full min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-6 py-3.5 rounded-xl border border-white/20 text-slate-300 hover:border-neonCyan hover:text-neonCyan transition font-medium touch-manipulation"
+                onClick={onNavigateToLabResults}
+                className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-accent-border px-4 text-sm font-medium text-accent transition-colors hover:bg-accent-soft touch-manipulation"
               >
-                Anulează
+                <FlaskConical aria-hidden="true" className="h-4 w-4" />
+                {t('profile.edit.labsButton')}
               </button>
             </div>
-          </form>
-        </GlassCard>
-      </motion.div>
+          )}
+
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <PrimaryButton type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Spinner />
+                  <span>{loadingNote || t('profile.edit.saving')}</span>
+                </>
+              ) : (
+                <>
+                  <Save aria-hidden="true" className="h-4 w-4" />
+                  <span>{t('profile.edit.save')}</span>
+                </>
+              )}
+            </PrimaryButton>
+            <PrimaryButton variant="secondary" onClick={onNavigateBack}>
+              {t('common.cancel')}
+            </PrimaryButton>
+          </div>
+        </form>
+      </GlassCard>
     </div>
   )
 }
 
 export default EditProfilePage
-

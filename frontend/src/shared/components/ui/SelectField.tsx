@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 
 interface SelectFieldProps {
   label: string;
@@ -17,6 +18,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const id = useId();
 
   const selectedLabel = useMemo(
     () => options.find((o) => o.value === value)?.label ?? '',
@@ -24,18 +26,22 @@ const SelectField: React.FC<SelectFieldProps> = ({
   );
 
   useEffect(() => {
+    if (!isOpen) return;
     const onPointerDown = (ev: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(ev.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(ev.target as Node)) {
         setIsOpen(false);
       }
     };
-
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') setIsOpen(false);
+    };
     document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
     };
-  }, []);
+  }, [isOpen]);
 
   const handleOptionSelect = (nextValue: string) => {
     setIsOpen(false);
@@ -48,7 +54,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
 
   return (
     <div className={`mb-4 ${className}`}>
-      <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.16em] text-slate-300">
+      <label id={`${id}-label`} className="field-label">
         {label}
       </label>
 
@@ -56,33 +62,23 @@ const SelectField: React.FC<SelectFieldProps> = ({
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2.5 pr-10 text-left text-sm text-slate-100 outline-none transition-all duration-200 focus:border-neonCyan/80 focus:ring-2 focus:ring-neonCyan/30 hover:border-neonPurple/50"
+          className="field flex cursor-pointer items-center justify-between gap-2 pr-3 text-left"
           aria-haspopup="listbox"
           aria-expanded={isOpen}
+          aria-labelledby={`${id}-label`}
         >
           <span className="block truncate">{selectedLabel}</span>
+          <ChevronDown
+            aria-hidden="true"
+            className={`h-4 w-4 flex-shrink-0 text-zinc-400 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+          />
         </button>
-
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-          <svg
-            className={`h-4 w-4 text-neonCyan transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </div>
 
         {isOpen && (
           <div
             role="listbox"
-            className="absolute z-40 mt-2 w-full overflow-hidden rounded-xl border border-neonCyan/40 bg-slate-900/95 shadow-[0_0_22px_rgba(0,245,255,0.22)] backdrop-blur-sm"
+            aria-labelledby={`${id}-label`}
+            className="absolute z-40 mt-1.5 w-full overflow-hidden rounded-lg border border-line-strong bg-surface p-1 shadow-pop animate-scale-in"
           >
             {options.map((option) => {
               const active = option.value === value;
@@ -90,14 +86,17 @@ const SelectField: React.FC<SelectFieldProps> = ({
                 <button
                   key={option.value}
                   type="button"
+                  role="option"
+                  aria-selected={active}
                   onClick={() => handleOptionSelect(option.value)}
-                  className={`block w-full px-3 py-2.5 text-left text-sm transition ${
+                  className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors ${
                     active
-                      ? 'bg-neonCyan/25 text-slate-50'
-                      : 'text-slate-200 hover:bg-neonPurple/20 hover:text-slate-50'
+                      ? 'bg-accent-soft text-accent'
+                      : 'text-zinc-200 hover:bg-white/5 hover:text-zinc-50'
                   }`}
                 >
-                  {option.label}
+                  <span className="truncate">{option.label}</span>
+                  {active && <Check aria-hidden="true" className="h-4 w-4 flex-shrink-0" />}
                 </button>
               );
             })}
@@ -109,4 +108,3 @@ const SelectField: React.FC<SelectFieldProps> = ({
 };
 
 export default SelectField;
-

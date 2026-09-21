@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field
+from typing import Literal, Optional, List
 from datetime import datetime
 
 # User Schemas
@@ -14,9 +14,18 @@ class UserBase(BaseModel):
     diet_type: str
     allergies: Optional[str] = None
     medical_conditions: Optional[str] = None
+    # Obiectiv caloric zilnic (kcal), opțional și doar informativ (nu influențează recomandările).
+    caloric_goal: Optional[float] = Field(default=None, ge=500, le=10000)
 
 class UserCreate(UserBase):
-    pass
+    # Limite aplicate doar la scriere: UserResponse (moștenit din UserBase) nu trebuie să pice pe rânduri vechi.
+    # Oglindesc CHECK-urile din migrarea 004 (users_body_metrics_range, users_*_check).
+    age: int = Field(ge=1, le=120)
+    sex: Literal["F", "M", "other"]
+    weight: float = Field(ge=20, le=400)  # kg
+    height: float = Field(ge=50, le=260)  # cm
+    activity_level: Literal["sedentary", "moderate", "active", "very_active"]
+    diet_type: Literal["omnivore", "vegetarian", "vegan", "pescatarian"]
 
 class UserResponse(UserBase):
     id: int
@@ -70,26 +79,6 @@ class RecommendationRequest(BaseModel):
     replace_recommendation_id: Optional[int] = None
     # Opțional: înregistrează feedback înainte de înlocuire (un singur round-trip față de POST /feedback + replace).
     replace_feedback_rating: Optional[int] = None
-
-class FoodInfo(BaseModel):
-    id: int
-    name: str
-    category: str
-
-class ExplanationDetail(BaseModel):
-    text: str
-    portion: float
-    reasons: List[str]
-    tips: Optional[List[str]] = None
-    alternatives: Optional[List[str]] = None
-
-class RecommendationResponse(BaseModel):
-    food_id: int
-    food: FoodInfo
-    score: float
-    coverage: float
-    explanation: ExplanationDetail
-    recommendation_id: int
 
 # Feedback Schemas
 class FeedbackCreate(BaseModel):

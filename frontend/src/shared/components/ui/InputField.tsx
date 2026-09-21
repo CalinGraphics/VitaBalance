@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useId, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface InputFieldProps {
   label: string;
@@ -7,12 +9,18 @@ interface InputFieldProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   placeholder?: string;
   error?: string;
+  /** Text de ajutor afișat sub câmp (ascuns când există o eroare). */
+  hint?: string;
   textarea?: boolean;
   rows?: number;
   step?: string;
+  min?: string;
+  max?: string;
   inputMode?: React.InputHTMLAttributes<HTMLInputElement>['inputMode'];
   pattern?: string;
-  /** Când true și value e gol, câmpul arată mai transparent (pentru câmpuri opționale) */
+  autoComplete?: string;
+  required?: boolean;
+  /** Când true și value e gol, câmpul arată mai estompat (pentru câmpuri opționale) */
   transparentWhenEmpty?: boolean;
 }
 
@@ -23,99 +31,85 @@ const InputField: React.FC<InputFieldProps> = ({
   onChange,
   placeholder,
   error,
+  hint,
   textarea = false,
   rows = 3,
   step,
+  min,
+  max,
   inputMode,
   pattern,
+  autoComplete,
+  required = false,
   transparentWhenEmpty = false,
 }) => {
+  const id = useId();
+  const { t } = useTranslation();
+  const [revealed, setRevealed] = useState(false);
+  const isPassword = type === 'password';
+  const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   const isEmpty = !value || value.trim() === '';
-  const useGhostStyle = transparentWhenEmpty && isEmpty;
-  // Base classes - când gol și transparentWhenEmpty: fundal mai transparent, placeholder mai subtil
-  const baseClasses = useGhostStyle
-    ? 'w-full min-h-[44px] rounded-xl px-3 py-3 sm:py-2.5 text-base sm:text-sm text-slate-100 placeholder:text-slate-500/60 transition-all bg-slate-950/20'
-    : 'w-full min-h-[44px] rounded-xl px-3 py-3 sm:py-2.5 text-base sm:text-sm text-slate-100 placeholder:text-slate-500 transition-all bg-slate-950/40';
-  
-  const borderClass = error 
-    ? 'focus:ring-red-500/30 focus:ring-2' 
-    : 'focus:ring-neonCyan/30 focus:ring-2';
-
-  // Force styles with inline styles to override everything
-  const inputStyle: React.CSSProperties = {
-    WebkitAppearance: 'none',
-    MozAppearance: 'none',
-    appearance: 'none',
-    boxShadow: 'none',
-    WebkitBoxShadow: 'none',
-    MozBoxShadow: 'none',
-    outline: 'none',
-    outlineOffset: '0',
-    outlineWidth: '0',
-    outlineStyle: 'none',
-    border: error 
-      ? '1px solid rgba(239, 68, 68, 0.8)' 
-      : useGhostStyle 
-        ? '1px solid rgba(255, 255, 255, 0.06)' 
-        : '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '0.75rem',
-    backgroundColor: useGhostStyle ? 'rgba(2, 6, 23, 0.15)' : 'rgba(2, 6, 23, 0.4)',
-    color: 'rgb(241, 245, 249)',
-  };
-
-  const focusStyle: React.CSSProperties = {
-    ...inputStyle,
-    border: error
-      ? '1px solid rgba(239, 68, 68, 1)'
-      : '1px solid rgba(0, 245, 255, 0.8)',
-    boxShadow: error
-      ? '0 0 0 2px rgba(239, 68, 68, 0.3)'
-      : '0 0 0 2px rgba(0, 245, 255, 0.3)',
-  };
+  const ghost = transparentWhenEmpty && isEmpty ? 'opacity-80' : '';
+  const className = `field ${error ? 'field-error' : ''} ${ghost}`;
 
   return (
     <div className="mb-4">
-      <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.16em] text-slate-300">
+      <label htmlFor={id} className="field-label">
         {label}
       </label>
       {textarea ? (
         <textarea
+          id={id}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
           rows={rows}
-          className={`${baseClasses} min-h-[88px] ${borderClass}`}
-          style={inputStyle}
-          onFocus={(e) => {
-            Object.assign(e.target.style, focusStyle);
-          }}
-          onBlur={(e) => {
-            Object.assign(e.target.style, inputStyle);
-          }}
+          required={required}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          className={`${className} min-h-[88px]`}
         />
       ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          step={step}
-          inputMode={inputMode}
-          pattern={pattern}
-          className={`${baseClasses} ${borderClass}`}
-          style={inputStyle}
-          onFocus={(e) => {
-            Object.assign(e.target.style, focusStyle);
-          }}
-          onBlur={(e) => {
-            Object.assign(e.target.style, inputStyle);
-          }}
-          autoComplete={type === 'password' ? 'current-password' : 'off'}
-        />
+        <div className="relative">
+          <input
+            id={id}
+            type={isPassword && revealed ? 'text' : type}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            step={step}
+            min={min}
+            max={max}
+            inputMode={inputMode}
+            pattern={pattern}
+            required={required}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
+            className={`${className} ${isPassword ? 'pr-11' : ''}`}
+            autoComplete={autoComplete ?? (isPassword ? 'current-password' : 'off')}
+          />
+          {isPassword && (
+            <button
+              type="button"
+              onClick={() => setRevealed((prev) => !prev)}
+              aria-label={revealed ? t('common.hidePassword') : t('common.showPassword')}
+              aria-pressed={revealed}
+              className="absolute inset-y-0 right-0 flex w-11 cursor-pointer items-center justify-center rounded-r-lg text-zinc-500 transition-colors hover:text-zinc-200 touch-manipulation"
+            >
+              {revealed ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
       )}
-      {error && (
-        <p className="mt-1 text-xs text-red-400">{error}</p>
-      )}
+      {error ? (
+        <p id={`${id}-error`} role="alert" className="mt-1.5 text-xs text-red-400">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-zinc-500">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 };

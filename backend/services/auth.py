@@ -1,5 +1,5 @@
 """
-Serviciu de autentificare: Magic Link (preferat) + JWT. Parole păstrate temporar pentru migrare.
+Serviciu de autentificare: email + parolă (bcrypt) și sesiune JWT.
 """
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
@@ -88,8 +88,8 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
     try:
         supabase: Client = get_supabase_client()
         
-        # Caută utilizatorul în baza de date
-        response = supabase.table('users').select('*').eq('email', email).execute()
+        # Emailurile sunt stocate cu litere mici (vezi create_user și indexul users_email_lower_key)
+        response = supabase.table('users').select('*').eq('email', email.strip().lower()).execute()
         
         if not response.data or len(response.data) == 0:
             return None
@@ -130,10 +130,11 @@ def create_user(email: str, password: str, fullName: str) -> Dict:
             raise ValueError("Numele complet este obligatoriu")
         
         supabase: Client = get_supabase_client()
+        email = email.strip().lower()
         
         # Verifică dacă email-ul este deja folosit
         try:
-            existing = supabase.table('users').select('id').eq('email', email.strip()).execute()
+            existing = supabase.table('users').select('id').eq('email', email).execute()
             
             if existing.data and len(existing.data) > 0:
                 raise ValueError("Acest email este deja înregistrat")
@@ -148,7 +149,7 @@ def create_user(email: str, password: str, fullName: str) -> Dict:
         password_hash = get_password_hash(password)
         
         new_user_data = {
-            "email": email.strip(),
+            "email": email,
             "password_hash": password_hash,
             "name": fullName.strip(),
         }
@@ -166,7 +167,7 @@ def create_user(email: str, password: str, fullName: str) -> Dict:
             raise ValueError("Eroare la crearea utilizatorului - nu s-au returnat date")
         
         created_user = response.data[0]
-        email_val = created_user.get('email') or email.strip()
+        email_val = created_user.get('email') or email
         full_name_val = created_user.get('name') or fullName.strip()
         return {
             "email": email_val,
@@ -183,7 +184,7 @@ def create_user(email: str, password: str, fullName: str) -> Dict:
         raise ValueError(f"Eroare la crearea contului: {error_msg}")
 
 
-# ---------- JWT (pentru sesiune după Magic Link sau login cu parolă) ----------
+# ---------- JWT (sesiune după login/înregistrare cu parolă) ----------
 def create_access_token(data: Dict[str, Any]) -> str:
     """Creează JWT cu email și sub (user id sau email)."""
     settings = get_settings()
@@ -202,44 +203,3 @@ def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
         return payload
     except JWTError:
         return None
-
-
-# ---------- Magic Link ----------
-def verify_magic_link(token: str) -> Optional[Dict[str, Any]]:
-    """
-    Validează tokenul magic, îl invalidează, creează user dacă nu există, returnează user info + access_token.
-    Returnează None dacă token invalid/expirat/folosit.
-    """
-    import logging
-
-    from repositories.magic_link_repository import consume_token
-    from repositories import UserRepository
-    from supabase_client import get_supabase_client
-
-    data = consume_token(token)
-    if not data:
-        return None
-    email = data["email"]
-    repo = UserRepository()
-    user_profile = repo.get_by_email(email)
-    if not user_profile:
-        # Creează utilizator minimal (fără parolă) pentru magic link sign-up
-        try:
-            supabase: Client = get_supabase_client()
-            supabase.table("users").insert({
-                "email": email,
-                "name": email.split("@")[0],
-            }).execute()
-            user_profile = repo.get_by_email(email)
-        except Exception:
-            logging.getLogger(__name__).exception("Eroare la crearea user la verify_magic_link")
-            user_profile = None
-    full_name = user_profile.name if user_profile else ""
-    access_token = create_access_token({"sub": email, "email": email})
-    return {
-        "email": email,
-        "fullName": full_name,
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
-

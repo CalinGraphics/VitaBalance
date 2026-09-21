@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { FlaskConical, ArrowRight, SkipForward, FileUp, Loader2, ArrowLeft, Trash2 } from 'lucide-react'
-import { GlassCard, InputField, PrimaryButton } from '../../../shared/components'
+import React, { useState, useEffect } from 'react'
+import { FlaskConical, ArrowRight, SkipForward, FileUp, ArrowLeft, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { GlassCard, InputField, PrimaryButton, PageHeader, Alert, Spinner } from '../../../shared/components'
 import { labResultsService, type LabResultsCreatePayload } from '../../../services/api'
 import { regenerateRecommendationsAfterSave } from '../../recommendations/utils/regenerateAfterSave'
 import {
@@ -21,45 +21,58 @@ interface MedicalLabResultsPageProps {
   onBackToDashboard?: () => void
 }
 
-interface LabResult {
-  user_id: number
-  hemoglobin?: number
-  ferritin?: number
-  vitamin_d?: number
-  vitamin_b12?: number
-  calcium?: number
-  magnesium?: number
-  zinc?: number
-  protein?: number
-  folate?: number
-  vitamin_a?: number
-  vitamin_c?: number
-  iodine?: number
-  vitamin_k?: number
-  potassium?: number
-  notes?: string
-}
+type LabInputs = Record<LabKey, string> & { notes: string }
 
-const OBSERVATION_SUGGESTIONS = [
-  'Anemie feriprivă confirmată',
-  'Deficiență de vitamina D',
-  'Deficiență de vitamina B12',
-  'Deficiență de magneziu',
-  'Deficiență de zinc',
-  'Deficiență de folat (vitamina B9)',
-  'Deficiență de calciu',
-  'Deficiență de iod',
-  'Deficiență de potasiu',
-  'Intoleranță la lactoză',
-  'Intoleranță la gluten / boală celiacă',
-  'Hipertensiune arterială',
-  'Diabet zaharat / prediabet',
-  'Reflux gastroesofagian',
-  'Boală renală cronică',
-  'Nu pot consuma pește',
-  'Nu pot consuma lactate',
-  'Nu pot consuma semințe',
+type LabResult = { user_id: number; notes?: string } & Partial<Record<LabKey, number | null>>
+
+/** Unitatea și intervalul orientativ (placeholder) pentru fiecare analiză; numele vine din i18n (`labs.names.<cheie>`). */
+const LAB_FIELDS: { key: LabKey; unit: string; range?: string }[] = [
+  { key: 'hemoglobin', unit: 'g/dL', range: '12-16 g/dL' },
+  { key: 'ferritin', unit: 'ng/mL', range: '15-150 ng/mL' },
+  { key: 'vitamin_d', unit: 'ng/mL', range: '30-100 ng/mL' },
+  { key: 'vitamin_b12', unit: 'pg/mL', range: '200-900 pg/mL' },
+  { key: 'calcium', unit: 'mg/dL', range: '8.5-10.5 mg/dL' },
+  { key: 'magnesium', unit: 'mg/dL', range: '1.7-2.2 mg/dL' },
+  { key: 'zinc', unit: 'mcg/dL', range: '70-100 mcg/dL' },
+  { key: 'protein', unit: 'g/dL', range: '6.0-8.0 g/dL' },
+  { key: 'folate', unit: 'ng/mL', range: '> 3 ng/mL' },
+  { key: 'vitamin_a', unit: 'μg/dL', range: '> 20 μg/dL' },
+  { key: 'vitamin_c', unit: 'μmol/L' },
+  { key: 'iodine', unit: 'μg/L', range: '> 100 μg/L' },
+  { key: 'vitamin_k', unit: 'ng/mL' },
+  { key: 'potassium', unit: 'mmol/L', range: '> 3.5 mmol/L' },
 ]
+
+/**
+ * Sugestii pentru câmpul de observații. `note` este textul CANONIC în română care se salvează în baza de date:
+ * backend-ul îl interpretează prin cuvinte-cheie românești (deficit_calculator / clinical_context), deci
+ * trebuie inserat identic indiferent de limba interfeței. Doar eticheta afișată (`labs.suggestions.<cheie>`) se traduce.
+ */
+const OBSERVATION_SUGGESTIONS: { key: string; note: string }[] = [
+  { key: 'ironAnemia', note: 'Anemie feriprivă confirmată' },
+  { key: 'vitaminD', note: 'Deficiență de vitamina D' },
+  { key: 'vitaminB12', note: 'Deficiență de vitamina B12' },
+  { key: 'magnesium', note: 'Deficiență de magneziu' },
+  { key: 'zinc', note: 'Deficiență de zinc' },
+  { key: 'folate', note: 'Deficiență de folat (vitamina B9)' },
+  { key: 'calcium', note: 'Deficiență de calciu' },
+  { key: 'iodine', note: 'Deficiență de iod' },
+  { key: 'potassium', note: 'Deficiență de potasiu' },
+  { key: 'lactose', note: 'Intoleranță la lactoză' },
+  { key: 'gluten', note: 'Intoleranță la gluten / boală celiacă' },
+  { key: 'hypertension', note: 'Hipertensiune arterială' },
+  { key: 'diabetes', note: 'Diabet zaharat / prediabet' },
+  { key: 'reflux', note: 'Reflux gastroesofagian' },
+  { key: 'kidney', note: 'Boală renală cronică' },
+  { key: 'noFish', note: 'Nu pot consuma pește' },
+  { key: 'noDairy', note: 'Nu pot consuma lactate' },
+  { key: 'noSeeds', note: 'Nu pot consuma semințe' },
+]
+
+const emptyInputs = (): LabInputs => ({
+  ...(Object.fromEntries(LAB_KEYS.map((k) => [k, ''])) as Record<LabKey, string>),
+  notes: '',
+})
 
 /** Convertește valoarea din API la string pentru input. Null/undefined/0 → '' (câmp gol, placeholder cu interval estimativ). */
 function toInputValue(v: number | null | undefined): string {
@@ -69,66 +82,42 @@ function toInputValue(v: number | null | undefined): string {
   return String(v)
 }
 
+type PdfMessage = { kind: 'success' | 'warning'; text: string }
+
 const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalLabResultsPageProps) => {
-  const [inputs, setInputs] = useState<Record<LabKey, string> & { notes: string }>(() => ({
-    hemoglobin: '',
-    ferritin: '',
-    vitamin_d: '',
-    vitamin_b12: '',
-    calcium: '',
-    magnesium: '',
-    zinc: '',
-    protein: '',
-    folate: '',
-    vitamin_a: '',
-    vitamin_c: '',
-    iodine: '',
-    vitamin_k: '',
-    potassium: '',
-    notes: '',
-  }))
+  const { t } = useTranslation()
+  const [inputs, setInputs] = useState<LabInputs>(emptyInputs)
 
   const [loading, setLoading] = useState(false)
   const [loadingNote, setLoadingNote] = useState<string | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [extractPdfLoading, setExtractPdfLoading] = useState(false)
-  const [extractPdfMessage, setExtractPdfMessage] = useState<string | null>(null)
+  const [extractPdfMessage, setExtractPdfMessage] = useState<PdfMessage | null>(null)
 
   useEffect(() => {
-    if (user?.id) {
-      labResultsService.getByUserId(user.id)
-        .then((items: LabResult[]) => {
-          if (Array.isArray(items) && items.length > 0) {
-            const latest = items[0]
-            setInputs({
-              hemoglobin: toInputValue(latest.hemoglobin),
-              ferritin: toInputValue(latest.ferritin),
-              vitamin_d: toInputValue(latest.vitamin_d),
-              vitamin_b12: toInputValue(latest.vitamin_b12),
-              calcium: toInputValue(latest.calcium),
-              magnesium: toInputValue(latest.magnesium),
-              zinc: toInputValue(latest.zinc),
-              protein: toInputValue(latest.protein),
-              folate: toInputValue(latest.folate),
-              vitamin_a: toInputValue(latest.vitamin_a),
-              vitamin_c: toInputValue(latest.vitamin_c),
-              iodine: toInputValue(latest.iodine),
-              vitamin_k: toInputValue(latest.vitamin_k),
-              potassium: toInputValue(latest.potassium),
-              notes: latest.notes ?? '',
-            })
-          }
-        })
-        .catch(() => { /* ignoră - utilizatorul poate completa manual */ })
-        .finally(() => setLoadingExisting(false))
-    } else {
+    if (!user?.id) {
       setLoadingExisting(false)
+      return
     }
+    labResultsService
+      .getByUserId(user.id)
+      .then((items: LabResult[]) => {
+        if (Array.isArray(items) && items.length > 0) {
+          const latest = items[0]
+          setInputs({
+            ...(Object.fromEntries(LAB_KEYS.map((k) => [k, toInputValue(latest[k])])) as Record<LabKey, string>),
+            notes: latest.notes ?? '',
+          })
+        }
+      })
+      .catch(() => { /* ignoră - utilizatorul poate completa manual */ })
+      .finally(() => setLoadingExisting(false))
   }, [user?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
     setError(null)
 
@@ -144,53 +133,39 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
 
       await labResultsService.create(payload)
       if (user.id) {
-        setLoadingNote('Se generează recomandările actualizate…')
+        setLoadingNote(t('labs.regenerating'))
         await regenerateRecommendationsAfterSave(user.id)
       }
       setLoadingNote(null)
       onComplete()
     } catch (err: unknown) {
       console.error('Eroare la salvarea analizelor:', err)
-      const errorMessage =
-        err instanceof Error ? err.message : 'Eroare la salvarea analizelor. Poți continua oricum.'
-      setError(errorMessage)
-      // Continuă chiar dacă e eroare - poate sări peste acest pas
-      // Utilizatorul poate continua manual
+      setLoadingNote(null)
+      setError(err instanceof Error && err.message ? err.message : t('labs.errors.saveFailed'))
+      // Utilizatorul poate continua oricum prin „Sari peste”.
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSkip = () => {
-    onComplete()
-  }
-
   const handleClearAll = () => {
-    setInputs({
-      hemoglobin: '',
-      ferritin: '',
-      vitamin_d: '',
-      vitamin_b12: '',
-      calcium: '',
-      magnesium: '',
-      zinc: '',
-      protein: '',
-      folate: '',
-      vitamin_a: '',
-      vitamin_c: '',
-      iodine: '',
-      vitamin_k: '',
-      potassium: '',
-      notes: '',
-    })
+    setInputs(emptyInputs())
     setError(null)
   }
+
+  const addSuggestion = (note: string) =>
+    setInputs((prev) => {
+      const current = (prev.notes || '').trim()
+      if (!current) return { ...prev, notes: note }
+      if (normalizeLabNoteText(current).includes(normalizeLabNoteText(note))) return prev
+      return { ...prev, notes: `${current}; ${note}` }
+    })
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.type !== 'application/pdf') {
-      setExtractPdfMessage('Te rugăm să încarci un fișier PDF.')
+      setExtractPdfMessage({ kind: 'warning', text: t('labs.pdf.notPdf') })
       return
     }
     setExtractPdfLoading(true)
@@ -200,385 +175,193 @@ const MedicalLabResultsPage = ({ user, onComplete, onBackToDashboard }: MedicalL
     try {
       const text = await extractTextFromPdfFile(file)
       if (!text.trim()) {
-        setExtractPdfMessage('Nu s-a putut extrage text din PDF. Poate fișierul este scanat sau protejat.')
+        setExtractPdfMessage({ kind: 'warning', text: t('labs.pdf.noText') })
         return
       }
       const localExtracted = extractLabValuesFromTextLocal(text)
       const extracted = await labResultsService.extractFromText(text)
-      const extractWarnings = Array.isArray(
-        (extracted as { warnings?: unknown }).warnings
-      )
+      const extractWarnings = Array.isArray((extracted as { warnings?: unknown }).warnings)
         ? ((extracted as { warnings?: { message?: string; low_confidence?: boolean }[] }).warnings ?? [])
         : []
+
       const merged: Partial<Record<LabKey, number>> = {}
       for (const k of LAB_KEYS) {
-        const backendVal = coerceLabNumeric(extracted[k])
-        const localVal = localExtracted[k]
-        merged[k] = backendVal ?? localVal
+        merged[k] = coerceLabNumeric(extracted[k]) ?? localExtracted[k]
       }
-      const knownKeyLabels: Record<string, string> = {
-        hemoglobin: 'Hemoglobină',
-        ferritin: 'Feritină',
-        vitamin_d: 'Vitamina D',
-        vitamin_b12: 'Vitamina B12',
-        calcium: 'Calciu',
-        magnesium: 'Magneziu',
-        zinc: 'Zinc',
-        protein: 'Proteine',
-        folate: 'Folat / Acid folic',
-        vitamin_a: 'Vitamina A',
-        vitamin_c: 'Vitamina C',
-        iodine: 'Iod',
-        vitamin_k: 'Vitamina K',
-        potassium: 'Potasiu',
-      }
-      const extractedKnownKeys = (Object.keys(knownKeyLabels) as LabKey[]).filter((k) => {
-        const v = merged[k]
-        return v != null && v !== undefined
+      const foundKeys = LAB_KEYS.filter((k) => merged[k] != null)
+
+      setInputs((prev) => {
+        const next = { ...prev }
+        for (const k of foundKeys) next[k] = String(merged[k])
+        return next
       })
-      const count = extractedKnownKeys.length
-      if (extractWarnings.length > 0) {
-        const lowConf = extractWarnings.filter((w) => w.low_confidence).length
-        const suffix =
-          lowConf > 0
-            ? ` ${lowConf} valori au încredere scăzută — verifică înainte de salvare.`
-            : ' Verifică valorile înainte de salvare.'
-        setExtractPdfMessage(
-          (prev) =>
-            (prev ? `${prev} ` : '') +
-            `Extragere completă (${count} parametri).${suffix}`
-        )
+
+      if (foundKeys.length === 0) {
+        setExtractPdfMessage({ kind: 'warning', text: t('labs.pdf.nothingFound') })
+        return
       }
-      setInputs(prev => ({
-        ...prev,
-        hemoglobin: merged.hemoglobin != null ? String(merged.hemoglobin) : prev.hemoglobin,
-        ferritin: merged.ferritin != null ? String(merged.ferritin) : prev.ferritin,
-        vitamin_d: merged.vitamin_d != null ? String(merged.vitamin_d) : prev.vitamin_d,
-        vitamin_b12: merged.vitamin_b12 != null ? String(merged.vitamin_b12) : prev.vitamin_b12,
-        calcium: merged.calcium != null ? String(merged.calcium) : prev.calcium,
-        magnesium: merged.magnesium != null ? String(merged.magnesium) : prev.magnesium,
-        zinc: merged.zinc != null ? String(merged.zinc) : prev.zinc,
-        protein: merged.protein != null ? String(merged.protein) : prev.protein,
-        folate: merged.folate != null ? String(merged.folate) : prev.folate,
-        vitamin_a: merged.vitamin_a != null ? String(merged.vitamin_a) : prev.vitamin_a,
-        vitamin_c: merged.vitamin_c != null ? String(merged.vitamin_c) : prev.vitamin_c,
-        iodine: merged.iodine != null ? String(merged.iodine) : prev.iodine,
-        vitamin_k: merged.vitamin_k != null ? String(merged.vitamin_k) : prev.vitamin_k,
-        potassium: merged.potassium != null ? String(merged.potassium) : prev.potassium,
-      }))
-      setExtractPdfMessage(count > 0
-        ? `S-au extras ${count} valori: ${extractedKnownKeys.map((k) => knownKeyLabels[k] || k).join(', ')}. Verifică și completează manual dacă e cazul.`
-        : 'Nu s-au identificat valori cunoscute în raport. Introdu manual.')
+      const lowConfidence = extractWarnings.filter((w) => w.low_confidence).length
+      const names = foundKeys.map((k) => t(`labs.names.${k}`)).join(', ')
+      setExtractPdfMessage({
+        kind: 'success',
+        text:
+          t('labs.pdf.extracted', { count: foundKeys.length, names }) +
+          (lowConfidence > 0 ? ` ${t('labs.pdf.lowConfidence', { count: lowConfidence })}` : ''),
+      })
     } catch (err) {
       console.error('Eroare la extragerea din PDF:', err)
-      setExtractPdfMessage('Eroare la procesarea PDF-ului. Încearcă din nou sau introdu manual.')
+      setExtractPdfMessage({ kind: 'warning', text: t('labs.pdf.failed') })
     } finally {
       setExtractPdfLoading(false)
     }
   }
 
+  const placeholderFor = (key: LabKey, range?: string): string | undefined => {
+    if (key === 'vitamin_c') return `23–85 μmol/L (${t('labs.approximate')})`
+    if (key === 'vitamin_k') return t('labs.vitaminKPlaceholder')
+    return range
+  }
+
   return (
-    <div className="w-full max-w-4xl lg:max-w-[90vw]">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <GlassCard className="w-full max-w-3xl lg:max-w-none mx-auto lg:min-h-[80vh]">
-          {onBackToDashboard && (
-            <button
-              type="button"
-              onClick={onBackToDashboard}
-              className="mb-4 min-h-[44px] inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-neonCyan transition touch-manipulation"
+    <div className="w-full max-w-3xl">
+      <GlassCard className="mx-auto w-full">
+        {onBackToDashboard && (
+          <button
+            type="button"
+            onClick={onBackToDashboard}
+            className="-ml-1 mb-4 inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg px-1 text-sm font-medium text-zinc-400 transition-colors hover:text-accent touch-manipulation"
+          >
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            {t('profile.edit.backToRecs')}
+          </button>
+        )}
+
+        <PageHeader Icon={FlaskConical} title={t('labs.title')} subtitle={t('labs.subtitle')} />
+
+        <Alert variant="info" className="mb-5">
+          <strong className="font-semibold text-zinc-100">{t('labs.noteTitle')}</strong> {t('labs.noteBody')}
+        </Alert>
+
+        <div className="mb-6 rounded-lg border border-line bg-white/[0.02] p-4">
+          <p className="mb-3 text-sm leading-relaxed text-zinc-400">
+            <strong className="font-semibold text-zinc-200">{t('labs.pdf.title')}</strong> – {t('labs.pdf.description')}
+          </p>
+          <label
+            className={`flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-dashed border-accent-border px-4 py-2.5 text-sm font-medium text-accent transition-colors focus-within:border-accent ${
+              extractPdfLoading ? 'cursor-wait opacity-70' : 'cursor-pointer hover:bg-accent-soft'
+            }`}
+          >
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={handlePdfUpload}
+              disabled={extractPdfLoading}
+              className="sr-only"
+            />
+            {extractPdfLoading ? (
+              <>
+                <Spinner />
+                {t('labs.pdf.processing')}
+              </>
+            ) : (
+              <>
+                <FileUp aria-hidden="true" className="h-4 w-4" />
+                {t('labs.pdf.choose')}
+              </>
+            )}
+          </label>
+          {extractPdfMessage && (
+            <p
+              role="status"
+              className={`mt-3 text-xs leading-relaxed ${
+                extractPdfMessage.kind === 'success' ? 'text-accent' : 'text-amber-300'
+              }`}
             >
-              <ArrowLeft className="w-5 h-5" />
-              Înapoi la recomandări
-            </button>
+              {extractPdfMessage.text}
+            </p>
           )}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-gradient-to-tr from-neonPurple to-neonMagenta p-3 rounded-lg shadow-neon">
-              <FlaskConical className="w-6 h-6 text-black" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-100">Rezultate analize medicale</h2>
-              <p className="text-slate-400 text-sm">Introdu valorile din analizele recente (opțional)</p>
-            </div>
-          </div>
+        </div>
 
-          <div className="bg-blue-900/30 border border-blue-500/30 rounded-xl p-4 mb-6">
-            <p className="text-sm text-blue-200">
-              <strong>Notă:</strong> Dacă nu ai analize recente, poți sări peste acest pas. 
-              Poți șterge orice valoare (sau toate) și salva – recomandările se vor actualiza 
-              pe baza noilor date și a profilului tău.
-            </p>
-          </div>
+        {loadingExisting && (
+          <Alert variant="info" className="mb-5">
+            <span className="flex items-center gap-2">
+              <Spinner />
+              {t('labs.loadingExisting')}
+            </span>
+          </Alert>
+        )}
 
-          <div className="mb-6 p-4 rounded-xl border border-neonCyan/30 bg-neonCyan/5">
-            <p className="text-sm text-slate-300 mb-3">
-              <strong>Încarcă raport medical PDF</strong> – atașează raportul tău medical în format PDF și sistemul va extrage automat valorile pentru câmpurile disponibile.
-            </p>
-            <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-neonCyan/50 text-neonCyan hover:bg-neonCyan/10 cursor-pointer transition font-medium text-sm">
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handlePdfUpload}
-                disabled={extractPdfLoading}
-                className="hidden"
+        {error && <Alert variant="warning" className="mb-5">{error}</Alert>}
+
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
+            {LAB_FIELDS.map(({ key, unit, range }) => (
+              <InputField
+                key={key}
+                label={`${t(`labs.names.${key}`)} (${unit})`}
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={inputs[key]}
+                onChange={(e) => setInputs((prev) => ({ ...prev, [key]: sanitizeDecimalInput(e.target.value) }))}
+                placeholder={placeholderFor(key, range)}
+                transparentWhenEmpty
               />
-              {extractPdfLoading ? (
+            ))}
+          </div>
+
+          <InputField
+            label={t('labs.notes.label')}
+            value={inputs.notes || ''}
+            onChange={(e) => setInputs((prev) => ({ ...prev, notes: e.target.value }))}
+            placeholder={t('labs.notes.placeholder')}
+            textarea
+            rows={4}
+          />
+
+          <div className="mb-6 rounded-lg border border-line bg-white/[0.02] p-3.5">
+            <p className="mb-2.5 text-xs text-zinc-400">{t('labs.notes.suggestionsTitle')}</p>
+            <ul className="flex flex-wrap gap-2">
+              {OBSERVATION_SUGGESTIONS.map(({ key, note }) => (
+                <li key={key}>
+                  <button
+                    type="button"
+                    onClick={() => addSuggestion(note)}
+                    className="min-h-[32px] cursor-pointer rounded-full border border-line-strong bg-white/[0.03] px-3 py-1 text-xs font-medium text-zinc-300 transition-colors hover:border-accent-border hover:bg-accent-soft hover:text-accent"
+                  >
+                    {t(`labs.suggestions.${key}`)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <PrimaryButton variant="danger" onClick={handleClearAll}>
+              <Trash2 aria-hidden="true" className="h-4 w-4" />
+              {t('labs.clearAll')}
+            </PrimaryButton>
+            <PrimaryButton variant="secondary" onClick={onComplete}>
+              <SkipForward aria-hidden="true" className="h-4 w-4" />
+              {t('labs.skip')}
+            </PrimaryButton>
+            <PrimaryButton type="submit" disabled={loading}>
+              {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Se procesează PDF-ul...
+                  <Spinner />
+                  <span>{loadingNote || t('labs.saving')}</span>
                 </>
               ) : (
                 <>
-                  <FileUp className="w-5 h-5" />
-                  Alege raport PDF
+                  <span>{t('profile.create.submit')}</span>
+                  <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </>
               )}
-            </label>
-            {extractPdfMessage && (
-              <p className={`mt-3 text-xs ${extractPdfMessage.includes('S-au extras') ? 'text-green-400' : 'text-amber-400'}`}>
-                {extractPdfMessage}
-              </p>
-            )}
+            </PrimaryButton>
           </div>
-
-          {loadingExisting && (
-            <div className="mb-4 p-3 rounded-lg bg-slate-700/50 border border-slate-500/30 text-slate-300 text-sm flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Se încarcă analizele existente...
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField
-                label="Hemoglobină (g/dL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.hemoglobin}
-                onChange={(e) => setInputs({ ...inputs, hemoglobin: sanitizeDecimalInput(e.target.value) })}
-                placeholder="12-16 g/dL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Feritină (ng/mL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.ferritin}
-                onChange={(e) => setInputs({ ...inputs, ferritin: sanitizeDecimalInput(e.target.value) })}
-                placeholder="15-150 ng/mL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Vitamina D (ng/mL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.vitamin_d}
-                onChange={(e) => setInputs({ ...inputs, vitamin_d: sanitizeDecimalInput(e.target.value) })}
-                placeholder="30-100 ng/mL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Vitamina B12 (pg/mL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.vitamin_b12}
-                onChange={(e) => setInputs({ ...inputs, vitamin_b12: sanitizeDecimalInput(e.target.value) })}
-                placeholder="200-900 pg/mL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Calciu (mg/dL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.calcium}
-                onChange={(e) => setInputs({ ...inputs, calcium: sanitizeDecimalInput(e.target.value) })}
-                placeholder="8.5-10.5 mg/dL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Magneziu (mg/dL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.magnesium}
-                onChange={(e) => setInputs({ ...inputs, magnesium: sanitizeDecimalInput(e.target.value) })}
-                placeholder="1.7-2.2 mg/dL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Zinc (mcg/dL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.zinc}
-                onChange={(e) => setInputs({ ...inputs, zinc: sanitizeDecimalInput(e.target.value) })}
-                placeholder="70-100 mcg/dL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Proteine (g/dL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.protein}
-                onChange={(e) => setInputs({ ...inputs, protein: sanitizeDecimalInput(e.target.value) })}
-                placeholder="6.0-8.0 g/dL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Folat / Acid folic (ng/mL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.folate}
-                onChange={(e) => setInputs({ ...inputs, folate: sanitizeDecimalInput(e.target.value) })}
-                placeholder="> 3 ng/mL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Vitamina A (μg/dL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.vitamin_a}
-                onChange={(e) => setInputs({ ...inputs, vitamin_a: sanitizeDecimalInput(e.target.value) })}
-                placeholder="> 20 μg/dL"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Vitamina C (μmol/L)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.vitamin_c}
-                onChange={(e) => setInputs({ ...inputs, vitamin_c: sanitizeDecimalInput(e.target.value) })}
-                placeholder="23–85 μmol/L (orientativ)"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Iod (μg/L)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.iodine}
-                onChange={(e) => setInputs({ ...inputs, iodine: sanitizeDecimalInput(e.target.value) })}
-                placeholder="> 100 μg/L"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Vitamina K (ng/mL)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.vitamin_k}
-                onChange={(e) => setInputs({ ...inputs, vitamin_k: sanitizeDecimalInput(e.target.value) })}
-                placeholder="filochinonă / vit. K1"
-                transparentWhenEmpty
-              />
-
-              <InputField
-                label="Potasiu (mmol/L)"
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*[.,]?[0-9]*"
-                value={inputs.potassium}
-                onChange={(e) => setInputs({ ...inputs, potassium: sanitizeDecimalInput(e.target.value) })}
-                placeholder="> 3.5 mmol/L"
-                transparentWhenEmpty
-              />
-            </div>
-
-            <InputField
-              label="Observații sau diagnostic medical"
-              value={inputs.notes || ''}
-              onChange={(e) => setInputs({ ...inputs, notes: e.target.value })}
-              placeholder="Adaugă orice observații sau informații suplimentare..."
-              textarea={true}
-              rows={4}
-            />
-            <div className="rounded-lg border border-slate-600/40 bg-slate-800/30 p-3">
-              <p className="mb-2 text-xs text-slate-300">
-                Sugestii utile pentru observații (apasă pentru a adăuga):
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {OBSERVATION_SUGGESTIONS.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() =>
-                      setInputs((prev) => {
-                        const current = (prev.notes || '').trim()
-                        if (!current) return { ...prev, notes: item }
-                        const currentNormalized = normalizeLabNoteText(current)
-                        const itemNormalized = normalizeLabNoteText(item)
-                        if (currentNormalized.includes(itemNormalized)) return prev
-                        return { ...prev, notes: `${current}; ${item}` }
-                      })
-                    }
-                    className="rounded-full border border-neonCyan/40 bg-neonCyan/10 px-3 py-1.5 text-xs font-medium text-neonCyan hover:bg-neonCyan/20 transition"
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 items-stretch flex-wrap">
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="w-full sm:flex-1 min-h-[44px] rounded-xl border border-rose-500/40 bg-rose-500/10 px-6 py-3.5 text-sm font-semibold text-rose-300 hover:bg-rose-500/20 transition inline-flex items-center justify-center gap-2 touch-manipulation"
-              >
-                <Trash2 className="w-5 h-5" />
-                Șterge toate valorile
-              </button>
-              <button
-                type="button"
-                onClick={handleSkip}
-                className="w-full sm:flex-1 min-h-[44px] rounded-xl border border-white/10 bg-slate-800/40 px-6 py-3.5 text-sm font-semibold text-slate-200 hover:bg-slate-700/40 transition inline-flex items-center justify-center gap-2 touch-manipulation"
-              >
-                <SkipForward className="w-5 h-5" />
-                Sari peste
-              </button>
-              <div className="w-full sm:flex-1">
-                <PrimaryButton type="submit" disabled={loading} full={true}>
-                  {loading ? loadingNote || 'Se salvează...' : 'Continuă'}
-                  {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
-                </PrimaryButton>
-              </div>
-            </div>
-          </form>
-        </GlassCard>
-      </motion.div>
+        </form>
+      </GlassCard>
     </div>
   )
 }
 
 export default MedicalLabResultsPage
-

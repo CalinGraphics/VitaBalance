@@ -5,6 +5,8 @@ export interface Recommendation {
     id: number
     name: string
     category: string
+    /** kcal la 100 g (din catalogul de alimente); lipsește în răspunsuri mai vechi. */
+    calories?: number
   }
   score: number
   coverage: number

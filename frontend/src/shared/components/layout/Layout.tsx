@@ -1,127 +1,135 @@
-import React, { ReactNode, useEffect, useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import React, { ReactNode } from 'react';
+import { FlaskConical, LayoutDashboard, LogOut, User, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { Route } from '../../types';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface LayoutProps {
   children: ReactNode;
+  /** Ruta curentă — folosită pentru starea activă din navigație. */
+  route: Route;
+  /** Navigația principală + logout apar doar pentru utilizatorul autentificat cu profil complet. */
+  showNav?: boolean;
+  onNavigate?: (route: Route) => void;
   onLogout?: () => void;
-  showLogout?: boolean;
-  onProfileClick?: () => void;
-  showProfile?: boolean;
-  onLabResultsClick?: () => void;
-  showLabResults?: boolean;
-  onDashboardClick?: () => void;
-  showDashboard?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, onLogout, showLogout, onProfileClick, showProfile, onLabResultsClick, showLabResults, onDashboardClick, showDashboard }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const hasNavButtons = Boolean(
-    (showDashboard && onDashboardClick) ||
-      (showLabResults && onLabResultsClick) ||
-      (showProfile && onProfileClick) ||
-      (showLogout && onLogout)
-  );
+interface NavItem {
+  route: Route;
+  labelKey: string;
+  Icon: LucideIcon;
+}
 
-  useEffect(() => {
-    if (!hasNavButtons && mobileMenuOpen) {
-      setMobileMenuOpen(false);
-    }
-  }, [hasNavButtons, mobileMenuOpen]);
+const NAV_ITEMS: NavItem[] = [
+  { route: 'recommendations', labelKey: 'nav.dashboard', Icon: LayoutDashboard },
+  { route: 'lab-results', labelKey: 'nav.labs', Icon: FlaskConical },
+  { route: 'edit-profile', labelKey: 'nav.profile', Icon: User },
+];
 
-  const navButtons = (
-    <>
-      {showDashboard && onDashboardClick && (
-        <button
-          onClick={() => { onDashboardClick(); setMobileMenuOpen(false); }}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-sm md:text-xs font-semibold text-slate-400 hover:text-neonCyan transition px-4 py-3 md:py-2 rounded-xl md:rounded-lg border border-white/10 hover:border-neonCyan/50 touch-manipulation"
-        >
-          Recomandări
-        </button>
-      )}
-      {showLabResults && onLabResultsClick && (
-        <button
-          onClick={() => { onLabResultsClick(); setMobileMenuOpen(false); }}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-sm md:text-xs font-semibold text-slate-400 hover:text-neonCyan transition px-4 py-3 md:py-2 rounded-xl md:rounded-lg border border-white/10 hover:border-neonCyan/50 touch-manipulation"
-        >
-          Analize medicale
-        </button>
-      )}
-      {showProfile && onProfileClick && (
-        <button
-          onClick={() => { onProfileClick(); setMobileMenuOpen(false); }}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-sm md:text-xs font-semibold text-slate-400 hover:text-neonCyan transition px-4 py-3 md:py-2 rounded-xl md:rounded-lg border border-white/10 hover:border-neonCyan/50 touch-manipulation"
-        >
-          Profil
-        </button>
-      )}
-      {showLogout && onLogout && (
-        <button
-          onClick={() => { onLogout(); setMobileMenuOpen(false); }}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-sm md:text-xs font-semibold text-slate-400 hover:text-neonMagenta transition px-4 py-3 md:py-2 rounded-xl md:rounded-lg border border-white/10 hover:border-neonMagenta/50 touch-manipulation"
-        >
-          Delogare
-        </button>
-      )}
-    </>
-  );
+const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNavigate, onLogout }) => {
+  const { t } = useTranslation();
+  const navigable = showNav && !!onNavigate;
 
   return (
-    <div className="min-h-screen app-gradient-dark text-slate-100 transition-colors duration-500 overflow-x-hidden">
-      <div className="relative min-h-screen flex flex-col items-center justify-start px-3 py-4 sm:px-4 sm:py-6">
-        {/* Glow background decorations */}
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-32 -left-24 h-72 w-72 rounded-full bg-neonCyan/30 blur-3xl" />
-          <div className="absolute -bottom-32 -right-24 h-72 w-72 rounded-full bg-neonMagenta/30 blur-3xl" />
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-purple-500/10 to-transparent" />
-        </div>
+    <div className="app-bg min-h-screen text-zinc-100 overflow-x-hidden flex flex-col">
+      <header className="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-md">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 md:h-16 md:gap-6">
+          <img
+            src="/logo-wordmark.png"
+            alt={t('nav.logoAlt')}
+            className="h-6 w-auto flex-shrink-0 object-contain object-left md:h-7"
+          />
 
-        {/* Navbar */}
-        <header className="z-10 mb-6 md:mb-8 w-full max-w-7xl flex items-center justify-between">
-          <div className="flex items-center min-w-0 flex-1">
-            <img
-              src="/logo.png"
-              alt="VitaBalance Logo"
-              className="h-24 w-auto object-contain object-left drop-shadow-lg sm:h-28 md:h-40 lg:h-52 xl:h-56"
-            />
-          </div>
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-3">
-            {navButtons}
-          </div>
-          {/* Mobile hamburger */}
-          {hasNavButtons && (
-            <div className="flex md:hidden items-center gap-2">
+          {navigable && (
+            <nav aria-label={t('nav.label')} className="hidden md:flex items-center gap-1 pl-2">
+              {NAV_ITEMS.map(({ route: target, labelKey, Icon }) => {
+                const active = route === target;
+                return (
+                  <button
+                    key={target}
+                    type="button"
+                    onClick={() => onNavigate?.(target)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`relative flex min-h-[40px] cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-white/[0.07] text-zinc-50'
+                        : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-100'
+                    }`}
+                  >
+                    <Icon aria-hidden="true" className={`h-4 w-4 ${active ? 'text-accent' : ''}`} />
+                    {t(labelKey)}
+                    {active && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -bottom-3 left-3 right-3 h-0.5 rounded-full bg-accent"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+
+          <div className="ml-auto flex items-center gap-2">
+            <LanguageSwitcher />
+            {navigable && onLogout && (
               <button
                 type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-white/10 hover:border-neonCyan/50 text-slate-300 hover:text-neonCyan transition touch-manipulation"
-                aria-label={mobileMenuOpen ? 'Închide meniul' : 'Deschide meniul'}
+                onClick={onLogout}
+                aria-label={t('nav.logout')}
+                className="flex min-h-[40px] min-w-[40px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-line px-2.5 text-sm font-medium text-zinc-400 transition-colors hover:border-line-strong hover:bg-white/5 hover:text-zinc-100 md:px-3 touch-manipulation"
               >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                <LogOut aria-hidden="true" className="h-4 w-4" />
+                <span className="hidden md:inline">{t('nav.logout')}</span>
               </button>
-            </div>
-          )}
-        </header>
-
-        {/* Mobile menu dropdown */}
-        {hasNavButtons && mobileMenuOpen && (
-          <div className="md:hidden z-20 w-full max-w-7xl mb-4 rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl p-4 flex flex-col gap-2">
-            {navButtons}
+            )}
           </div>
-        )}
+        </div>
+      </header>
 
-        {/* Content */}
-        <main className="z-10 w-full max-w-7xl flex-1 flex items-start justify-center py-3 sm:py-4 px-0 sm:px-0">
-          {children}
-        </main>
+      <main
+        className={`mx-auto flex w-full max-w-7xl flex-1 items-start justify-center px-4 py-6 md:py-10 ${
+          navigable ? 'pb-24 md:pb-10' : ''
+        }`}
+      >
+        {children}
+      </main>
 
-        <footer className="z-10 mt-6 md:mt-8 text-xs sm:text-xs text-slate-400 px-2">
-          © {new Date().getFullYear()} VitaBalance
-        </footer>
-      </div>
+      <footer className="px-4 pb-6 text-center text-xs text-zinc-500 md:pb-8">
+        {t('nav.footer', { year: new Date().getFullYear() })}
+      </footer>
+
+      {/* Mobil: bară de tab-uri fixă jos — navigația e mereu la îndemână, fără meniu ascuns */}
+      {navigable && (
+        <nav
+          aria-label={t('nav.label')}
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/95 backdrop-blur-md md:hidden"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          <ul className="mx-auto grid max-w-md grid-cols-3">
+            {NAV_ITEMS.map(({ route: target, labelKey, Icon }) => {
+              const active = route === target;
+              return (
+                <li key={target}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.(target)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex min-h-[56px] w-full cursor-pointer flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors touch-manipulation ${
+                      active ? 'text-accent' : 'text-zinc-400 active:text-zinc-100'
+                    }`}
+                  >
+                    <Icon aria-hidden="true" className="h-5 w-5" />
+                    <span className="max-w-full truncate px-1">{t(labelKey)}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
     </div>
   );
 };
 
 export default Layout;
-

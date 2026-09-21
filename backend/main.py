@@ -31,10 +31,11 @@ from repositories import (
     RecommendationRepository,
     FeedbackRepository,
 )
-from services.auth import verify_magic_link
 from middleware.auth import get_current_user
 from middleware.rate_limit import RateLimitMiddleware
 from services.recommendation_materialize import materialize_recommendations
+from services.explanation_i18n import normalize_lang
+from services.explanation_facts import has_facts
 
 app = FastAPI(
     title="VitaBalance API",
@@ -97,6 +98,7 @@ def _profile_to_response(p: UserProfile) -> dict:
         "diet_type": p.diet_type,
         "allergies": p.allergies,
         "medical_conditions": p.medical_conditions,
+        "caloric_goal": p.caloric_goal,
         "created_at": p.created_at or None,
         "updated_at": getattr(p, "updated_at", None),
     }
@@ -172,26 +174,6 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
 
 
-class MagicLinkRequest(BaseModel):
-    email: EmailStr
-    fullName: Optional[str] = None
-
-
-class MagicLinkVerifyRequest(BaseModel):
-    token: str
-
-
-class MagicLinkResponse(BaseModel):
-    message: str
-
-
-class VerifyMagicLinkResponse(BaseModel):
-    email: str
-    fullName: str
-    access_token: str
-    token_type: str = "bearer"
-
-
 class RecommendationAuditResponse(BaseModel):
     user_id: int
     has_lab_data: bool
@@ -202,61 +184,6 @@ class RecommendationAuditResponse(BaseModel):
     covered_deficit_nutrients: List[str]
     missing_deficit_nutrients: List[str]
     warnings: List[str]
-
-
-@app.post("/api/auth/request-magic-link", response_model=MagicLinkResponse)
-async def api_request_magic_link(body: MagicLinkRequest, background_tasks: BackgroundTasks):
-    if not body.email or not str(body.email).strip():
-        raise HTTPException(status_code=400, detail="Email obligatoriu")
-    ok = False
-    try:
-        email = str(body.email).strip().lower()
-        from repositories.magic_link_repository import create_token
-        from services.email_service import send_magic_link_email
-
-        token = create_token(email)
-        base = settings.frontend_base_url.rstrip("/")
-        link_url = f"{base}/?token={token}"
-
-        if not settings.resend_api_key and not settings.debug:
-            raise RuntimeError(
-                "Configurația de email lipsește pe server: RESEND_API_KEY nu este setată. "
-                "Adaugă RESEND_API_KEY în environment-ul serviciului backend și redeployează aplicația."
-            )
-
-        def _safe_send():
-            import logging
-
-            try:
-                send_magic_link_email(email, link_url)
-            except Exception:
-                logging.getLogger(__name__).exception("Eroare la trimitere magic link (background)")
-
-        background_tasks.add_task(_safe_send)
-        ok = True
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    if not ok:
-        raise HTTPException(
-            status_code=500,
-            detail="Nu am putut trimite emailul de autentificare. Încearcă din nou sau contactează administratorul.",
-        )
-    return MagicLinkResponse(message="Dacă acest email este valid, vei primi un link de autentificare în câteva minute.")
-
-
-@app.post("/api/auth/verify-magic-link", response_model=VerifyMagicLinkResponse)
-async def api_verify_magic_link(body: MagicLinkVerifyRequest):
-    if not body.token or not body.token.strip():
-        raise HTTPException(status_code=400, detail="Token obligatoriu")
-    result = verify_magic_link(body.token.strip())
-    if not result:
-        raise HTTPException(status_code=401, detail="Link invalid, expirat sau deja folosit")
-    return VerifyMagicLinkResponse(
-        email=result["email"],
-        fullName=result["fullName"],
-        access_token=result["access_token"],
-        token_type=result.get("token_type", "bearer"),
-    )
 
 
 @app.get("/api/auth/me", response_model=AuthResponse)
@@ -287,7 +214,7 @@ async def get_profile_by_email(email: str, current_user: dict = Depends(get_curr
     if current_user.get("email", "").lower() != email.lower():
         raise HTTPException(status_code=403, detail="Nu ai acces la acest profil")
     repo = UserRepository()
-    user = repo.get_by_email(email)
+    user = repo.get_by_email(current_user["email"])
     if not user:
         raise HTTPException(status_code=404, detail="Profilul nu a fost găsit")
     return _profile_to_response(user)
@@ -348,11 +275,16 @@ async def register(user_data: RegisterRequest):
 async def create_profile(user: UserCreate, current_user: dict = Depends(get_current_user)):
     if current_user.get("email", "").lower() != user.email.lower():
         raise HTTPException(status_code=403, detail="Poți actualiza doar propriul profil")
+    # Emailul canonic e cel din sesiune (JWT); cel din formular poate diferi doar prin majuscule.
+    profile_email = current_user["email"]
     try:
         repo = UserRepository()
-        existing = repo.get_by_email(user.email)
+        existing = repo.get_by_email(profile_email)
         allergies_val = user.allergies or ""
         medical_val = user.medical_conditions or ""
+        # Obiectivul caloric e informativ: nu face parte din snapshot-ul care declanșează regenerarea recomandărilor.
+        # Îl scriem doar dacă e setat acum sau dacă trebuie șters unul salvat anterior.
+        set_goal = user.caloric_goal is not None or bool(existing and existing.caloric_goal)
         if existing:
             old_snapshot = {
                 "age": existing.age,
@@ -376,7 +308,7 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
             }
             snapshot_changed = old_snapshot != new_snapshot
             updated = repo.upsert(
-                user.email,
+                profile_email,
                 name=user.name,
                 age=user.age,
                 sex=user.sex,
@@ -388,10 +320,12 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
                 medical_conditions=medical_val,
                 user_id=existing.id,
                 bump_updated_at=snapshot_changed,
+                caloric_goal=user.caloric_goal,
+                set_caloric_goal=set_goal,
             )
         else:
             updated = repo.upsert(
-                user.email,
+                profile_email,
                 name=user.name,
                 age=user.age,
                 sex=user.sex,
@@ -402,6 +336,8 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
                 allergies=allergies_val,
                 medical_conditions=medical_val,
                 bump_updated_at=True,
+                caloric_goal=user.caloric_goal,
+                set_caloric_goal=set_goal,
             )
         return _profile_to_response(updated)
     except ValueError as e:
@@ -494,17 +430,47 @@ async def extract_lab_values_from_text(
     return extracted
 
 
+LANG_QUERY_DESCRIPTION = "Limba textelor (explicații, sfaturi, nume alimente): 'ro' (implicit) sau 'en'"
+
+
 @app.get("/api/recommendations/stored/{user_id}")
-async def list_stored_recommendations(user_id: int, current_user: dict = Depends(get_current_user)):
+async def list_stored_recommendations(
+    user_id: int,
+    lang: str = Query("ro", description=LANG_QUERY_DESCRIPTION),
+    current_user: dict = Depends(get_current_user),
+):
     _ensure_user_resource(current_user, user_id)
     from services.recommendation_materialize import list_stored_recommendations_fast
-    return list_stored_recommendations_fast(user_id, _user_verified=True)
+    return list_stored_recommendations_fast(user_id, _user_verified=True, lang=lang)
+
+
+@app.get("/api/recommendations/{user_id}/{recommendation_id}/explanation")
+async def get_recommendation_explanation(
+    user_id: int,
+    recommendation_id: int,
+    lang: str = Query("ro", description=LANG_QUERY_DESCRIPTION),
+    current_user: dict = Depends(get_current_user),
+):
+    """Explicația unei recomandări, specifică pacientului (analize, alergii, afecțiuni, dietă), în limba cerută."""
+    _ensure_user_resource(current_user, user_id)
+    from services.recommendation_materialize import list_stored_recommendations_fast
+
+    for item in list_stored_recommendations_fast(user_id, _user_verified=True, lang=lang):
+        if item["recommendation_id"] == recommendation_id:
+            return {
+                "recommendation_id": recommendation_id,
+                "lang": normalize_lang(lang),
+                "food": item["food"],
+                "explanation": item["explanation"],
+            }
+    raise HTTPException(status_code=404, detail="Recomandarea nu a fost găsită")
 
 
 @app.post("/api/recommendations")
 async def get_recommendations(
     request: RecommendationRequest,
     force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor"),
+    lang: str = Query("ro", description=LANG_QUERY_DESCRIPTION),
     current_user: dict = Depends(get_current_user),
 ):
     _ensure_user_resource(current_user, request.user_id)
@@ -513,18 +479,22 @@ async def get_recommendations(
         if r < -1 or r > 5:
             raise HTTPException(status_code=400, detail="Rating de feedback invalid.")
         feedback_repo = FeedbackRepository()
-        feedback_repo.upsert(
-            request.user_id,
-            request.replace_recommendation_id,
-            r,
-            food_id=None,
-        )
+        try:
+            feedback_repo.upsert(
+                request.user_id,
+                request.replace_recommendation_id,
+                r,
+                food_id=None,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
     return materialize_recommendations(
         request.user_id,
         current_user["email"],
         force_regenerate,
         request.replace_recommendation_id,
         request.exclude_food_ids,
+        lang=lang,
     )
 
 
@@ -533,11 +503,15 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
     u = _ensure_user_resource(current_user, user_id)
     rrepo = RecommendationRepository()
     lrepo = LabResultRepository()
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         fut_rec = pool.submit(rrepo.get_first_by_user_id, user_id)
         fut_labs = pool.submit(lrepo.get_latest_by_user_id, user_id)
+        fut_all = pool.submit(rrepo.get_by_user_id, user_id, 20)
         first = fut_rec.result()
         labs = fut_labs.result()
+        stored = fut_all.result()
+    # Recomandări create înainte de explicațiile pe bază de fapte: clientul declanșează o regenerare (o singură dată).
+    explanations_outdated = any(not has_facts(r.explanation_json) for r in stored)
 
     def iso(v):
         if v is None:
@@ -578,6 +552,7 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
         "refresh_status": refresh_status,
         "refresh_error": refresh_error,
         "refresh_at": refresh_at,
+        "explanations_outdated": explanations_outdated,
     }
 
 
@@ -733,12 +708,15 @@ async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends
     if not feedback.recommendation_id:
         raise HTTPException(status_code=400, detail="recommendation_id este obligatoriu")
     repo = FeedbackRepository()
-    result = repo.upsert(
-        feedback.user_id,
-        feedback.recommendation_id,
-        feedback.rating,
-        food_id=getattr(feedback, "food_id", None),
-    )
+    try:
+        result = repo.upsert(
+            feedback.user_id,
+            feedback.recommendation_id,
+            feedback.rating,
+            food_id=feedback.food_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Feedback salvat cu succes", "id": result.id}
 
 
@@ -750,6 +728,7 @@ async def get_foods(current_user: dict = Depends(get_current_user)):
         {
             "id": f.id,
             "name": f.name,
+            "name_en": f.name_en,
             "category": f.category,
             "iron": f.iron,
             "calcium": f.calcium,
