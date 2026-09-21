@@ -188,6 +188,7 @@
   "apiErrors": {
     "unexpected": "An unexpected error occurred",
     "invalidCredentials": "Incorrect email or password.",
+    "rateLimited": "Too many attempts in one minute. Wait a moment and try again.",
     "emailTaken": "This email is already registered.",
     "emailRequired": "Enter your email address.",
     "invalidEmail": "The email address is not valid.",

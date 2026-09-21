@@ -190,6 +190,7 @@
   "apiErrors": {
     "unexpected": "A apărut o eroare neașteptată",
     "invalidCredentials": "Email sau parolă incorectă.",
+    "rateLimited": "Prea multe încercări într-un minut. Așteaptă puțin și reîncearcă.",
     "emailTaken": "Acest email este deja înregistrat.",
     "emailRequired": "Introdu adresa de email.",
     "invalidEmail": "Adresa de email nu este validă.",
