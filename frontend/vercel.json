@@ -6,17 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": ".*-git-.*\\.vercel\\.app"
-        }
-      ],
       "destination": "https://vitabalance-1.onrender.com/api/:path*"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://vitabalance.onrender.com/api/:path*"
     },
     {
       "source": "/((?!api|assets|logo\\.png|favicon).*)",

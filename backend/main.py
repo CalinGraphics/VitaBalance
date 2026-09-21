@@ -82,6 +82,7 @@ app.add_middleware(
     enabled=settings.rate_limit_enabled,
     auth_max_per_window=settings.rate_limit_auth_per_min,
     recommendations_max_per_window=settings.rate_limit_recommendations_per_min,
+    trusted_proxy_hops=settings.rate_limit_trusted_proxy_hops,
 )
 
 

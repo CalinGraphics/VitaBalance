@@ -15,11 +15,12 @@ class UserBase(BaseModel):
     allergies: Optional[str] = None
     medical_conditions: Optional[str] = None
     # Obiectiv caloric zilnic (kcal), opțional și doar informativ (nu influențează recomandările).
-    caloric_goal: Optional[float] = Field(default=None, ge=500, le=10000)
+    caloric_goal: Optional[float] = None
 
 class UserCreate(UserBase):
     # Limite aplicate doar la scriere: UserResponse (moștenit din UserBase) nu trebuie să pice pe rânduri vechi.
-    # Oglindesc CHECK-urile din migrarea 004 (users_body_metrics_range, users_*_check).
+    # Oglindesc CHECK-urile din migrările 001 și 004 (users_caloric_goal_range, users_body_metrics_range, users_*_check).
+    caloric_goal: Optional[float] = Field(default=None, ge=500, le=10000)
     age: int = Field(ge=1, le=120)
     sex: Literal["F", "M", "other"]
     weight: float = Field(ge=20, le=400)  # kg
