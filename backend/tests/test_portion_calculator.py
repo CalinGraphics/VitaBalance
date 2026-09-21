@@ -2,7 +2,9 @@
 import unittest
 
 from domain.models import FoodItem, UserProfile
+from services.food_category_resolver import _SEGMENT_TO_GROUP, normalize_category_token
 from services.portion_calculator import (
+    _CATEGORY_PORTION_G,
     suggest_portion,
     suggest_portion_grams,
     normalized_sex,
@@ -165,9 +167,36 @@ class TestPortionCalculator(unittest.TestCase):
             activity_level="moderate",
             diet_type="omnivore",
         )
-        nuts = suggest_portion_grams(_food("nuci & seminte"), user)
+        # Categoria reală din catalog e „Nuci"; „nuci & seminte" nu apare nicăieri în DB și trecea
+        # testul din greșeală, pentru că ambele cădeau pe porția implicită.
+        nuts = suggest_portion_grams(_food("Nuci"), user)
         veg = suggest_portion_grams(_food("legume"), user)
         self.assertLess(nuts, veg)
+        self.assertLessEqual(nuts, 60, "o porție de nuci trebuie să fie o mână, nu o farfurie")
+
+    def test_every_resolver_group_has_an_explicit_portion(self):
+        """
+        Regresie: cheile din `_CATEGORY_PORTION_G` trebuie să fie exact ce întoarce
+        `resolve_category_group`. Când nu erau (ex. `nuci` vs `nuci & seminte`), 238 din cele 591 de
+        alimente primeau tăcut porția implicită de 150 g — inclusiv nuci și condimente „(1 lingură)".
+        """
+        for _, label in _SEGMENT_TO_GROUP:
+            group = normalize_category_token(label)
+            if group == "bauturi":
+                continue  # băuturile au tabel separat, în ml
+            self.assertIn(group, _CATEGORY_PORTION_G, f"grupul '{group}' cade pe porția implicită")
+
+    def test_catalog_categories_get_realistic_portions(self):
+        """Categorii reale din catalog (`foods.category`), cu porții plauzibile."""
+        for category, ceiling in [
+            ("Nuci", 60),
+            ("Condimente", 40),
+            ("Gustări/Procesate", 60),
+            ("Proteine/Pește", 200),
+            ("Mese/Paste", 500),
+        ]:
+            amount = suggest_portion_grams(_food(category))
+            self.assertLessEqual(amount, ceiling, f"{category}: porție nerealistă ({amount} g)")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ from services.explanation_i18n import ALLERGY_LABELS, NUTRIENT_UNITS
 from services.medical_rules_loader import normalize_clinical_text
 from services.portion_calculator import PortionSuggestion
 
-FACTS_VERSION = 2
+FACTS_VERSION = 3
 MAX_NUTRIENTS = 3
 MAX_ALTERNATIVES = 3
 MIN_GENERAL_PCT = 10  # fără deficite: menționăm doar nutrienți care contribuie măcar cu 10% din necesar
@@ -116,6 +116,7 @@ def build_facts(
         return {
             "key": key,
             "amount": round(amount, 2),
+            "per100": round(food_nutrient_value(food, key), 2),  # „de ce tocmai alimentul ăsta"
             "pct": int(min(100, round(amount / ref * 100))),
             "need": need,
         }

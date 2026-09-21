@@ -19,20 +19,30 @@ from services.food_category_resolver import (
 )
 from services.medical_rules_loader import normalize_clinical_text
 
-# Gramaj de referință (porție standard ~70 kg, activitate moderată)
+# Gramaj de referință (porție standard ~70 kg, activitate moderată).
+# Cheile trebuie să fie EXACT valorile întoarse de resolve_category_group(); altfel porția cade pe
+# valoarea implicită și devine nerealistă (ex. 150 g de nuci). Vezi test_portion_calculator.py.
 _CATEGORY_PORTION_G: dict[str, float] = {
-    "peste & fructe de mare": 130,
+    "peste": 130,
     "carne": 130,
+    "proteine": 130,
     "oua": 120,
     "leguminoase": 170,
     "legume": 200,
     "fructe": 180,
     "lactate": 200,
-    "nuci & seminte": 40,
     "cereale": 150,
+    "paste": 180,
+    "nuci": 30,          # o mână de nuci, nu o farfurie
+    "seminte": 20,
     "deserturi": 90,
+    "gustari": 30,
+    "condimente": 15,    # aproape toate sunt „(1 lingură)" / „(1 linguriță)"
+    "mese": 350,         # preparat servit ca atare
+    "suplimente": 15,
+    "vegetarian": 180,
+    "vegan": 180,
     "alte": 140,
-    "altele": 140,
 }
 
 # Mililitri de referință (categorie Băuturi din catalog)
@@ -42,9 +52,12 @@ _CATEGORY_PORTION_ML: dict[str, float] = {
 
 _CATEGORY_SEX_BIAS: dict[str, tuple[float, float]] = {
     "carne": (1.03, 0.97),
-    "peste & fructe de mare": (1.03, 0.97),
+    "peste": (1.03, 0.97),
+    "proteine": (1.03, 0.97),
     "oua": (1.02, 0.98),
-    "nuci & seminte": (1.0, 1.0),
+    "nuci": (1.0, 1.0),
+    "seminte": (1.0, 1.0),
+    "condimente": (1.0, 1.0),
 }
 
 
@@ -199,7 +212,9 @@ def suggest_portion(
     base = float(_CATEGORY_PORTION_G.get(group, 150))
     if user is not None:
         base *= _sex_multiplier(user, group)
-    amount = max(30, int(round(base)))
+    # Pragul minim e mic intenționat: gramajul realist vine din `_CATEGORY_PORTION_G`, iar un prag mare
+    # ar umfla înapoi porțiile mici (condimente „1 linguriță", semințe).
+    amount = max(5, int(round(base)))
     return PortionSuggestion(amount=amount, unit="g", grams_equivalent=amount)
 
 

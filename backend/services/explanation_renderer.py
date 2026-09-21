@@ -114,6 +114,13 @@ def render_explanation(
 
     # --- Motive: fiecare cu faptul din spate ---
     reasons: List[str] = []
+    def density(n: Dict[str, Any]) -> Dict[str, str]:
+        """Cât conține alimentul la 100 g — răspunde la «de ce tocmai alimentul ăsta»."""
+        return {
+            "per100": _num(n.get("per100") or 0, lang),
+            "nutrient_unit": NUTRIENT_UNITS.get(n["key"], ""),
+        }
+
     for n in by_source["lab"]:
         need = n["need"]
         nutrient_label = nutrient_names[n["key"]]
@@ -126,12 +133,16 @@ def render_explanation(
                 threshold=_num(need["threshold"], lang),
                 food=food_name,
                 nutrient=nutrient_label,
+                **density(n),
             )
         )
-    for n in by_source["notes"]:
-        reasons.append(s["reason_notes"].format(nutrient=nutrient_names[n["key"]]))
-    for n in by_source["profile"]:
-        reasons.append(s["reason_profile"].format(nutrient=nutrient_names[n["key"]]))
+    for key in ("notes", "profile", "general"):
+        for n in by_source[key]:
+            reasons.append(
+                s[f"reason_{key}"].format(
+                    nutrient=nutrient_names[n["key"]], food=food_name, **density(n)
+                )
+            )
     if profile.get("diet") in DIET_LABELS[lang]:
         reasons.append(s["reason_diet"].format(diet=DIET_LABELS[lang][profile["diet"]]))
     if profile.get("allergies"):
