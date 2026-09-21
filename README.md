@@ -83,17 +83,39 @@ Variabile obligatorii în **Environment**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 nu anon), `JWT_SECRET`, plus `DEBUG=false` și `CORS_ORIGINS` cu adresa frontend-ului. **Fără `JWT_SECRET`
 serviciul pornește și se oprește imediat**, cu mesajul explicit în log.
 
-`render.yaml` din rădăcină descrie un serviciu separat (`vitabalance-preview`) pentru testarea unui branch,
-fără a atinge serviciul de producție: în Render, **New → Blueprint**, repo-ul VitaBalance, branch-ul dorit.
+Există **două** servicii Render, cu același proiect Supabase:
+
+| Serviciu | URL | Branch | Rol |
+| --- | --- | --- | --- |
+| `VitaBalance` | `https://vitabalance.onrender.com` | `main` | producție |
+| `VitaBalance-1` | `https://vitabalance-1.onrender.com` | `Update-Version-1.1` | preview (codul nou) |
+
+Verifici rapid ce cod rulează un serviciu: `curl <url>/openapi.json`. Codul nou are
+`/api/recommendations/{user_id}/{recommendation_id}/explanation` și **nu** mai are rutele `magic-link`.
+
+`render.yaml` din rădăcină descrie un al treilea serviciu (`vitabalance-preview`), creat cu **New → Blueprint**.
+Nu e creat în acest moment — `VitaBalance-1` joacă rolul de preview. Folosește-l doar dacă vrei serviciul
+definit în repo, altfel poți șterge fișierul.
 
 ### Frontend pe Vercel
 
 Un push pe un branch diferit de cel de producție creează automat un **Preview Deployment**, cu URL stabil de
 forma `…-git-<branch>-<cont>.vercel.app`. Producția rămâne neschimbată până la merge în `main`.
 
-Implicit, `/api/*` este redirecționat (`vercel.json`) către backend-ul de producție. Ca previzualizarea să
-folosească alt backend, setezi `VITE_API_URL` (ex. `https://vitabalance-preview.onrender.com`) **doar pentru
-scope-ul Preview**, iar în `CORS_ORIGINS` al acelui backend adaugi adresa de preview de pe Vercel.
+`/api/*` e redirecționat de `vercel.json` (proxy pe server, deci fără CORS) în funcție de host:
+
+- host de preview (`…-git-…​.vercel.app`) → `https://vitabalance-1.onrender.com` (backend-ul branch-ului);
+- orice alt host (producție, domeniu propriu) → `https://vitabalance.onrender.com`.
+
+Regula de preview e prima din listă; fără ea, previzualizarea unui branch lovea backend-ul de **producție**
+și afișa comportamentul vechi (nume și explicații doar în română, fără `/explanation`), deși frontend-ul era nou.
+
+Există două `vercel.json` (rădăcină și `frontend/`) — se aplică cel corespunzător **Root Directory**-ului din
+proiectul Vercel; ține-le identice ca reguli.
+
+`VITE_API_URL` (build-time, scope Preview/Production) are prioritate față de rewrite și face cereri
+**cross-origin**: dacă îl folosești, adaugă adresa Vercel în `CORS_ORIGINS` pe backend, altfel browserul
+blochează cererile. Lăsat gol, se folosește rewrite-ul de mai sus.
 
 ## Performanță și UX
 
