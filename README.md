@@ -67,6 +67,7 @@ Interfața este disponibilă la **http://localhost:3000**.
 | `RATE_LIMIT_ENABLED` | Nu | Implicit `true`; setează `false` doar în dev dacă testezi multe cereri |
 | `RATE_LIMIT_AUTH_PER_MIN` | Nu | Limită cereri `/api/auth/*` pe minut per IP (implicit 24) |
 | `RATE_LIMIT_RECOMMENDATIONS_PER_MIN` | Nu | Limită `/api/recommendations*` pe minut per IP (implicit 45) |
+| `RATE_LIMIT_TRUSTED_PROXY_HOPS` | Nu | Câte proxy-uri adaugă un element în `X-Forwarded-For` (implicit 2: rewrite Vercel + proxy Render). Pune `1` dacă backendul e expus direct, altfel limita se aplică tuturor la comun. |
 
 ## Deployment (Render + Vercel)
 
@@ -102,13 +103,19 @@ definit în repo, altfel poți șterge fișierul.
 Un push pe un branch diferit de cel de producție creează automat un **Preview Deployment**, cu URL stabil de
 forma `…-git-<branch>-<cont>.vercel.app`. Producția rămâne neschimbată până la merge în `main`.
 
-`/api/*` e redirecționat de `vercel.json` (proxy pe server, deci fără CORS) în funcție de host:
+`/api/*` e redirecționat de `vercel.json` (proxy pe server, deci fără CORS).
 
-- host de preview (`…-git-…​.vercel.app`) → `https://vitabalance-1.onrender.com` (backend-ul branch-ului);
-- orice alt host (producție, domeniu propriu) → `https://vitabalance.onrender.com`.
+> ⚠️ **De schimbat înainte de merge în `main`.** Pe branch-ul `Update-Version-1.1`, `/api/*` merge la
+> `https://vitabalance-1.onrender.com` — backend-ul care rulează codul acestui branch. `vercel.json` se
+> citește din branch-ul care se deployează, iar orice deployment construit din acest branch e un preview,
+> deci regula e corectă cât timp lucrăm aici; e greșită din clipa în care branch-ul devine producție.
+> La merge, pune înapoi `https://vitabalance.onrender.com` (sau mută serviciul de producție pe codul nou).
 
-Regula de preview e prima din listă; fără ea, previzualizarea unui branch lovea backend-ul de **producție**
-și afișa comportamentul vechi (nume și explicații doar în română, fără `/explanation`), deși frontend-ul era nou.
+Înainte, fișierul trimitea `/api/*` la backendul de **producție**: previzualizarea branch-ului vorbea cu
+codul vechi de pe `main` și arăta comportamentul vechi (nume și explicații doar în română, fără
+`/explanation`), deși frontend-ul era nou. Atenție, nu doar aliasul `…-git-…​.vercel.app` e un preview:
+fiecare deployment are și un URL cu hash (`<proiect>-<hash>-<cont>.vercel.app`), iar o regulă care se uită
+doar după `-git-` îl ratează.
 
 Există două `vercel.json` (rădăcină și `frontend/`) — se aplică cel corespunzător **Root Directory**-ului din
 proiectul Vercel; ține-le identice ca reguli.
@@ -157,6 +164,17 @@ Aplicația folosește **Supabase** (PostgreSQL) ca unică sursă de date. Tabele
 | `004_integrity_and_cleanup.sql` | `CHECK`-uri pe profil, indexuri redundante eliminate, corecții de date |
 | `005_feedback_persist_by_food.sql` | feedback unic per (utilizator, aliment), care supraviețuiește regenerării recomandărilor. **Aplică-o înainte de a publica codul care o folosește.** |
 | `006_foods_name_en.sql` | `foods.name_en`: numele alimentelor în engleză (interfața și explicațiile EN) |
+
+### Conturi rămase fără parolă
+
+Autentificarea prin magic link a fost scoasă, dar conturile create atunci au `password_hash` NULL: nu se pot
+loga (nu au parolă) și nici nu se pot înregistra (emailul e deja în tabel). Înregistrarea cu un astfel de
+email **setează parola pe rândul existent**, deci utilizatorul își recuperează profilul, analizele și
+recomandările. Conturile care au deja parolă sunt respinse ca înainte.
+
+Compromisul acceptat: aplicația nu verifică emailul la înregistrare, deci cine cunoaște una dintre acele
+adrese poate revendica acel cont. Lista scade pe măsură ce proprietarii își setează parola; verifici
+ce a mai rămas cu `select email from users where password_hash is null`.
 
 ## Explicații RO/EN
 

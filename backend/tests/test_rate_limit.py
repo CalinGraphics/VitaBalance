@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from middleware.rate_limit import RateLimitMiddleware, _client_ip
 
 
-def _build_client(max_per_window: int = 2) -> TestClient:
+def _build_client(max_per_window: int = 2, trusted_proxy_hops: int = 1) -> TestClient:
     async def ok(_request):
         return JSONResponse({"ok": True})
 
@@ -19,24 +19,34 @@ def _build_client(max_per_window: int = 2) -> TestClient:
         enabled=True,
         auth_max_per_window=max_per_window,
         recommendations_max_per_window=max_per_window,
+        trusted_proxy_hops=trusted_proxy_hops,
     )
     return TestClient(app)
 
 
-class ClientIpTests(unittest.TestCase):
-    def test_prefers_first_forwarded_for_entry(self):
-        class Req:
-            headers = {"x-forwarded-for": "203.0.113.7, 70.0.0.1, 10.0.0.2"}
-            client = type("C", (), {"host": "10.0.0.2"})()
+def _req(forwarded=None, host="10.0.0.2"):
+    class Req:
+        headers = {"x-forwarded-for": forwarded} if forwarded else {}
+        client = type("C", (), {"host": host})()
 
-        self.assertEqual(_client_ip(Req()), "203.0.113.7")
+    return Req()
+
+
+class ClientIpTests(unittest.TestCase):
+    def test_counts_back_through_the_trusted_proxies(self):
+        """Vercel pune clientul, Render adaugă IP-ul Vercel: clientul e al doilea de la coadă."""
+        self.assertEqual(_client_ip(_req("203.0.113.7, 76.76.21.1"), 2), "203.0.113.7")
+
+    def test_ignores_a_value_the_client_tried_to_inject(self):
+        """Antetul falsificat rămâne în stânga lanțului, deci nu ajunge în poziția de încredere."""
+        chain = "1.2.3.4, 203.0.113.7, 76.76.21.1"
+        self.assertEqual(_client_ip(_req(chain), 2), "203.0.113.7")
+
+    def test_uses_the_only_entry_when_the_chain_is_shorter(self):
+        self.assertEqual(_client_ip(_req("203.0.113.7"), 2), "203.0.113.7")
 
     def test_falls_back_to_socket_address(self):
-        class Req:
-            headers = {}
-            client = type("C", (), {"host": "10.0.0.2"})()
-
-        self.assertEqual(_client_ip(Req()), "10.0.0.2")
+        self.assertEqual(_client_ip(_req()), "10.0.0.2")
 
 
 class RateLimitWindowTests(unittest.TestCase):

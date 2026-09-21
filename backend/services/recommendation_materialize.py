@@ -462,10 +462,13 @@ def materialize_recommendations(
             )
             if not rec_list:
                 return []
+            # Generarea de mai sus rulează fără deficite (ultimă șansă să existe recomandări), dar faptele
+            # salvate trebuie să folosească deficitele reale: altfel explicația rămâne generică pentru
+            # totdeauna (`has_facts()` e true, deci `explanations_outdated` nu o mai regenerează).
             to_insert = _prepare_insert_rows(
                 user=user,
                 lab_results=lab_results,
-                deficits={},
+                deficits=deficits,
                 has_lab_data=has_lab_data,
                 rec_list=rec_list,
                 food_by_id=food_by_id,

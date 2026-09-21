@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in ("1", "true", "yes")
     rate_limit_auth_per_min: int = int(os.getenv("RATE_LIMIT_AUTH_PER_MIN", "24"))
     rate_limit_recommendations_per_min: int = int(os.getenv("RATE_LIMIT_RECOMMENDATIONS_PER_MIN", "45"))
+    # Câte proxy-uri adaugă un element în X-Forwarded-For înainte să ajungă cererea la aplicație.
+    # Implicit 2 = rewrite Vercel + proxy Render; 1 dacă backend-ul e expus direct.
+    rate_limit_trusted_proxy_hops: int = int(os.getenv("RATE_LIMIT_TRUSTED_PROXY_HOPS", "2"))
 
     openfoodfacts_enabled: bool = os.getenv("OPENFOODFACTS_ENABLED", "true").lower() in ("1", "true", "yes")
     openfoodfacts_timeout_seconds: float = float(os.getenv("OPENFOODFACTS_TIMEOUT_SECONDS", "0.35"))
@@ -105,11 +108,12 @@ class Settings(BaseSettings):
             if secret:
                 role = _supabase_key_role(secret)
                 if role == "anon":
-                    import sys
-
-                    sys.stderr.write(
-                        "\n[Config] Cheie Supabase anon — scrierile pot pica (RLS). "
-                        "Pune service_role în SUPABASE_SERVICE_ROLE_KEY sau SUPABASE_KEY.\n"
+                    # Migrarea 003 a retras toate drepturile rolurilor anon/authenticated, deci cu cheia
+                    # anon *fiecare* interogare pică: înregistrarea, loginul și profilul ar răspunde 500
+                    # fără nicio indicație despre cauză. Mai bine oprim pornirea cu mesajul corect.
+                    raise ValueError(
+                        "Cheia Supabase este `anon`, dar backend-ul are nevoie de `service_role` "
+                        "(RLS activ, fără politici). Pune cheia service_role în SUPABASE_SERVICE_ROLE_KEY."
                     )
                 elif role and role not in ("service_role",):
                     print(f"[Config] Rol JWT neașteptat: {role} (așteptat service_role).")
