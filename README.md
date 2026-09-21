@@ -68,7 +68,32 @@ Interfața este disponibilă la **http://localhost:3000**.
 | `RATE_LIMIT_AUTH_PER_MIN` | Nu | Limită cereri `/api/auth/*` pe minut per IP (implicit 24) |
 | `RATE_LIMIT_RECOMMENDATIONS_PER_MIN` | Nu | Limită `/api/recommendations*` pe minut per IP (implicit 45) |
 
-**Render:** Root Directory `backend`, start `uvicorn main:app --host 0.0.0.0 --port $PORT`. Pe backend folosește cheia **service_role** din Supabase (poți seta `SUPABASE_SERVICE_ROLE_KEY` dacă `SUPABASE_KEY` rămâne anon din integrare).
+## Deployment (Render + Vercel)
+
+### Backend pe Render
+
+Configurația recomandată: **Root Directory = `backend`**, Build Command `pip install -r requirements.txt`,
+Start Command `uvicorn main:app --host 0.0.0.0 --port $PORT`, Health Check Path `/health`.
+
+Repo-ul funcționează și dacă serviciul rulează din rădăcină (Root Directory gol): există `requirements.txt`
+și `main.py` la rădăcină care trimit mai departe către `backend/`. Versiunea de Python e fixată la 3.11.8
+prin `.python-version`; altfel Render folosește ultima versiune, incompatibilă cu dependențele.
+
+Variabile obligatorii în **Environment**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (cheia service_role,
+nu anon), `JWT_SECRET`, plus `DEBUG=false` și `CORS_ORIGINS` cu adresa frontend-ului. **Fără `JWT_SECRET`
+serviciul pornește și se oprește imediat**, cu mesajul explicit în log.
+
+`render.yaml` din rădăcină descrie un serviciu separat (`vitabalance-preview`) pentru testarea unui branch,
+fără a atinge serviciul de producție: în Render, **New → Blueprint**, repo-ul VitaBalance, branch-ul dorit.
+
+### Frontend pe Vercel
+
+Un push pe un branch diferit de cel de producție creează automat un **Preview Deployment**, cu URL stabil de
+forma `…-git-<branch>-<cont>.vercel.app`. Producția rămâne neschimbată până la merge în `main`.
+
+Implicit, `/api/*` este redirecționat (`vercel.json`) către backend-ul de producție. Ca previzualizarea să
+folosească alt backend, setezi `VITE_API_URL` (ex. `https://vitabalance-preview.onrender.com`) **doar pentru
+scope-ul Preview**, iar în `CORS_ORIGINS` al acelui backend adaugi adresa de preview de pe Vercel.
 
 ## Performanță și UX
 

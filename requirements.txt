@@ -1,0 +1,4 @@
+# Dependențele reale sunt în backend/requirements.txt.
+# Fișierul acesta există doar pentru hosting care rulează build-ul din rădăcina repo-ului
+# (ex. un serviciu Render fără Root Directory = backend).
+-r backend/requirements.txt
