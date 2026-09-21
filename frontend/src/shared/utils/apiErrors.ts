@@ -37,6 +37,7 @@ export function formatApiDetail(detail: unknown): string {
  */
 const KNOWN_API_ERRORS: Array<{ code: string; match: RegExp }> = [
   { code: 'invalidCredentials', match: /email sau parol[aă] incorect/i },
+  { code: 'rateLimited', match: /prea multe cereri/i },
   { code: 'emailTaken', match: /deja [iî]nregistrat/i },
   { code: 'emailRequired', match: /^email-ul este obligatoriu/i },
   { code: 'invalidEmail', match: /not a valid email|valid email address/i },

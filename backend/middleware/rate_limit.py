@@ -14,6 +14,23 @@ from starlette.responses import JSONResponse
 
 
 def _client_ip(request: Request) -> str:
+    """
+    IP-ul real al clientului.
+
+    În producție aplicația stă în spatele a două proxy-uri (rewrite-ul Vercel → Render), deci
+    `request.client.host` e IP-ul proxy-ului: fără antetul de mai jos toți utilizatorii ar împărți
+    aceeași fereastră de rate limit și al 25-lea login dintr-un minut ar pica pentru toată lumea.
+    Primul element din `X-Forwarded-For` e clientul original (poate fi falsificat, dar aici e folosit
+    doar ca să separe ferestrele, nu ca decizie de securitate).
+    """
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip and real_ip.strip():
+        return real_ip.strip()
     if request.client and request.client.host:
         return request.client.host
     return "unknown"

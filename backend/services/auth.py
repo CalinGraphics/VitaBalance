@@ -113,10 +113,44 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
         return None
 
 
+def _adopt_passwordless_user(
+    supabase: Client,
+    *,
+    user_id: Any,
+    email: str,
+    password_hash: str,
+    fullName: str,
+    existing_name: Optional[str],
+) -> Dict:
+    """Setează parola pe un cont vechi fără `password_hash` (era magic link) și îl returnează."""
+    row = {"password_hash": password_hash, "name": fullName or (existing_name or "")}
+    # `is_('password_hash', 'null')` păstrează operația idempotentă: dacă între verificare și update
+    # altcineva a setat deja o parolă, update-ul nu atinge niciun rând și refuzăm înregistrarea.
+    resp = (
+        supabase.table('users')
+        .update(row)
+        .eq('id', user_id)
+        .is_('password_hash', 'null')
+        .execute()
+    )
+    if not resp.data or len(resp.data) == 0:
+        raise ValueError("Acest email este deja înregistrat")
+    updated = resp.data[0]
+    return {
+        "email": updated.get('email') or email,
+        "fullName": updated.get('name') or fullName or (existing_name or ""),
+    }
+
+
 def create_user(email: str, password: str, fullName: str) -> Dict:
     """
-    Creează un utilizator nou în Supabase
-    
+    Creează un utilizator nou în Supabase.
+
+    Conturile rămase din perioada magic link nu au `password_hash` (vezi migrarea 002): proprietarul
+    lor nu se poate loga (nu are parolă) și nici nu se poate înregistra (emailul e deja în tabel).
+    Pentru ele înregistrarea *setează* parola pe rândul existent, deci utilizatorul își păstrează
+    profilul, analizele și recomandările. Un cont care are deja parolă rămâne respins.
+
     Returns:
         Dict cu informațiile utilizatorului creat
     """
@@ -133,20 +167,33 @@ def create_user(email: str, password: str, fullName: str) -> Dict:
         email = email.strip().lower()
         
         # Verifică dacă email-ul este deja folosit
+        existing_row = None
         try:
-            existing = supabase.table('users').select('id').eq('email', email).execute()
+            existing = supabase.table('users').select('id, password_hash, name').eq('email', email).execute()
             
             if existing.data and len(existing.data) > 0:
-                raise ValueError("Acest email este deja înregistrat")
+                existing_row = existing.data[0]
+                if existing_row.get('password_hash'):
+                    raise ValueError("Acest email este deja înregistrat")
+        except ValueError:
+            raise
         except Exception as check_error:
-            # Dacă eroarea este despre email deja existent, o propagăm
-            if "deja înregistrat" in str(check_error):
-                raise
-            # Altfel, loghează eroarea dar continuă (poate fi o problemă de conexiune)
+            # Eroare de conexiune la verificare: continuăm cu insert-ul, care are oricum
+            # constrângerea de unicitate pe email.
             print(f"Eroare la verificarea email-ului: {check_error}")
         
         # Creează utilizatorul nou
         password_hash = get_password_hash(password)
+
+        if existing_row is not None:
+            return _adopt_passwordless_user(
+                supabase,
+                user_id=existing_row.get('id'),
+                email=email,
+                password_hash=password_hash,
+                fullName=fullName.strip(),
+                existing_name=existing_row.get('name'),
+            )
         
         new_user_data = {
             "email": email,
