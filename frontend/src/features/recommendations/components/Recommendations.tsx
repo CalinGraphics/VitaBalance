@@ -451,10 +451,6 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
       <CaloricGoalProgress goal={user.caloric_goal} recommendations={recommendations} />
 
-      {currentLanguage() !== 'ro' && recommendations.length > 0 && (
-        <p className="-mt-4 text-xs leading-relaxed text-zinc-500">{t('recommendations.contentLanguageNote')}</p>
-      )}
-
       {(showInlineRegenerating || backgroundRefreshNote) && (
         <GlassCard className="border-accent-border">
           <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-200" role="status">

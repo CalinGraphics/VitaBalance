@@ -116,7 +116,7 @@ def build_facts(
         return {
             "key": key,
             "amount": round(amount, 2),
-            "per100": round(food_nutrient_value(food, key), 2),  # „de ce tocmai alimentul ăsta"
+            "per100": round(food_nutrient_value(food, key), 2),
             "pct": int(min(100, round(amount / ref * 100))),
             "need": need,
         }

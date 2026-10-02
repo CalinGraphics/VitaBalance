@@ -59,7 +59,7 @@ Interfața este disponibilă la **http://localhost:3000**.
 | Variabilă | Obligatoriu | Descriere |
 |-----------|-------------|-----------|
 | `SUPABASE_URL` | Da | URL-ul proiectului Supabase |
-| `SUPABASE_KEY` | Da* | Secret API folosit de backend; trebuie să fie JWT **`service_role`**, nu `anon`. *Pe Render, dacă integrarea îți lasă aici doar `anon`, lasă variabila și adaugă `SUPABASE_SERVICE_ROLE_KEY`. |
+| `SUPABASE_KEY` | Da* | Secret API folosit de backend; trebuie să fie JWT **`service_role`**, nu `anon`. *Pe Render, dacă integrarea completează aici doar `anon`, variabila se păstrează și se adaugă `SUPABASE_SERVICE_ROLE_KEY`. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Nu | Opțional: același JWT **service_role** din Supabase. Dacă e setat, **îl preferă** în locul lui `SUPABASE_KEY` (util când Render suprascrie `SUPABASE_KEY` cu cheia publică). |
 | `JWT_SECRET` | Da (producție) | Secret pentru semnarea token-urilor JWT, minim 24 de caractere. Fără el, aplicația **refuză să pornească** dacă `DEBUG` nu e `true` (valoarea implicită din cod e publică). Generează unul cu `python -c "import secrets; print(secrets.token_urlsafe(48))"`. |
 | `CORS_ORIGINS` | Nu | Origini permise, separate prin virgulă (implicit localhost:3000 și :5173) |
@@ -91,12 +91,12 @@ Există **două** servicii Render, cu același proiect Supabase:
 | `VitaBalance` | `https://vitabalance.onrender.com` | `main` | producție |
 | `VitaBalance-1` | `https://vitabalance-1.onrender.com` | `Update-Version-1.1` | preview (codul nou) |
 
-Verifici rapid ce cod rulează un serviciu: `curl <url>/openapi.json`. Codul nou are
+Codul care rulează pe un serviciu se verifică cu `curl <url>/openapi.json`. Versiunea actuală expune
 `/api/recommendations/{user_id}/{recommendation_id}/explanation` și **nu** mai are rutele `magic-link`.
 
 `render.yaml` din rădăcină descrie un al treilea serviciu (`vitabalance-preview`), creat cu **New → Blueprint**.
-Nu e creat în acest moment — `VitaBalance-1` joacă rolul de preview. Folosește-l doar dacă vrei serviciul
-definit în repo, altfel poți șterge fișierul.
+Nu e creat în acest moment: rolul de preview îl joacă `VitaBalance-1`. Fișierul e util doar pentru a
+recrea serviciul de preview din repo.
 
 ### Frontend pe Vercel
 
@@ -111,14 +111,12 @@ forma `…-git-<branch>-<cont>.vercel.app`. Producția rămâne neschimbată pâ
 > deci regula e corectă cât timp lucrăm aici; e greșită din clipa în care branch-ul devine producție.
 > La merge, pune înapoi `https://vitabalance.onrender.com` (sau mută serviciul de producție pe codul nou).
 
-Înainte, fișierul trimitea `/api/*` la backendul de **producție**: previzualizarea branch-ului vorbea cu
-codul vechi de pe `main` și arăta comportamentul vechi (nume și explicații doar în română, fără
-`/explanation`), deși frontend-ul era nou. Atenție, nu doar aliasul `…-git-…​.vercel.app` e un preview:
-fiecare deployment are și un URL cu hash (`<proiect>-<hash>-<cont>.vercel.app`), iar o regulă care se uită
-doar după `-git-` îl ratează.
+Regula de rewrite e necondiționată pentru că fiecare deployment are, pe lângă aliasul stabil
+`…-git-<branch>-<cont>.vercel.app`, și un URL cu hash (`<proiect>-<hash>-<cont>.vercel.app`): o condiție
+`has: host` care caută doar `-git-` nu l-ar acoperi.
 
 Există două `vercel.json` (rădăcină și `frontend/`) — se aplică cel corespunzător **Root Directory**-ului din
-proiectul Vercel; ține-le identice ca reguli.
+proiectul Vercel, deci regulile lor trebuie să rămână identice.
 
 `VITE_API_URL` (build-time, scope Preview/Production) are prioritate față de rewrite și face cereri
 **cross-origin**: dacă îl folosești, adaugă adresa Vercel în `CORS_ORIGINS` pe backend, altfel browserul
@@ -129,7 +127,7 @@ blochează cererile. Lăsat gol, se folosește rewrite-ul de mai sus.
 - **Prefetch**: `GET /api/recommendations/stored/{user_id}` returnează rapid recomandările din baza de date; frontend-ul le afișează înainte de `POST /api/recommendations` (regenerare).
 - **Catalog alimente**: cache în memorie TTL pentru `FoodRepository.get_all()` (reduce apeluri Supabase repetate).
 - **Motor**: pre-filtrare alimente incompatibile cu profilul înainte de evaluarea costisitoare a regulilor.
-- **Indexuri DB**: se aplică direct în Supabase (SQL Editor) pe tabelele folosite intens (`recommendations`, `feedback`, `lab_results` etc.), după nevoile tale de performanță.
+- **Indexuri DB**: se aplică direct în Supabase (SQL Editor) pe tabelele folosite intens (`recommendations`, `feedback`, `lab_results` etc.), în funcție de volumul de date.
 
 ### Flux date (rezumat)
 
@@ -159,7 +157,7 @@ Aplicația folosește **Supabase** (PostgreSQL) ca unică sursă de date. Tabele
 | Migrare | Rol |
 |---------|-----|
 | `001_add_users_caloric_goal.sql` | coloana opțională `users.caloric_goal` |
-| `002_drop_magic_links.sql` | șterge tabelul vechi `magic_links` (rulează-l după ce noua versiune a aplicației este în producție) |
+| `002_drop_magic_links.sql` | șterge tabelul vechi `magic_links` (se aplică după ce noua versiune a aplicației este în producție) |
 | `003_align_and_harden.sql` | comentarii, unicitate email case-insensitive, `search_path` pe funcții, drepturi retrase pentru `anon`/`authenticated` |
 | `004_integrity_and_cleanup.sql` | `CHECK`-uri pe profil, indexuri redundante eliminate, corecții de date |
 | `005_feedback_persist_by_food.sql` | feedback unic per (utilizator, aliment), care supraviețuiește regenerării recomandărilor. **Aplică-o înainte de a publica codul care o folosește.** |
@@ -173,8 +171,8 @@ email **setează parola pe rândul existent**, deci utilizatorul își recuperea
 recomandările. Conturile care au deja parolă sunt respinse ca înainte.
 
 Compromisul acceptat: aplicația nu verifică emailul la înregistrare, deci cine cunoaște una dintre acele
-adrese poate revendica acel cont. Lista scade pe măsură ce proprietarii își setează parola; verifici
-ce a mai rămas cu `select email from users where password_hash is null`.
+adrese poate revendica acel cont. Lista scade pe măsură ce proprietarii își setează parola; conturile rămase se pot
+inventaria cu `select email from users where password_hash is null`.
 
 ## Explicații RO/EN
 
@@ -191,16 +189,25 @@ Toate datele (catalogul `foods`, conturile de test) se află exclusiv în Supaba
 
 ```
 VitaBalance/
-├── backend/           # API FastAPI
-│   ├── domain/        # Modele de domeniu
-│   ├── repositories/  # Acces date (Supabase)
-│   ├── services/      # Logică (deficit, reguli, recomandări)
-│   ├── middleware/    # Autentificare JWT
-│   └── main.py        # Rute API
-└── frontend/          # Aplicație React (Vite, TypeScript)
-    └── src/
-        ├── features/  # Pagini (profil, analize, recomandări, PDF)
-        └── services/  # Apeluri API și autentificare
+├── backend/             # API FastAPI
+│   ├── config/          # Reguli clinice (medical_rules.json)
+│   ├── domain/          # Modele de domeniu
+│   ├── repositories/    # Acces date (Supabase)
+│   ├── services/        # Logică (deficit, reguli, recomandări, explicații)
+│   ├── middleware/      # Autentificare JWT, rate limiting
+│   ├── migrations/      # Scripturi SQL incrementale
+│   ├── tests/           # Suită de teste (unittest + pytest)
+│   ├── schema.sql       # Schema completă (starea țintă)
+│   └── main.py          # Rute API
+├── frontend/            # Aplicație React (Vite, TypeScript)
+│   └── src/
+│       ├── features/    # Pagini (auth, profil, analize, recomandări, PDF)
+│       ├── shared/      # Componente, hooks, tipuri, i18n
+│       └── services/    # Apeluri API și autentificare
+└── docs/
+    ├── diagrams/        # Diagrame C4 și UML (PlantUML)
+    ├── demo/            # Cazuri de test: profil, rapoarte PDF, capturi
+    └── metrics.tex      # Evaluarea performanței
 ```
 
 ## Stack tehnologic

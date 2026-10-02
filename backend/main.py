@@ -283,8 +283,7 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
         existing = repo.get_by_email(profile_email)
         allergies_val = user.allergies or ""
         medical_val = user.medical_conditions or ""
-        # Obiectivul caloric e informativ: nu face parte din snapshot-ul care declanșează regenerarea recomandărilor.
-        # Îl scriem doar dacă e setat acum sau dacă trebuie șters unul salvat anterior.
+        # Obiectivul caloric e informativ: nu intră în snapshot-ul care declanșează regenerarea.
         set_goal = user.caloric_goal is not None or bool(existing and existing.caloric_goal)
         if existing:
             old_snapshot = {

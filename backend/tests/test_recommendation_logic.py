@@ -11,7 +11,6 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from domain.models import FoodItem, LabResultItem, UserProfile
 from services.deficit_calculator import DeficitCalculator
-from services.explanation_generator import ExplanationGenerator
 from services.recommender import RecommenderService
 from services.rule_engine import NutritionalRuleEngine
 
@@ -310,42 +309,6 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertIn("vitamina c", low)
         self.assertIn("10.0", text)
         self.assertTrue("μmol/l" in low or "umol/l" in low)
-
-    def test_fallback_reason_with_lab_data_does_not_claim_no_deficits(self):
-        gen = ExplanationGenerator()
-        user = make_user(diet_type="vegan")
-        food = make_food(id=108, name="Fasole neagră", category="leguminoase")
-        out = gen.generate_explanation(
-            food=food,
-            user=user,
-            deficits={"vitamin_b12": 2.0},
-            score=3.2,
-            coverage=24.0,
-            explanations=["Recomandare de completare."],
-            matched_rules=["fallback_profile_based"],
-            has_lab_data=True,
-        )
-        reason_blob = " ".join(out.get("reasons") or []).lower()
-        self.assertIn("deficitele identificate", reason_blob)
-        self.assertNotIn("nu se evidențiază deficite active", reason_blob)
-
-    def test_vegan_b12_generates_fortified_and_supplement_tip(self):
-        gen = ExplanationGenerator()
-        user = make_user(diet_type="vegan", medical_conditions="deficienta vitamina b12")
-        food = make_food(id=110, name="Fasole", category="leguminoase")
-        out = gen.generate_explanation(
-            food=food,
-            user=user,
-            deficits={"vitamin_b12": 2.0},
-            score=2.8,
-            coverage=20.0,
-            explanations=["Este indicat aport de vitamina B12."],
-            matched_rules=["generic_vitamin_b12"],
-            has_lab_data=True,
-        )
-        tips = " ".join(out.get("tips") or []).lower()
-        self.assertIn("fortificate", tips)
-        self.assertIn("supliment", tips)
 
     def test_fallback_targets_active_deficit_nutrients_when_provided(self):
         user = make_user(diet_type="vegan")

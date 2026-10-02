@@ -262,7 +262,6 @@ def materialize_recommendations(
     lang: str = DEFAULT_LANG,
 ) -> List[dict]:
     lang = normalize_lang(lang)
-    # _ensure_owner returnează UserProfile deja — nu mai re-cerem prin get_by_id
     user = _ensure_owner(owner_email, user_id)
 
     food_repo = FoodRepository()

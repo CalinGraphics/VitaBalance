@@ -212,8 +212,7 @@ def suggest_portion(
     base = float(_CATEGORY_PORTION_G.get(group, 150))
     if user is not None:
         base *= _sex_multiplier(user, group)
-    # Pragul minim e mic intenționat: gramajul realist vine din `_CATEGORY_PORTION_G`, iar un prag mare
-    # ar umfla înapoi porțiile mici (condimente „1 linguriță", semințe).
+    # Prag minim mic: un prag mare ar umfla porțiile mici (condimente, semințe).
     amount = max(5, int(round(base)))
     return PortionSuggestion(amount=amount, unit="g", grams_equivalent=amount)
 

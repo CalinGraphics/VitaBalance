@@ -1,9 +1,6 @@
-# Serviciu Render separat, pentru testarea branch-ului Update-Version-1.1, fără să atingă serviciul de producție
-# (cel care rulează main). Se creează din Render: New > Blueprint > repo-ul VitaBalance > branch Update-Version-1.1.
-# Render cere singur valorile marcate `sync: false` (secretele nu sunt în repo).
-#
-# Atenție: serviciul folosește ACELAȘI proiect Supabase ca producția, deci datele create la test sunt reale.
-# După ce branch-ul e unit în main, șterge serviciul "vitabalance-preview" din Render (și acest fișier, dacă nu-l mai vrei).
+# Blueprint pentru un serviciu de preview, separat de producție.
+# Secretele (sync: false) se completează în Render la crearea serviciului.
+# Notă: folosește același proiect Supabase ca producția, deci datele de test sunt reale.
 services:
   - type: web
     name: vitabalance-preview
@@ -23,9 +20,9 @@ services:
         value: "false"
       - key: SUPABASE_URL
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY   # cheia service_role, nu anon (vezi README)
+      - key: SUPABASE_SERVICE_ROLE_KEY   # cheia service_role, nu anon
         sync: false
-      - key: JWT_SECRET                  # generat de Render; separat de producție, deci tokenurile nu se amestecă
+      - key: JWT_SECRET                  # separat de producție, ca tokenurile să nu fie interschimbabile
         generateValue: true
-      - key: CORS_ORIGINS                # adresa de preview de pe Vercel, ex. https://vitabalance-git-update-version-1-1-<cont>.vercel.app
+      - key: CORS_ORIGINS                # adresa de preview de pe Vercel
         sync: false

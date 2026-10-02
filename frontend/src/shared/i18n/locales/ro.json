@@ -400,7 +400,6 @@
     "empty": "Nu s-au găsit recomandări. Vă rugăm să verificați profilul și analizele.",
     "categoryOther": "Altele",
     "backgroundRefresh": "Lista se actualizează în fundal; cardurile noi apar automat când sunt gata.",
-    "contentLanguageNote": "Numele alimentelor și explicațiile detaliate sunt generate de server în limba română; restul interfeței urmează limba aleasă.",
     "errors": {
       "noUserId": "ID-ul utilizatorului lipsește. Vă rugăm să vă conectați din nou.",
       "noneFound": "Nu s-au găsit recomandări. Verifică profilul și analizele medicale.",

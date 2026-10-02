@@ -1,25 +1,24 @@
 """
 Serviciu de autentificare: email + parolă (bcrypt) și sesiune JWT.
 """
+import logging
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
-import sys
-from pathlib import Path
+
 import bcrypt
 from passlib.context import CryptContext
-
-backend_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(backend_dir))
 
 from supabase_client import get_supabase_client
 from supabase import Client
 from config import get_settings
 from jose import JWTError, jwt
 
+logger = logging.getLogger(__name__)
+
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
-    bcrypt__ident="2b"  # Folosim identitatea bcrypt 2b
+    bcrypt__ident="2b",
 )
 
 
@@ -53,10 +52,7 @@ def get_password_hash(password: str) -> str:
     if not password:
         raise ValueError("Parola nu poate fi goală")
     
-    # TRUNCHEAZĂ PAROLA LA 72 BYTES ÎNAINTE DE HASH
-    # Convertim la bytes, trunchem dacă este necesar
-    # IMPORTANT: Trebuie să trunchiem ÎNAINTE de a apela pwd_context.hash()
-    # pentru a evita eroarea "password cannot be longer than 72 bytes"
+    # bcrypt respinge parolele peste 72 de bytes, deci trunchiem înainte de hash.
     password_bytes = password.encode('utf-8')
     if len(password_bytes) > 72:
         password_bytes = password_bytes[:72]
@@ -109,7 +105,7 @@ def authenticate_user(email: str, password: str) -> Optional[Dict]:
         
         return None
     except Exception as e:
-        print(f"Eroare la autentificare: {e}")
+        logger.exception("Autentificare eșuată")
         return None
 
 
@@ -180,7 +176,7 @@ def create_user(email: str, password: str, fullName: str) -> Dict:
         except Exception as check_error:
             # Eroare de conexiune la verificare: continuăm cu insert-ul, care are oricum
             # constrângerea de unicitate pe email.
-            print(f"Eroare la verificarea email-ului: {check_error}")
+            logger.warning("Verificarea emailului a eșuat: %s", check_error)
         
         # Creează utilizatorul nou
         password_hash = get_password_hash(password)
@@ -223,12 +219,8 @@ def create_user(email: str, password: str, fullName: str) -> Dict:
     except ValueError:
         raise
     except Exception as e:
-        error_msg = str(e)
-        print(f"Eroare la crearea utilizatorului: {error_msg}")
-        # Dacă eroarea este deja un ValueError, o propagăm
-        if isinstance(e, ValueError):
-            raise
-        raise ValueError(f"Eroare la crearea contului: {error_msg}")
+        logger.exception("Crearea contului a eșuat")
+        raise ValueError(f"Eroare la crearea contului: {e}") from e
 
 
 # ---------- JWT (sesiune după login/înregistrare cu parolă) ----------

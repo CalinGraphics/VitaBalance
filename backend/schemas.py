@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Literal, Optional, List
 from datetime import datetime
 
@@ -33,8 +33,7 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Lab Result Schemas
 class LabResultBase(BaseModel):
@@ -70,8 +69,7 @@ class LabResultResponse(LabResultBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Recommendation Schemas
 class RecommendationRequest(BaseModel):
