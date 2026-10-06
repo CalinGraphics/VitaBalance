@@ -1,5 +1,4 @@
-"""API: parametrul lang, endpoint-ul de explicație și semnalul explanations_outdated (Supabase înlocuit cu repo-uri false)."""
-import re
+"""API independent de limbă: fapte + nume RO/EN, endpoint-ul de explicație, explanations_outdated (repo-uri false)."""
 import unittest
 from unittest.mock import patch
 
@@ -10,7 +9,6 @@ from domain.models import FoodItem, LabResultItem, RecommendationItem, UserProfi
 from services.recommendations import materialize as materialize_module
 from tests.catalog_fixture import food
 
-ROMANIAN_LETTERS = re.compile(r"[ăâîșțĂÂÎȘȚ]")
 
 USER = UserProfile(id=1, email="tester@example.com", name="Tester", age=30, sex="F", weight=60, height=165,
                    activity_level="moderate", diet_type="omnivore", allergies="", medical_conditions="")
@@ -104,52 +102,49 @@ class ExplanationApiTests(unittest.TestCase):
             p.stop()
         main_module.app.dependency_overrides = {}
 
-    def _generate(self, lang):
-        resp = self.client.post(f"/api/recommendations?force_regenerate=true&lang={lang}", json={"user_id": 1})
+    def _generate(self):
+        resp = self.client.post("/api/recommendations?force_regenerate=true", json={"user_id": 1})
         self.assertEqual(resp.status_code, 200, resp.text)
         return resp.json()
 
-    def test_generation_returns_english_names_and_explanations_for_lang_en(self):
-        items = self._generate("en")
+    def test_generation_returns_language_independent_items(self):
+        items = self._generate()
         self.assertTrue(items)
         by_id = {i["food_id"]: i for i in items}
-        self.assertEqual(by_id[10]["food"]["name"], "Cooked spinach")
+        self.assertEqual((by_id[10]["food"]["name_ro"], by_id[10]["food"]["name_en"]), ("Spanac fiert", "Cooked spinach"))
         for item in items:
-            text = " ".join([item["explanation"]["text"], *item["explanation"]["reasons"], *(item["explanation"]["tips"] or [])])
-            self.assertIn("below the clinical threshold for: iron", item["explanation"]["text"])
-            self.assertIn("Ferritin: 12 ng/mL (threshold: 15 ng/mL)", " ".join(item["explanation"]["reasons"]))
-            # Ficatul (id 12) nu are nume EN și revine intenționat la numele românesc.
-            self.assertFalse(ROMANIAN_LETTERS.search(text.replace("Ficat de pui gătit", "")), text)
+            need = item["facts"]["nutrients"][0]["need"]
+            self.assertEqual((need["source"], need["marker"], need["value"], need["threshold"]), ("lab", "ferritin", 12.0, 15.0))
+            self.assertIsNone(item["legacy"])
+            # niciun text în răspuns: doar chei, cifre și nume
+            self.assertNotIn("text", item)
 
-    def test_same_stored_recommendations_render_in_romanian_without_regenerating(self):
-        self._generate("en")
-        stored_ids = [r.id for r in _Store.rows]
-        items = self.client.get("/api/recommendations/stored/1?lang=ro").json()
-        self.assertEqual([r.id for r in _Store.rows], stored_ids)  # nimic regenerat
-        by_id = {i["food_id"]: i for i in items}
-        self.assertEqual(by_id[10]["food"]["name"], "Spanac fiert")
-        self.assertIn("valori sub pragul clinic pentru: fier", by_id[10]["explanation"]["text"])
-        self.assertIn("Feritină: 12 ng/mL (prag: 15 ng/mL)", " ".join(by_id[10]["explanation"]["reasons"]))
+    def test_lang_query_does_not_change_the_response(self):
+        self._generate()
+        ro = self.client.get("/api/recommendations/stored/1?lang=ro").json()
+        en = self.client.get("/api/recommendations/stored/1?lang=en").json()
+        self.assertEqual(ro, en)
 
-    def test_food_without_translation_falls_back_to_romanian_name_in_english(self):
-        self._generate("ro")
-        by_id = {i["food_id"]: i for i in self.client.get("/api/recommendations/stored/1?lang=en").json()}
-        self.assertEqual(by_id[12]["food"]["name"], "Ficat de pui gătit")
+    def test_food_without_translation_falls_back_to_romanian_name(self):
+        self._generate()
+        by_id = {i["food_id"]: i for i in self.client.get("/api/recommendations/stored/1").json()}
+        self.assertEqual(by_id[12]["food"]["name_en"], "Ficat de pui gătit")
 
-    def test_explanation_endpoint_returns_one_recommendation_in_requested_language(self):
-        self._generate("ro")
+    def test_alternatives_come_with_both_names(self):
+        items = self._generate()
+        for item in items:
+            for alt in item["alternatives"]:
+                self.assertEqual(set(alt), {"id", "name_ro", "name_en"})
+
+    def test_explanation_endpoint_returns_one_recommendation(self):
+        self._generate()
         rec_id = _Store.rows[0].id
-        resp = self.client.get(f"/api/recommendations/1/{rec_id}/explanation?lang=en")
+        resp = self.client.get(f"/api/recommendations/1/{rec_id}/explanation")
         self.assertEqual(resp.status_code, 200, resp.text)
         body = resp.json()
-        self.assertEqual((body["recommendation_id"], body["lang"]), (rec_id, "en"))
-        self.assertIn("recommended because your lab results", body["explanation"]["text"])
+        self.assertEqual(body["recommendation_id"], rec_id)
+        self.assertIn("trace", body["facts"])
         self.assertEqual(self.client.get("/api/recommendations/1/99999/explanation").status_code, 404)
-
-    def test_unknown_language_defaults_to_romanian(self):
-        self._generate("ro")
-        body = self.client.get(f"/api/recommendations/1/{_Store.rows[0].id}/explanation?lang=xx").json()
-        self.assertEqual(body["lang"], "ro")
 
     def test_sync_meta_flags_recommendations_created_before_facts(self):
         _Store.rows = [RecommendationItem(id=1, user_id=1, food_id=10, score=1.0, explanation="Text vechi",
@@ -161,7 +156,7 @@ class ExplanationApiTests(unittest.TestCase):
                                           portion_suggested=100, created_at="2099-01-01T00:00:00+00:00")]
         _Store.seq = 2
         # fără force_regenerate: rândurile vechi (fără fapte) declanșează singure regenerarea
-        resp = self.client.post("/api/recommendations?lang=en", json={"user_id": 1})
+        resp = self.client.post("/api/recommendations", json={"user_id": 1})
         self.assertEqual(resp.status_code, 200, resp.text)
         self.assertNotIn("Text vechi", resp.text)
         self.assertFalse(self.client.get("/api/recommendations/sync-meta/1").json()["explanations_outdated"])

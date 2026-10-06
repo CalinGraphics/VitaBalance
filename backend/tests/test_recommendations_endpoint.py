@@ -98,6 +98,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
                         explanation=r.get("explanation") or "",
                         portion_suggested=float(r.get("portion_suggested") or 150),
                         coverage_percentage=float(r.get("coverage_percentage") or 0),
+                        explanation_json=r.get("explanation_json"),
                     )
                     self._seq += 1
                     self._rows.append(rec)
@@ -137,7 +138,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
         self.assertEqual(resp.status_code, 200, resp.text)
         payload = resp.json()
-        names = [r["food"]["name"].lower() for r in payload]
+        names = [r["food"]["name_ro"].lower() for r in payload]
         self.assertFalse(any("pui" in n for n in names), payload)
 
     def test_no_lab_data_uses_profile_wording_not_medical_analyses(self):
@@ -152,10 +153,9 @@ class RecommendationsEndpointTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 200, resp.text)
         payload = resp.json()
         self.assertGreater(len(payload), 0)
-        reasons_text = " ".join(
-            " ".join(rec.get("explanation", {}).get("reasons", [])) for rec in payload
-        ).lower()
-        self.assertNotIn("analizele medicale", reasons_text)
+        # fără analize: nicio nevoie „din analize”, doar contribuții generale
+        sources = {n["need"]["source"] for rec in payload for n in rec["facts"]["nutrients"]}
+        self.assertEqual(sources, {"general"})
 
     def test_low_hemoglobin_without_ferritin_triggers_iron_context(self):
         user = make_user_profile()
@@ -168,8 +168,8 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
         self.assertEqual(resp.status_code, 200, resp.text)
         payload = resp.json()
-        text_blob = " ".join(rec.get("explanation", {}).get("text", "") for rec in payload).lower()
-        self.assertIn("fier", text_blob)
+        needs = [n["need"] for rec in payload for n in rec["facts"]["nutrients"]]
+        self.assertTrue(any(n.get("marker") == "hemoglobin" and n["nutrient"] == "iron" for n in needs))
 
     def test_list_stored_recommendations_returns_db_rows(self):
         user = make_user_profile()
@@ -244,7 +244,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
         payload = resp.json()
         self.assertEqual(len(payload), 1)
         self.assertEqual(payload[0]["food_id"], 40)
-        self.assertEqual(payload[0]["explanation"]["text"], "Test explicație")
+        self.assertEqual(payload[0]["legacy"]["text"], "Test explicație")
         self.assertEqual(payload[0]["feedback"]["likes"], 1)
 
 

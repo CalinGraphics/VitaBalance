@@ -1,8 +1,9 @@
 """
 Materializare recomandări (motor + persistare) — apelabil din HTTP sau BackgroundTasks.
 
-Explicațiile se salvează ca FAPTE structurate (explanation_json.facts, inclusiv urma scorului) și se randează la
-citire în limba cerută (RO/EN) — vezi services/explanations/facts.py și renderer.py.
+Explicațiile se salvează ca FAPTE structurate (explanation_json.facts, inclusiv urma scorului). Răspunsul API e
+independent de limbă: fapte, numele în ambele limbi și id-uri; frontend-ul construiește textul, deci schimbarea
+limbii nu cere nicio cerere la server.
 
 Ordinea e una singură peste tot: scorul descrescător (motorul produce o listă descrescătoare, iar citirea din DB
 sortează tot după scor), deci graficul și cardurile primesc exact aceeași listă.
@@ -15,7 +16,7 @@ from typing import Dict, List, Optional
 
 from fastapi import HTTPException
 
-from domain.models import FoodItem, RecommendationItem, UserProfile, food_display_name
+from domain.models import FoodItem, RecommendationItem, UserProfile
 from repositories import (
     UserRepository,
     FoodRepository,
@@ -24,9 +25,7 @@ from repositories import (
     FeedbackRepository,
 )
 from services.explanations.facts import build_facts, has_facts
-from services.explanations.i18n import DEFAULT_LANG, normalize_lang
-from services.explanations.renderer import render_explanation
-from services.explanations.storage import explanation_from_db_row, explanation_to_db_fields
+from services.explanations.storage import explanation_to_db_fields, facts_from_row, legacy_explanation
 from services.recommendations.recommender import RecommenderService
 from services.recommendations.scoring import MAX_RECOMMENDATIONS, Ranking, ScoredFood
 
@@ -55,29 +54,16 @@ def kcal_per_100g_for_display(food: FoodItem) -> Optional[float]:
     return float(food.calories)
 
 
-def _explanation_for_api(
-    rec: RecommendationItem, food: FoodItem, food_by_id: Dict[int, FoodItem], lang: str
-) -> dict:
-    """Explicația în limba cerută: randată din fapte; rândurile vechi (fără fapte) rămân în textul salvat (RO)."""
-
-    def name_of(fid: int) -> Optional[str]:
-        other = food_by_id.get(fid)
-        return food_display_name(other, lang) if other else None
-
-    return explanation_from_db_row(
-        {
-            "explanation": rec.explanation,
-            "portion_suggested": rec.portion_suggested,
-            "explanation_json": rec.explanation_json,
-            "reasons": rec.reasons,
-            "tips": rec.tips,
-        },
-        fallback_text=rec.explanation or "",
-        fallback_portion=float(rec.portion_suggested or 0),
-        lang=lang,
-        food_name=food_display_name(food, lang),
-        name_of=name_of,
-    )
+def _food_payload(food: FoodItem) -> dict:
+    return {
+        "id": food.id,
+        "name_ro": food.name,
+        "name_en": food.name_en or food.name,
+        "category": food.category,
+        "category_key": food.category_key,
+        # kcal / 100 g — caloriile porției = calories × porție / 100 (vezi utils/calories.ts)
+        "calories": kcal_per_100g_for_display(food),
+    }
 
 
 def _api_item_from_rec(
@@ -86,49 +72,42 @@ def _api_item_from_rec(
     food_by_id: Dict[int, FoodItem],
     feedback_counts: Dict[int, Dict[str, int]],
     user_rating_by_food: Dict[int, int],
-    lang: str = DEFAULT_LANG,
 ) -> dict:
-    counts = feedback_counts.get(rec.food_id, {"likes": 0, "dislikes": 0})
+    """Element de listă independent de limbă."""
+    facts = facts_from_row(rec.explanation_json)
+    alternatives = []
+    for fid in (facts or {}).get("alternatives") or []:
+        other = food_by_id.get(int(fid))
+        if other is not None:
+            alternatives.append({"id": other.id, "name_ro": other.name, "name_en": other.name_en or other.name})
     return {
         "food_id": food.id,
-        "food": {
-            "id": food.id,
-            "name": food_display_name(food, lang),
-            "category": food.category,
-            "category_key": food.category_key,
-            # kcal / 100 g — caloriile porției = calories × porție / 100 (vezi utils/calories.ts)
-            "calories": kcal_per_100g_for_display(food),
-        },
+        "recommendation_id": rec.id,
+        "food": _food_payload(food),
         "score": rec.score,
         # % din necesarul zilnic al nutrientului principal acoperit de porție — aceeași cifră în grafic și pe card
         "coverage": rec.coverage_percentage or 0,
-        "explanation": _explanation_for_api(rec, food, food_by_id, lang),
-        "recommendation_id": rec.id,
-        "feedback": counts,
+        "facts": facts,
+        "alternatives": alternatives,
+        "legacy": None if facts else legacy_explanation(
+            {"explanation": rec.explanation, "explanation_json": rec.explanation_json,
+             "reasons": rec.reasons, "tips": rec.tips}),
+        "feedback": feedback_counts.get(rec.food_id, {"likes": 0, "dislikes": 0}),
         "my_rating": user_rating_by_food.get(rec.food_id),
     }
 
 
-def _insert_rows(user: UserProfile, ranking: Ranking, items: List[ScoredFood], has_lab_data: bool,
-                 food_by_id: Dict[int, FoodItem]) -> List[dict]:
-    """Rânduri pentru `recommendations`: fapte + explicația RO derivată din ele (coloanele explanation/reasons/tips)."""
+def _insert_rows(user: UserProfile, ranking: Ranking, items: List[ScoredFood], has_lab_data: bool) -> List[dict]:
+    """Rânduri pentru `recommendations`: doar fapte (textul se construiește în frontend)."""
     rows: List[dict] = []
     for item in items:
-        facts = build_facts(item, ranking, has_lab_data=has_lab_data)
-        expl = render_explanation(
-            facts,
-            food_name=item.food.name,
-            lang=DEFAULT_LANG,
-            name_of=lambda fid: food_by_id[fid].name if fid in food_by_id else None,
-        )
-        expl["facts"] = facts
         row = {
             "user_id": user.id,
             "food_id": item.food.id,
             "score": round(item.score, 6),
             "coverage_percentage": item.coverage_pct,
         }
-        row.update(explanation_to_db_fields(expl))
+        row.update(explanation_to_db_fields(build_facts(item, ranking, has_lab_data=has_lab_data)))
         rows.append(row)
     return rows
 
@@ -137,7 +116,7 @@ def _sorted_recs(recs: List[RecommendationItem]) -> List[RecommendationItem]:
     return sorted(recs, key=lambda r: (-float(r.score or 0), r.id or 0))
 
 
-def _api_list(recs, food_by_id, feedback_repo, user_id, user_rating_by_food, lang) -> List[dict]:
+def _api_list(recs, food_by_id, feedback_repo, user_id, user_rating_by_food) -> List[dict]:
     out: List[dict] = []
     seen: set[int] = set()
     for rec in _sorted_recs(recs)[:ACTIVE_REC_LIMIT]:
@@ -145,7 +124,7 @@ def _api_list(recs, food_by_id, feedback_repo, user_id, user_rating_by_food, lan
         if not food or food.id in seen:
             continue
         seen.add(food.id)
-        out.append(_api_item_from_rec(rec, food, food_by_id, {}, user_rating_by_food, lang))
+        out.append(_api_item_from_rec(rec, food, food_by_id, {}, user_rating_by_food))
     ids = [r["food_id"] for r in out]
     if ids:
         counts = feedback_repo.get_counts_by_food_ids(ids, user_id=user_id)
@@ -154,14 +133,11 @@ def _api_list(recs, food_by_id, feedback_repo, user_id, user_rating_by_food, lan
     return out
 
 
-def list_stored_recommendations_fast(
-    user_id: int, _user_verified: bool = False, lang: str = DEFAULT_LANG
-) -> List[dict]:
+def list_stored_recommendations_fast(user_id: int, _user_verified: bool = False) -> List[dict]:
     """
-    Citire rapidă din DB — fără recalcularea recomandărilor; explicația se randează din faptele salvate, în limba
-    cerută. `_user_verified=True` sare verificarea existenței utilizatorului (endpoint-uri deja autentificate).
+    Citire rapidă din DB — fără recalcularea recomandărilor. `_user_verified=True` sare verificarea existenței
+    utilizatorului (endpoint-uri deja autentificate).
     """
-    lang = normalize_lang(lang)
     rec_repo = RecommendationRepository()
     feedback_repo = FeedbackRepository()
 
@@ -177,7 +153,7 @@ def list_stored_recommendations_fast(
         return []
 
     food_by_id = {f.id: f for f in FoodRepository().get_all()}
-    return _api_list(existing_recs, food_by_id, feedback_repo, user_id, _rating_by_food(user_feedbacks), lang)
+    return _api_list(existing_recs, food_by_id, feedback_repo, user_id, _rating_by_food(user_feedbacks))
 
 
 def _ensure_owner(owner_email: str, user_id: int) -> UserProfile:
@@ -221,9 +197,7 @@ def materialize_recommendations(
     force_regenerate: bool = False,
     replace_recommendation_id: Optional[int] = None,
     exclude_food_ids: Optional[List[int]] = None,
-    lang: str = DEFAULT_LANG,
 ) -> List[dict]:
-    lang = normalize_lang(lang)
     user = _ensure_owner(owner_email, user_id)
 
     rec_repo = RecommendationRepository()
@@ -253,15 +227,15 @@ def materialize_recommendations(
         exclude |= {r.food_id for r in existing}
         ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude)
         rec_repo.delete_by_id(to_replace.id)
-        inserted = rec_repo.insert_many(_insert_rows(user, ranking, ranking.items[:1], has_lab_data, food_by_id)) \
+        inserted = rec_repo.insert_many(_insert_rows(user, ranking, ranking.items[:1], has_lab_data)) \
             if ranking.items else []
-        return _api_list(remaining + inserted, food_by_id, feedback_repo, user_id, rating_by_food, lang)
+        return _api_list(remaining + inserted, food_by_id, feedback_repo, user_id, rating_by_food)
 
     if force_regenerate or exclude or _needs_regeneration(existing, user, lab_results):
         ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude)
-        rows = _insert_rows(user, ranking, ranking.items, has_lab_data, food_by_id)
+        rows = _insert_rows(user, ranking, ranking.items, has_lab_data)
         if rows:
             if existing:
                 rec_repo.delete_by_user_id(user_id)
             existing = rec_repo.insert_many(rows)
-    return _api_list(existing, food_by_id, feedback_repo, user_id, rating_by_food, lang)
+    return _api_list(existing, food_by_id, feedback_repo, user_id, rating_by_food)

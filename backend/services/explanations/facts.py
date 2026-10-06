@@ -3,7 +3,7 @@ Fapte structurate, independente de limbă, care stau la baza explicației unei r
 
 Explicația NU e text liber: e derivată strict din nevoile utilizatorului (analize sau afirmații explicite, cu sursa
 salvată), din alimentul recomandat și din regulile care s-au aplicat. Faptele se salvează în
-`recommendations.explanation_json.facts`; textul RO/EN se randează la citire (renderer.py), deci schimbarea limbii
+`recommendations.explanation_json.facts`; textul RO/EN se construiește în frontend (locales), deci schimbarea limbii
 nu cere regenerarea recomandărilor. `trace` conține toate cifrele scorului (scoring.py), ca fiecare recomandare
 să poată fi urmărită până la regulă și numere.
 """

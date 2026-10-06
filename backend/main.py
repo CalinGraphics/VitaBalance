@@ -36,7 +36,6 @@ from middleware.auth import get_current_user, security
 from fastapi.security import HTTPAuthorizationCredentials
 from middleware.rate_limit import RateLimitMiddleware
 from services.recommendations.materialize import materialize_recommendations
-from services.explanations.i18n import normalize_lang
 from services.explanations.facts import has_facts
 
 app = FastAPI(
@@ -461,39 +460,33 @@ async def extract_lab_values_from_text(
     return extracted
 
 
-LANG_QUERY_DESCRIPTION = "Limba textelor (explicații, sfaturi, nume alimente): 'ro' (implicit) sau 'en'"
+# Răspunsurile de recomandări sunt independente de limbă (fapte + nume în ambele limbi); textul se construiește în
+# frontend. Un eventual `?lang=` trimis de clienți vechi e ignorat.
 
 
 @app.get("/api/recommendations/stored/{user_id}")
 async def list_stored_recommendations(
     user_id: int,
-    lang: str = Query("ro", description=LANG_QUERY_DESCRIPTION),
     current_user: dict = Depends(get_current_user),
 ):
     _ensure_user_resource(current_user, user_id)
     from services.recommendations.materialize import list_stored_recommendations_fast
-    return list_stored_recommendations_fast(user_id, _user_verified=True, lang=lang)
+    return list_stored_recommendations_fast(user_id, _user_verified=True)
 
 
 @app.get("/api/recommendations/{user_id}/{recommendation_id}/explanation")
 async def get_recommendation_explanation(
     user_id: int,
     recommendation_id: int,
-    lang: str = Query("ro", description=LANG_QUERY_DESCRIPTION),
     current_user: dict = Depends(get_current_user),
 ):
-    """Explicația unei recomandări, specifică pacientului (analize, alergii, afecțiuni, dietă), în limba cerută."""
+    """Faptele unei recomandări (sursa deficitului, cifrele porției, regulile, urma scorului), fără text."""
     _ensure_user_resource(current_user, user_id)
     from services.recommendations.materialize import list_stored_recommendations_fast
 
-    for item in list_stored_recommendations_fast(user_id, _user_verified=True, lang=lang):
+    for item in list_stored_recommendations_fast(user_id, _user_verified=True):
         if item["recommendation_id"] == recommendation_id:
-            return {
-                "recommendation_id": recommendation_id,
-                "lang": normalize_lang(lang),
-                "food": item["food"],
-                "explanation": item["explanation"],
-            }
+            return item
     raise HTTPException(status_code=404, detail="Recomandarea nu a fost găsită")
 
 
@@ -501,7 +494,6 @@ async def get_recommendation_explanation(
 async def get_recommendations(
     request: RecommendationRequest,
     force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor"),
-    lang: str = Query("ro", description=LANG_QUERY_DESCRIPTION),
     current_user: dict = Depends(get_current_user),
 ):
     _ensure_user_resource(current_user, request.user_id)
@@ -525,7 +517,6 @@ async def get_recommendations(
         force_regenerate,
         request.replace_recommendation_id,
         request.exclude_food_ids,
-        lang=lang,
     )
 
 
