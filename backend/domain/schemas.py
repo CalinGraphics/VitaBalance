@@ -28,9 +28,19 @@ class UserCreate(UserBase):
     activity_level: Literal["sedentary", "moderate", "active", "very_active"]
     diet_type: Literal["omnivore", "vegetarian", "vegan", "pescatarian"]
 
+class CaloricGoalWarning(BaseModel):
+    """Avertisment informativ (nu blochează salvarea); textul se construiește în frontend din `code`."""
+    code: Literal["below_bmr", "far_from_tdee"]
+    goal: int
+    bmr: int
+    tdee: int
+    deviation_pct: int
+
+
 class UserResponse(UserBase):
     id: int
     avatar_url: Optional[str] = None  # link semnat, temporar, către poza din Storage
+    caloric_goal_warning: Optional[CaloricGoalWarning] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

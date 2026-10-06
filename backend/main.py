@@ -22,6 +22,7 @@ from domain.schemas import (
 )
 from services.recommendations.recommender import RecommenderService
 from services.nutrition.deficit_calculator import DeficitCalculator
+from services.nutrition.energy import caloric_goal_warning
 from services.auth import AuthError, sign_in, sign_out, sign_up, refresh_session
 from services.profile_avatar import AvatarError, remove_avatar, set_avatar
 from repositories import avatar_storage
@@ -119,6 +120,7 @@ def _profile_to_response(p: UserProfile) -> dict:
         "allergies": p.allergies,
         "medical_conditions": p.medical_conditions,
         "caloric_goal": p.caloric_goal,
+        "caloric_goal_warning": caloric_goal_warning(p),
         "avatar_url": avatar_storage.signed_url(p.avatar_path),
         "created_at": p.created_at or None,
         "updated_at": getattr(p, "updated_at", None),
