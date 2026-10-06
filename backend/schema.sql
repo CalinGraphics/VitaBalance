@@ -1,7 +1,7 @@
 -- =============================================================================
 -- VitaBalance — schema completă (PostgreSQL / Supabase, schema `public`)
 -- =============================================================================
--- Starea țintă după migrările 001–010 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
+-- Starea țintă după migrările 001–012 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
 -- pentru baza existentă aplică migrările din backend/migrations/ în ordine. Actualizează fișierul la fiecare migrare.
 --
 -- Autentificare: Supabase Auth. Emailul și parola (bcrypt) stau în auth.users; public.users e profilul aplicației,
@@ -9,7 +9,7 @@
 -- fără cont se preia numai după aprobarea unui admin (legacy_adoption_approved_at, migrarea 009).
 -- Acces: doar backend-ul, cu cheia service_role (ocolește RLS); vorbește cu Supabase Auth pentru login/sesiune.
 -- anon și authenticated nu au drepturi pe tabele; politicile *_select_own rămân ca a doua linie de apărare.
--- Date de referință (catalogul `foods` și conturile de test) trăiesc doar în baza de date, nu în repo.
+-- Catalogul validat de alimente e în repo (data/foods_catalog.json -> migrarea 012); conturile de test doar în baza de date.
 -- =============================================================================
 
 -- ---------- users ----------
@@ -52,37 +52,59 @@ comment on column public.users.auth_user_id is 'FK auth.users.id: contul Supabas
 comment on column public.users.legacy_adoption_approved_at is 'Setat de un admin după verificarea identității: permite ca profilul vechi (auth_user_id NULL) să fie preluat la înregistrarea cu același email. NULL = înregistrarea pe acest email e respinsă.';
 comment on column public.users.caloric_goal is 'Obiectiv caloric zilnic (kcal), opțional; informativ, nu influențează recomandările.';
 
--- ---------- foods (catalog; valori per 100 g) ----------
+-- ---------- foods (catalog; valori per 100 g, NULL = necunoscut) ----------
+-- Catalogul validat (validated = true) vine din USDA FoodData Central: migrarea 012, generată de
+-- scripts/build_food_catalog.py. Rândurile vechi rămân pentru FK-uri, dar nu mai sunt recomandate.
 create table public.foods (
   id          serial primary key,                             -- cheie stabilă; nu se renumerotează
+  food_key    text,                                           -- cheie din data/food_catalog_spec.py (NULL = catalog vechi)
+  fdc_id      integer,                                        -- ID USDA FoodData Central
+  data_source text,                                           -- ex. usda_sr_legacy_2018
+  validated   boolean not null default false,                 -- doar acestea sunt recomandate
   name        varchar(255) not null,                          -- română (implicit)
   name_en     text,                                           -- engleză; NULL = netradus (se afișează name)
-  category    varchar(100),
-  iron        double precision default 0,
-  calcium     double precision default 0,
-  vitamin_d   double precision default 0,
-  vitamin_b12 double precision default 0,
-  magnesium   double precision default 0,
-  protein     double precision default 0,
-  zinc        double precision default 0,
-  vitamin_c   double precision default 0,
-  fiber       double precision default 0,
-  calories    double precision default 0,
-  folate      double precision default 0,
-  vitamin_a   double precision default 0,
-  iodine      double precision default 0,
-  vitamin_k   double precision default 0,
-  potassium   double precision default 0,
+  category    varchar(100),                                   -- eticheta RO a categoriei
+  category_key text,                                          -- nuts, seeds, legumes, ... (diversitate, alternative)
+  portion_g   double precision,                               -- porția realistă (g sau ml)
+  portion_label_ro text,
+  portion_label_en text,
+  animal_source text,                                         -- dairy | egg | fish | shellfish | meat | poultry | NULL
+  allergen_codes text[] not null default '{}',                -- aceleași coduri ca users.allergies
+  flags       text[] not null default '{}',                   -- raw_animal, high_mercury, liver, ...
+  iron        double precision,
+  calcium     double precision,
+  vitamin_d   double precision,                               -- µg
+  vitamin_b12 double precision,
+  magnesium   double precision,
+  protein     double precision,
+  zinc        double precision,
+  vitamin_c   double precision,
+  fiber       double precision,
+  calories    double precision,
+  folate      double precision,                               -- µg DFE
+  vitamin_a   double precision,                               -- µg RAE
+  iodine      double precision,
+  vitamin_k   double precision,
+  potassium   double precision,
+  phosphorus  double precision,
+  sodium      double precision,
+  sugars      double precision,
+  alcohol     double precision,
   allergens   text,
-  carbs       double precision not null default 0,
-  fat         double precision not null default 0,
-  free_sugar  double precision not null default 0,
-  cholesterol double precision not null default 0,
-  created_at  timestamptz default now()
+  carbs       double precision,
+  fat         double precision,
+  free_sugar  double precision,
+  cholesterol double precision,
+  created_at  timestamptz default now(),
+  constraint foods_animal_source_check check (animal_source is null or animal_source in ('dairy', 'egg', 'fish', 'shellfish', 'meat', 'poultry')),
+  constraint foods_validated_requires_source check (not validated or (fdc_id is not null and data_source is not null and portion_g > 0 and category_key is not null))
 );
 create index idx_foods_category on public.foods (category);
+create unique index uq_foods_food_key on public.foods (food_key) where food_key is not null;
+create index idx_foods_validated on public.foods (id) where validated;
 
-comment on table public.foods is 'Catalog nutrienți per 100 g; id este cheie stabilă (nu se renumără la 1..N fără migrare de FK-uri).';
+comment on table public.foods is
+  'Catalog alimente. Rândurile cu validated = true au valori la 100 g din USDA FoodData Central (NULL = necunoscut).';
 
 -- ---------- lab_results (istoric analize; mai multe rânduri per utilizator) ----------
 create table public.lab_results (

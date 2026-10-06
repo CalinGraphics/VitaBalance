@@ -4,7 +4,7 @@ No DB dependency; populated from Supabase repositories.
 """
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Tuple
 
 
 @dataclass
@@ -25,7 +25,7 @@ class UserProfile:
     rec_refresh_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    # Obiectiv caloric zilnic (kcal), opțional. Strict informativ: NU este citit de recommender/rule_engine.
+    # Obiectiv caloric zilnic (kcal), opțional. Strict informativ: nu influențează recomandările (vezi services/nutrition/energy.py pentru avertisment).
     caloric_goal: Optional[float] = None
     # Calea pozei de profil în bucket-ul privat `avatars` (migrarea 010); None = fără poză.
     avatar_path: Optional[str] = None
@@ -33,31 +33,53 @@ class UserProfile:
 
 @dataclass
 class FoodItem:
+    """
+    Aliment din catalog. Valorile nutriționale sunt la 100 g (100 ml); None = necunoscut (NU „zero”).
+    Doar alimentele cu validated=True (catalogul USDA, migrările 011–012) intră în recomandări.
+    """
     id: int
     name: str
     category: str
-    iron: float = 0
-    calcium: float = 0
-    vitamin_d: float = 0
-    vitamin_b12: float = 0
-    magnesium: float = 0
-    protein: float = 0
-    zinc: float = 0
-    vitamin_c: float = 0
-    fiber: float = 0
-    calories: float = 0
-    folate: float = 0
-    vitamin_a: float = 0
-    iodine: float = 0
-    vitamin_k: float = 0
-    potassium: float = 0
-    carbs: float = 0          # nou
-    fat: float = 0            # nou
-    free_sugar: float = 0     # nou
-    cholesterol: float = 0    # nou
+    iron: Optional[float] = None
+    calcium: Optional[float] = None
+    vitamin_d: Optional[float] = None
+    vitamin_b12: Optional[float] = None
+    magnesium: Optional[float] = None
+    protein: Optional[float] = None
+    zinc: Optional[float] = None
+    vitamin_c: Optional[float] = None
+    fiber: Optional[float] = None
+    calories: Optional[float] = None
+    folate: Optional[float] = None
+    vitamin_a: Optional[float] = None
+    iodine: Optional[float] = None
+    vitamin_k: Optional[float] = None
+    potassium: Optional[float] = None
+    carbs: Optional[float] = None
+    fat: Optional[float] = None
+    free_sugar: Optional[float] = None
+    cholesterol: Optional[float] = None
     allergens: Optional[str] = None
     created_at: Optional[datetime] = None
     name_en: Optional[str] = None  # numele în engleză (foods.name_en); dacă lipsește se folosește `name`
+    # --- catalogul validat (migrarea 011) ---
+    food_key: Optional[str] = None
+    fdc_id: Optional[int] = None
+    validated: bool = False
+    category_key: Optional[str] = None
+    portion_g: Optional[float] = None
+    portion_label_ro: Optional[str] = None
+    portion_label_en: Optional[str] = None
+    animal_source: Optional[str] = None
+    allergen_codes: Tuple[str, ...] = ()
+    flags: Tuple[str, ...] = ()
+    sugars: Optional[float] = None
+    alcohol: Optional[float] = None
+    phosphorus: Optional[float] = None
+    sodium: Optional[float] = None
+
+    def has_flag(self, flag: str) -> bool:
+        return flag in self.flags
 
 
 def food_display_name(food: "FoodItem", lang: str = "ro") -> str:
@@ -152,34 +174,58 @@ def row_to_user(row: dict) -> UserProfile:
     )
 
 
+def _opt(val) -> Optional[float]:
+    """Ca _num, dar păstrează lipsa valorii (None) — o valoare nutrițională lipsă nu e zero."""
+    if val is None:
+        return None
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
+
+
+_FOOD_NUTRIENT_COLUMNS = (
+    "iron", "calcium", "vitamin_d", "vitamin_b12", "magnesium", "protein", "zinc", "vitamin_c", "fiber", "calories",
+    "folate", "vitamin_a", "iodine", "vitamin_k", "potassium", "carbs", "fat", "free_sugar", "cholesterol",
+    "sugars", "alcohol", "phosphorus", "sodium",
+)
+
+
 def row_to_food(row: dict) -> FoodItem:
     return FoodItem(
         id=row["id"],
         name=row.get("name") or "",
         category=row.get("category") or "necunoscut",
-        iron=_num(row.get("iron")),
-        calcium=_num(row.get("calcium")),
-        vitamin_d=_num(row.get("vitamin_d")),
-        vitamin_b12=_num(row.get("vitamin_b12")),
-        magnesium=_num(row.get("magnesium")),
-        protein=_num(row.get("protein")),
-        zinc=_num(row.get("zinc")),
-        vitamin_c=_num(row.get("vitamin_c")),
-        fiber=_num(row.get("fiber")),
-        calories=_num(row.get("calories")),
-        folate=_num(row.get("folate")),
-        vitamin_a=_num(row.get("vitamin_a")),
-        iodine=_num(row.get("iodine")),
-        vitamin_k=_num(row.get("vitamin_k")),
-        potassium=_num(row.get("potassium")),
-        carbs=_num(row.get("carbs")),           # nou
-        fat=_num(row.get("fat")),               # nou
-        free_sugar=_num(row.get("free_sugar")), # nou
-        cholesterol=_num(row.get("cholesterol")), # nou
         allergens=row.get("allergens"),
         created_at=row.get("created_at"),
         name_en=row.get("name_en") or None,
+        food_key=row.get("food_key"),
+        fdc_id=row.get("fdc_id"),
+        validated=bool(row.get("validated")),
+        category_key=row.get("category_key"),
+        portion_g=_opt(row.get("portion_g")),
+        portion_label_ro=row.get("portion_label_ro"),
+        portion_label_en=row.get("portion_label_en"),
+        animal_source=row.get("animal_source"),
+        allergen_codes=tuple(row.get("allergen_codes") or ()),
+        flags=tuple(row.get("flags") or ()),
+        **{col: _opt(row.get(col)) for col in _FOOD_NUTRIENT_COLUMNS},
     )
+
+
+def food_from_catalog_entry(entry: dict, food_id: int) -> FoodItem:
+    """FoodItem din data/foods_catalog.json (teste offline și verificări fără baza de date)."""
+    from data.food_catalog_spec import CATEGORIES
+
+    row = {
+        "id": food_id, "name": entry["name_ro"], "name_en": entry["name_en"],
+        "category": CATEGORIES[entry["category"]][0], "category_key": entry["category"],
+        "food_key": entry["key"], "fdc_id": entry["fdc_id"], "validated": entry["validation"]["ok"],
+        "portion_g": entry["portion_g"], "portion_label_ro": entry["portion_ro"], "portion_label_en": entry["portion_en"],
+        "animal_source": entry["animal"], "allergen_codes": entry["allergens"], "flags": entry["flags"],
+        **entry["per100g"],
+    }
+    return row_to_food(row)
 
 
 def row_to_lab_result(row: dict) -> LabResultItem:
