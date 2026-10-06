@@ -6,8 +6,8 @@ from __future__ import annotations
 import json
 from typing import Any, Callable, Dict, List, Optional
 
-from services.explanation_facts import has_facts
-from services.explanation_renderer import render_explanation
+from services.explanations.facts import has_facts
+from services.explanations.renderer import render_explanation
 
 
 def explanation_to_db_fields(expl: Dict[str, Any]) -> Dict[str, Any]:

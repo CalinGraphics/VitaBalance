@@ -12,10 +12,10 @@ import re
 from typing import Any, Dict, List, Optional
 
 from domain.models import FoodItem, LabResultItem, UserProfile
-from services.deficit_calculator import DeficitCalculator
-from services.explanation_i18n import ALLERGY_LABELS, NUTRIENT_UNITS
-from services.medical_rules_loader import normalize_clinical_text
-from services.portion_calculator import PortionSuggestion
+from services.nutrition.deficit_calculator import DeficitCalculator
+from services.explanations.i18n import ALLERGY_LABELS, NUTRIENT_UNITS
+from services.rules.medical_rules_loader import normalize_clinical_text
+from services.recommendations.portion_calculator import PortionSuggestion
 
 FACTS_VERSION = 3
 MAX_NUTRIENTS = 3

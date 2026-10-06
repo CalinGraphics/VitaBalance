@@ -10,7 +10,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from domain.models import FoodItem, UserProfile
-from services.recommender import RecommenderService
+from services.recommendations.recommender import RecommenderService
 
 
 def _user(**kwargs) -> UserProfile:

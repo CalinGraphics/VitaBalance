@@ -4,7 +4,7 @@ from typing import Dict, Optional, Tuple, Any
 import threading
 import time
 
-from services.medical_rules_loader import normalize_clinical_text
+from services.rules.medical_rules_loader import normalize_clinical_text
 
 
 _CACHE_LOCK = threading.Lock()

@@ -1,8 +1,7 @@
-"""Autentificare prin Supabase Auth: înregistrare, login, conturi vechi și validarea tokenului."""
+"""Autentificare prin Supabase Auth: înregistrare, login, profile vechi și validarea tokenului."""
 import unittest
 from unittest.mock import patch
 
-import bcrypt
 import httpx
 
 from services import auth as auth_module
@@ -75,13 +74,10 @@ class FakeSupabaseAuth:
 
 class AuthTests(unittest.TestCase):
     def setUp(self):
-        legacy_hash = bcrypt.hashpw(b"parola-veche", bcrypt.gensalt()).decode()
         self.fake = FakeSupabaseAuth(
             {
-                # profil vechi fără parolă (fost magic link): se poate adopta la înregistrare
-                "vechi@example.com": {"id": 7, "name": "Vechi", "auth_user_id": None, "password_hash": None},
-                # cont creat de versiunea veche (main) după migrare: parolă bcrypt, fără cont Supabase Auth
-                "main@example.com": {"id": 8, "name": "Din Main", "auth_user_id": None, "password_hash": legacy_hash},
+                # profil vechi fără cont (fost magic link): se poate adopta la înregistrare
+                "vechi@example.com": {"id": 7, "name": "Vechi", "auth_user_id": None},
             }
         )
         auth_module._user_cache.clear()
@@ -116,12 +112,6 @@ class AuthTests(unittest.TestCase):
         # numele existent al profilului are prioritate
         self.assertEqual(session["fullName"], "Vechi")
 
-    def test_register_rejects_profile_that_has_a_legacy_password(self):
-        with self.assertRaises(auth_module.AuthError) as ctx:
-            auth_module.sign_up("main@example.com", "alta-parola", "Intrus")
-        self.assertEqual(ctx.exception.status_code, 400)
-        self.assertNotIn("main@example.com", self.fake.accounts)
-
     def test_register_validates_input(self):
         for args in [("", "parola-mea", "Nume"), ("x@example.com", "12345", "Nume"), ("x@example.com", "parola", " ")]:
             with self.assertRaises(auth_module.AuthError) as ctx:
@@ -135,15 +125,6 @@ class AuthTests(unittest.TestCase):
         with self.assertRaises(auth_module.AuthError) as ctx:
             auth_module.sign_in("b@example.com", "gresita")
         self.assertEqual(ctx.exception.status_code, 401)
-
-    def test_login_migrates_legacy_bcrypt_account(self):
-        with self.assertRaises(auth_module.AuthError):
-            auth_module.sign_in("main@example.com", "gresita")
-        self.assertNotIn("main@example.com", self.fake.accounts)
-
-        session = auth_module.sign_in("main@example.com", "parola-veche")
-        self.assertEqual(session["fullName"], "Din Main")
-        self.assertIn("main@example.com", self.fake.accounts)
 
     def test_passwordless_profile_cannot_login(self):
         with self.assertRaises(auth_module.AuthError) as ctx:

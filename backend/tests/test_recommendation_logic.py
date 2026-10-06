@@ -10,9 +10,9 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from domain.models import FoodItem, LabResultItem, UserProfile
-from services.deficit_calculator import DeficitCalculator
-from services.recommender import RecommenderService
-from services.rule_engine import NutritionalRuleEngine
+from services.nutrition.deficit_calculator import DeficitCalculator
+from services.recommendations.recommender import RecommenderService
+from services.rules.rule_engine import NutritionalRuleEngine
 
 
 def make_user(**overrides) -> UserProfile:
@@ -183,13 +183,13 @@ class RecommendationLogicTests(unittest.TestCase):
     def test_soy_allergy_processed_item_allowed_when_api_marks_soy_free(self):
         user = make_user(allergies="soia")
         supa = make_food(id=111, name="Supa crema bio", category="mese/procesate")
-        with patch("services.compatibility_core.assess_hidden_soy_risk_from_api", return_value=False):
+        with patch("services.rules.compatibility_core.assess_hidden_soy_risk_from_api", return_value=False):
             self.assertTrue(self.rule_engine._is_compatible(supa, user))
 
     def test_soy_allergy_processed_item_blocked_when_api_reports_soy(self):
         user = make_user(allergies="soia")
         supa = make_food(id=112, name="Supa crema instant", category="mese/procesate")
-        with patch("services.compatibility_core.assess_hidden_soy_risk_from_api", return_value=True):
+        with patch("services.rules.compatibility_core.assess_hidden_soy_risk_from_api", return_value=True):
             self.assertFalse(self.rule_engine._is_compatible(supa, user))
 
     def test_egg_allergy_does_not_false_positive_on_noua(self):
@@ -270,7 +270,7 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertTrue(self.rule_engine._is_compatible(linte, user))
 
     def test_iron_explanation_uses_hemoglobin_when_ferritin_missing(self):
-        from services.scoped_rules import ScopedRulesEngine, ScopedRule, NutrientType, ScopeType
+        from services.rules.scoped_rules import ScopedRulesEngine, ScopedRule, NutrientType, ScopeType
 
         eng = ScopedRulesEngine()
         rule = ScopedRule(
@@ -290,7 +290,7 @@ class RecommendationLogicTests(unittest.TestCase):
         self.assertNotIn("feritină < 30", text.lower())
 
     def test_vitamin_c_explanation_uses_plasma_umol(self):
-        from services.scoped_rules import ScopedRulesEngine, ScopedRule, NutrientType, ScopeType
+        from services.rules.scoped_rules import ScopedRulesEngine, ScopedRule, NutrientType, ScopeType
 
         eng = ScopedRulesEngine()
         rule = ScopedRule(
@@ -740,13 +740,13 @@ class RecommendationLogicTests(unittest.TestCase):
     def test_hidden_allergen_api_blocks_processed_item_for_lactose_allergy(self):
         user = make_user(diet_type="omnivore", allergies="lactoza")
         processed = make_food(id=830, name="Sandvis Special", category="Mese/Procesate")
-        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=True):
+        with patch("services.rules.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=True):
             self.assertFalse(self.rule_engine._is_compatible(processed, user))
 
     def test_hidden_allergen_api_allows_processed_item_when_confirmed_safe(self):
         user = make_user(diet_type="omnivore", allergies="lactoza")
         processed = make_food(id=831, name="Supa Conserva Legume", category="Mese/Procesate")
-        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=False):
+        with patch("services.rules.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=False):
             self.assertTrue(self.rule_engine._is_compatible(processed, user))
 
     def test_compound_slash_allergy_lactose_lactate_blocks_milk_allergen_item(self):
@@ -762,9 +762,9 @@ class RecommendationLogicTests(unittest.TestCase):
     def test_gluten_allergy_high_risk_meal_requires_safe_api_verdict(self):
         user = make_user(diet_type="omnivore", allergies="gluten")
         meal = make_food(id=833, name="Saltimbocca", category="Mese/Carne")
-        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=None):
+        with patch("services.rules.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=None):
             self.assertFalse(self.rule_engine._is_compatible(meal, user))
-        with patch("services.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=False):
+        with patch("services.rules.compatibility_core.assess_hidden_allergen_risk_from_api", return_value=False):
             self.assertTrue(self.rule_engine._is_compatible(meal, user))
 
 

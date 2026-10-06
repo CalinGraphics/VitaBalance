@@ -20,7 +20,7 @@ const formatDate = (language: Language) =>
     minute: '2-digit',
   })
 
-export interface ExportRecommendationPdfParams {
+interface ExportRecommendationPdfParams {
   user: UserForPdf
   recommendations: RecommendationForPdf[]
   /** Limba raportului (implicit RO). Etichetele se traduc; textele explicative generate de server rămân în română. */
@@ -30,7 +30,7 @@ export interface ExportRecommendationPdfParams {
 /**
  * Generează PDF ca Blob. Poate fi folosit pentru download sau upload.
  */
-export async function generateRecommendationPdfBlob(
+async function generateRecommendationPdfBlob(
   params: ExportRecommendationPdfParams
 ): Promise<Blob> {
   const { user, recommendations, language = DEFAULT_LANGUAGE } = params

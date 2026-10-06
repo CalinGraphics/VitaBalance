@@ -83,39 +83,16 @@ Variabile obligatorii în **Environment**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 nu anon), plus `DEBUG=false` și `CORS_ORIGINS` cu adresa frontend-ului. `JWT_SECRET` nu mai e folosit
 (sesiunile sunt emise de Supabase Auth) și poate fi șters din Render.
 
-Există **două** servicii Render, cu același proiect Supabase:
-
-| Serviciu | URL | Branch | Rol |
-| --- | --- | --- | --- |
-| `VitaBalance` | `https://vitabalance.onrender.com` | `main` | producție |
-| `VitaBalance-1` | `https://vitabalance-1.onrender.com` | `Update-Version-1.1` | preview (codul nou) |
-
-Codul care rulează pe un serviciu se verifică cu `curl <url>/openapi.json`. Versiunea actuală expune
-`/api/recommendations/{user_id}/{recommendation_id}/explanation` și `/api/auth/refresh`, și **nu** mai are rutele `magic-link`.
-
-`render.yaml` din rădăcină descrie un al treilea serviciu (`vitabalance-preview`), creat cu **New → Blueprint**.
-Nu e creat în acest moment: rolul de preview îl joacă `VitaBalance-1`. Fișierul e util doar pentru a
-recrea serviciul de preview din repo.
+Backend-ul rulează pe serviciul Render `VitaBalance-1` (`https://vitabalance-1.onrender.com`, branch
+`Update-Version-1.1`, Root Directory gol — de aceea `main.py` și `requirements.txt` din rădăcină). Codul
+care rulează se verifică cu `curl <url>/openapi.json`.
 
 ### Frontend pe Vercel
 
-Un push pe un branch diferit de cel de producție creează automat un **Preview Deployment**, cu URL stabil de
-forma `…-git-<branch>-<cont>.vercel.app`. Producția rămâne neschimbată până la merge în `main`.
-
-`/api/*` e redirecționat de `vercel.json` (proxy pe server, deci fără CORS).
-
-> ⚠️ **De schimbat înainte de merge în `main`.** Pe branch-ul `Update-Version-1.1`, `/api/*` merge la
-> `https://vitabalance-1.onrender.com` — backend-ul care rulează codul acestui branch. `vercel.json` se
-> citește din branch-ul care se deployează, iar orice deployment construit din acest branch e un preview,
-> deci regula e corectă cât timp lucrăm aici; e greșită din clipa în care branch-ul devine producție.
-> La merge, pune înapoi `https://vitabalance.onrender.com` (sau mută serviciul de producție pe codul nou).
-
-Regula de rewrite e necondiționată pentru că fiecare deployment are, pe lângă aliasul stabil
-`…-git-<branch>-<cont>.vercel.app`, și un URL cu hash (`<proiect>-<hash>-<cont>.vercel.app`): o condiție
-`has: host` care caută doar `-git-` nu l-ar acoperi.
-
-Există două `vercel.json` (rădăcină și `frontend/`) — se aplică cel corespunzător **Root Directory**-ului din
-proiectul Vercel, deci regulile lor trebuie să rămână identice.
+Proiectul Vercel `vita-balance` are Root Directory = rădăcina repo-ului, deci se folosește `vercel.json` din
+rădăcină: build în `frontend/`, iar `/api/*` e redirecționat către backend-ul de pe Render (proxy pe
+server, deci fără CORS). Regula de rewrite e necondiționată, ca să acopere și URL-urile cu hash ale fiecărui
+deployment (`<proiect>-<hash>-<cont>.vercel.app`), nu doar aliasul `…-git-<branch>-<cont>.vercel.app`.
 
 `VITE_API_URL` (build-time, scope Preview/Production) are prioritate față de rewrite și face cereri
 **cross-origin**: dacă îl folosești, adaugă adresa Vercel în `CORS_ORIGINS` pe backend, altfel browserul
@@ -161,7 +138,7 @@ Aplicația folosește **Supabase** (PostgreSQL) ca unică sursă de date. Tabele
 | `005_feedback_persist_by_food.sql` | feedback unic per (utilizator, aliment), care supraviețuiește regenerării recomandărilor. **Aplică-o înainte de a publica codul care o folosește.** |
 | `006_foods_name_en.sql` | `foods.name_en`: numele alimentelor în engleză (interfața și explicațiile EN) |
 | `007_supabase_auth.sql` | trecerea pe Supabase Auth: `users.auth_user_id`, triggerele `auth.users` → profil, conturile cu parolă mutate în `auth.users` (hash-ul bcrypt păstrat), politici RLS de citire a rândurilor proprii |
-| `008_drop_legacy_auth.sql` | șterge `users.password_hash` și `magic_links`. **Se aplică doar după merge în `main`** (producția veche le mai folosește) |
+| `008_drop_legacy_auth.sql` | șterge `users.password_hash` și tabela `magic_links` (autentificarea veche) |
 
 ### Autentificare (Supabase Auth)
 
@@ -182,15 +159,14 @@ Rutele protejate validează tokenul la Supabase (`GET /auth/v1/user`, rezultat �
 parolele de dinainte merg. Profilele fără parolă (create pe vremea magic link) nu au cont: înregistrarea cu
 acel email creează contul și **adoptă profilul existent** (profil, analize, recomandări). Compromisul acceptat:
 emailul nu se verifică la înregistrare, deci cine cunoaște adresa poate revendica profilul. Lista lor:
-`select email from users where auth_user_id is null`. Un cont creat între timp de producția veche (`main`,
-parolă doar în `password_hash`) se mută în Supabase Auth la primul login reușit.
+`select email from users where auth_user_id is null`.
 
 ## Explicații RO/EN
 
 Explicația fiecărei recomandări e **specifică pacientului** și se construiește din fapte, nu din text liber:
 
-1. `services/explanation_facts.py` extrage faptele (valoarea din analize și pragul clinic, nutrientul deficitar, dieta, alergiile, afecțiunile cu restricții, porția) și le salvează în `recommendations.explanation_json.facts`.
-2. `services/explanation_renderer.py` le transformă în text cu șabloanele din `services/explanation_i18n.py` (RO/EN), la citire — deci schimbarea limbii nu cere regenerarea recomandărilor.
+1. `services/explanations/facts.py` extrage faptele (valoarea din analize și pragul clinic, nutrientul deficitar, dieta, alergiile, afecțiunile cu restricții, porția) și le salvează în `recommendations.explanation_json.facts`.
+2. `services/explanations/renderer.py` le transformă în text cu șabloanele din `services/explanations/i18n.py` (RO/EN), la citire — deci schimbarea limbii nu cere regenerarea recomandărilor.
 
 API: parametrul `?lang=ro|en` (implicit `ro`) pe `GET /api/recommendations/stored/{user_id}` și `POST /api/recommendations`; `GET /api/recommendations/{user_id}/{recommendation_id}/explanation?lang=en` returnează explicația unei singure recomandări. Numele alimentelor vin din `foods.name_en`. Recomandările create înainte de această schimbare se regenerează o singură dată (`sync-meta.explanations_outdated`).
 
@@ -200,21 +176,29 @@ Toate datele (catalogul `foods`, conturile de test) se află exclusiv în Supaba
 
 ```
 VitaBalance/
-├── backend/             # API FastAPI
-│   ├── config/          # Reguli clinice (medical_rules.json)
-│   ├── domain/          # Modele de domeniu
-│   ├── repositories/    # Acces date (Supabase)
-│   ├── services/        # Logică (deficit, reguli, recomandări, explicații)
-│   ├── middleware/      # Validare sesiune Supabase Auth, rate limiting
-│   ├── migrations/      # Scripturi SQL incrementale
-│   ├── tests/           # Suită de teste (unittest + pytest)
-│   ├── schema.sql       # Schema completă (starea țintă)
-│   └── main.py          # Rute API
-├── frontend/            # Aplicație React (Vite, TypeScript)
+├── main.py, requirements.txt   # trimit către backend/ (Render rulează din rădăcină)
+├── vercel.json                 # build frontend + proxy /api către Render
+├── backend/                    # API FastAPI
+│   ├── main.py                 # Rute API
+│   ├── config.py               # Setări (variabile de mediu)
+│   ├── data/                   # Reguli clinice (medical_rules.json)
+│   ├── domain/                 # Modele de domeniu și scheme API (schemas.py)
+│   ├── repositories/           # Acces date (client Supabase + câte un repository pe tabel)
+│   ├── middleware/             # Validare sesiune Supabase Auth, rate limiting
+│   ├── services/
+│   │   ├── auth.py             # Login / înregistrare / sesiune prin Supabase Auth
+│   │   ├── nutrition/          # Deficite din analize, categorii alimente, extragere analize din text
+│   │   ├── rules/              # Reguli clinice, compatibilitate dietă / alergii
+│   │   ├── recommendations/    # Scorare, porții, materializare
+│   │   └── explanations/       # Fapte, șabloane RO/EN, randare, stocare
+│   ├── migrations/             # Scripturi SQL incrementale
+│   ├── tests/                  # Suită de teste (unittest + pytest)
+│   └── schema.sql              # Schema completă (starea țintă)
+├── frontend/                   # Aplicație React (Vite, TypeScript)
 │   └── src/
-│       ├── features/    # Pagini (auth, profil, analize, recomandări, PDF)
-│       ├── shared/      # Componente, hooks, tipuri, i18n
-│       └── services/    # Apeluri API și autentificare
+│       ├── features/           # Pagini (auth, profil, analize, recomandări, PDF)
+│       ├── shared/             # Componente, hooks, tipuri, i18n, utilitare
+│       └── services/           # Apeluri API și sesiunea
 └── docs/
     ├── diagrams/        # Diagrame C4 și UML (PlantUML)
     ├── demo/            # Cazuri de test: profil, rapoarte PDF, capturi

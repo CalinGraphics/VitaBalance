@@ -3,11 +3,11 @@ from dataclasses import replace
 from concurrent.futures import ThreadPoolExecutor
 import unicodedata
 from domain.models import UserProfile, FoodItem, LabResultItem, FeedbackItem
-from services.rule_engine import NutritionalRuleEngine
-from services.deficit_calculator import DeficitCalculator
-from services.medical_rules_loader import normalize_clinical_text, normalize_diet_type
-from services.clinical_context import build_effective_user_profile
-from services.portion_calculator import suggest_portion_for_category, suggest_portion_grams
+from services.rules.rule_engine import NutritionalRuleEngine
+from services.nutrition.deficit_calculator import DeficitCalculator
+from services.rules.medical_rules_loader import normalize_clinical_text, normalize_diet_type
+from services.rules.clinical_context import build_effective_user_profile
+from services.recommendations.portion_calculator import suggest_portion_for_category, suggest_portion_grams
 
 class RecommenderService:
     # Dacă regulile pe deficite lasă prea puține variante (ex. vegan + alergii stricte),

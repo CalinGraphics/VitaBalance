@@ -4,14 +4,14 @@ import re
 from dataclasses import dataclass
 from domain.models import FoodItem, UserProfile, LabResultItem
 from enum import Enum
-from services.compatibility_core import is_compatible_diet_and_allergies
-from services.medical_rules_loader import (
+from services.rules.compatibility_core import is_compatible_diet_and_allergies
+from services.rules.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
 )
-from services.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
-from services.portion_calculator import suggest_portion
-from services.deficit_calculator import DeficitCalculator
+from services.rules.scoped_rules import ScopedRulesEngine, NutrientType as ScopedNutrientType, ScopedRuleResult
+from services.recommendations.portion_calculator import suggest_portion
+from services.nutrition.deficit_calculator import DeficitCalculator
 
 
 class NutrientType(str, Enum):

@@ -152,7 +152,7 @@ export function extractLabValuesFromTextLocal(text: string): Partial<Record<LabK
   }
 }
 
-export type LabExtractApiScalar = number | string | null | undefined
+type LabExtractApiScalar = number | string | null | undefined
 
 export type LabExtractFromApi = Partial<Record<LabKey, LabExtractApiScalar>>
 

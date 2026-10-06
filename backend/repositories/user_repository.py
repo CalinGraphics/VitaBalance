@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Optional, List
 from supabase import Client
 
-from supabase_client import get_supabase_client
+from repositories.supabase_client import get_supabase_client
 from domain.models import UserProfile, row_to_user
 
 

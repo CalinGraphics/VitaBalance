@@ -1,9 +1,8 @@
 """Categorii compuse — cereale nu sunt lactate."""
 import unittest
 
-from services.food_category_resolver import (
+from services.nutrition.food_category_resolver import (
     resolve_category_group,
-    resolve_category_display_label,
     beverage_hint_from_name,
 )
 
@@ -11,7 +10,6 @@ from services.food_category_resolver import (
 class TestFoodCategoryResolver(unittest.TestCase):
     def test_cereale_procesate_is_cereale(self):
         self.assertEqual(resolve_category_group("Cereale/Procesate"), "cereale")
-        self.assertEqual(resolve_category_display_label("Cereale/Procesate"), "Cereale")
 
     def test_mese_cereale_is_cereale_not_lactate(self):
         self.assertEqual(resolve_category_group("Mese/Cereale"), "cereale")

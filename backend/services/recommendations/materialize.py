@@ -21,14 +21,14 @@ from repositories import (
     FeedbackRepository,
 )
 from domain.models import FoodItem, RecommendationItem
-from services.deficit_calculator import DeficitCalculator
-from services.explanation_facts import alternatives_for, build_facts, has_facts, parse_explanation_json
-from services.explanation_i18n import DEFAULT_LANG, normalize_lang
-from services.explanation_renderer import render_explanation
-from services.explanation_storage import explanation_from_db_row, explanation_to_db_fields
-from services.portion_calculator import suggest_portion
-from services.recommender import RecommenderService
-from services.recommendation_fast_context import enter_fast_bulk_mode, exit_fast_bulk_mode
+from services.nutrition.deficit_calculator import DeficitCalculator
+from services.explanations.facts import alternatives_for, build_facts, has_facts, parse_explanation_json
+from services.explanations.i18n import DEFAULT_LANG, normalize_lang
+from services.explanations.renderer import render_explanation
+from services.explanations.storage import explanation_from_db_row, explanation_to_db_fields
+from services.recommendations.portion_calculator import suggest_portion
+from services.recommendations.recommender import RecommenderService
+from services.recommendations.fast_context import enter_fast_bulk_mode, exit_fast_bulk_mode
 
 ACTIVE_REC_LIMIT = 20
 FEEDBACK_REC_LOOKUP_LIMIT = 25

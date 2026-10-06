@@ -12,9 +12,9 @@ type ProfileFormData = Pick<
   'email' | 'name' | 'sex' | 'activity_level' | 'diet_type'
 > & { allergies: string; medical_conditions: string }
 
-export type ProfilePayload = Partial<User> & { caloric_goal: number | null }
+type ProfilePayload = Partial<User> & { caloric_goal: number | null }
 
-export type BuildPayloadResult = { payload: ProfilePayload; error?: undefined } | { payload?: undefined; error: string }
+type BuildPayloadResult = { payload: ProfilePayload; error?: undefined } | { payload?: undefined; error: string }
 
 const toText = (n: number | null | undefined): string => (n != null && n > 0 ? String(n) : '')
 

@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple
 
 from supabase import Client
 
-from supabase_client import get_supabase_client
+from repositories.supabase_client import get_supabase_client
 from domain.models import FoodItem, row_to_food
 
 

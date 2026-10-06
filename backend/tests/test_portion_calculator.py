@@ -2,8 +2,8 @@
 import unittest
 
 from domain.models import FoodItem, UserProfile
-from services.food_category_resolver import _SEGMENT_TO_GROUP, normalize_category_token
-from services.portion_calculator import (
+from services.nutrition.food_category_resolver import _SEGMENT_TO_GROUP, normalize_category_token
+from services.recommendations.portion_calculator import (
     _CATEGORY_PORTION_G,
     suggest_portion,
     suggest_portion_grams,

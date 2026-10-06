@@ -60,7 +60,7 @@ package "frontend\n(Vite + React + TypeScript)" as FE #EBF5FB {
 
 package "backend\n(FastAPI + Python)" as BE #EAF4EA {
 
-  package "main + schemas" as MAIN #C8E6C9 {
+  package "main" as MAIN #C8E6C9 {
     note as N6
       Rute REST, modele
       Pydantic, startup
@@ -76,23 +76,23 @@ package "backend\n(FastAPI + Python)" as BE #EAF4EA {
 
   package "domain" as DOM #A5D6A7 {
     note as N8
-      Modele de date
-      (dataclasses Python)
+      Modele de date (dataclasses)
+      + scheme Pydantic (schemas)
     end note
   }
 
   package "repositories" as REPO #A5D6A7 {
     note as N9
-      Acces Supabase:
+      Client Supabase +
       CRUD pe tabele
     end note
   }
 
   package "services" as SVC #A5D6A7 {
     note as N10
-      DeficitCalculator,
-      RecommenderService,
-      ExplanationGenerator
+      auth, nutrition,
+      rules, recommendations,
+      explanations
     end note
   }
 
@@ -107,9 +107,9 @@ package "backend\n(FastAPI + Python)" as BE #EAF4EA {
 FEAPI ..> MAIN : "HTTP\n(SPA → API REST)"
 
 note bottom of BE
-  **config**, **supabase_client**: module
-  transversale (suport global, nereprezentate
-  ca pachete separate).
+  **config** (setări) şi **data/** (reguli clinice):
+  suport transversal, nereprezentate
+  ca pachete separate.
 end note
 
 @enduml

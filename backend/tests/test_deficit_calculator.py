@@ -7,7 +7,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from domain.models import UserProfile, LabResultItem
-from services.deficit_calculator import DeficitCalculator
+from services.nutrition.deficit_calculator import DeficitCalculator
 
 
 def make_user(**overrides) -> UserProfile:

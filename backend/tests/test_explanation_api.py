@@ -7,8 +7,7 @@ from fastapi.testclient import TestClient
 
 import main as main_module
 from domain.models import FoodItem, LabResultItem, RecommendationItem, UserProfile
-from services import recommendation_materialize as materialize_module
-
+from services.recommendations import materialize as materialize_module
 ROMANIAN_LETTERS = re.compile(r"[ăâîșțĂÂÎȘȚ]")
 
 USER = UserProfile(id=1, email="tester@example.com", name="Tester", age=30, sex="F", weight=60, height=165,

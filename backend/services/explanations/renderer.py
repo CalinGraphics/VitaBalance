@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
-from services.explanation_i18n import (
+from services.explanations.i18n import (
     ALLERGY_LABELS,
     CONDITION_LABELS,
     DEFAULT_LANG,

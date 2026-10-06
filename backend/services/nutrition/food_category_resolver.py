@@ -64,39 +64,6 @@ def resolve_category_group(category: str) -> str:
     return parts[0]
 
 
-def resolve_category_display_label(category: str) -> str:
-    """Etichetă UI lizibilă pentru badge-ul de categorie."""
-    key = resolve_category_group(category)
-    labels = {
-        "bauturi": "Băuturi",
-        "deserturi": "Deserturi",
-        "cereale": "Cereale",
-        "leguminoase": "Leguminoase",
-        "legume": "Legume",
-        "fructe": "Fructe",
-        "peste": "Pește",
-        "carne": "Carne",
-        "oua": "Ouă",
-        "nuci": "Nuci",
-        "semin": "Semințe",
-        "lactate": "Lactate",
-        "suplimente": "Suplimente",
-        "condimente": "Condimente",
-        "gustari": "Gustări",
-        "mese": "Mese",
-        "proteine": "Proteine",
-        "vegetarian": "Vegetarian",
-        "vegan": "Vegan",
-        "paste": "Paste",
-        "alte": "Altele",
-    }
-    if key in labels:
-        return labels[key]
-    if not category:
-        return ""
-    cleaned = category.replace("_", " ").strip()
-    return cleaned[:1].upper() + cleaned[1:] if cleaned else ""
-
 
 def is_liquid_food_category(category: str) -> bool:
     return resolve_category_group(category) == "bauturi"

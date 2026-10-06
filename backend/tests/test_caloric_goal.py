@@ -3,7 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from domain.models import row_to_user
-from schemas import UserCreate
+from domain.schemas import UserCreate
 
 BASE = {
     "email": "a@test.com",

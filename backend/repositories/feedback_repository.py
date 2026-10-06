@@ -7,7 +7,7 @@ Feedback-ul e unic per (user_id, food_id) și persistă când recomandarea e reg
 from typing import Dict, List, Optional
 from supabase import Client
 
-from supabase_client import get_supabase_client
+from repositories.supabase_client import get_supabase_client
 from domain.models import FeedbackItem, row_to_feedback
 
 

@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 import re
 import unicodedata
 from domain.models import UserProfile, LabResultItem
-from services.medical_rules_loader import normalize_clinical_text
+from services.rules.medical_rules_loader import normalize_clinical_text
 
 
 class DeficitCalculator:

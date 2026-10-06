@@ -3,13 +3,13 @@ from __future__ import annotations
 import re
 
 from domain.models import FoodItem, UserProfile
-from services.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm, fish_name_matches_norm
-from services.food_intelligence_api import (
+from services.rules.allergy_mappings import ALLERGY_MAPPINGS, allergy_keyword_matches_norm, fish_name_matches_norm
+from services.nutrition.food_intelligence_api import (
     assess_hidden_soy_risk_from_api,
     assess_hidden_allergen_risk_from_api,
 )
-from services.recommendation_fast_context import is_fast_bulk_mode
-from services.medical_rules_loader import (
+from services.recommendations.fast_context import is_fast_bulk_mode
+from services.rules.medical_rules_loader import (
     normalize_clinical_text,
     normalize_diet_type,
     resolve_allergy_token,

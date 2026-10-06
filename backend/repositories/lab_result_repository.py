@@ -4,7 +4,7 @@ Lab results data access – Supabase only.
 from typing import Optional, List
 from supabase import Client
 
-from supabase_client import get_supabase_client
+from repositories.supabase_client import get_supabase_client
 from domain.models import LabResultItem, row_to_lab_result
 
 

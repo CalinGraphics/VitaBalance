@@ -16,7 +16,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 if HAS_FASTAPI:
     import main as main_module
-    from services import recommendation_materialize as materialize_module
+    from services.recommendations import materialize as materialize_module
 from domain.models import FoodItem, LabResultItem, RecommendationItem, UserProfile
 
 

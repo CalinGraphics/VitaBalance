@@ -2,12 +2,12 @@
 import re
 
 from domain.models import FoodItem, LabResultItem, UserProfile, food_display_name
-from services import explanation_i18n as i18n
-from services.deficit_calculator import DeficitCalculator
-from services.explanation_facts import CONDITION_PATTERNS, NUTRIENT_KEYS, alternatives_for, build_facts, has_facts
-from services.explanation_renderer import SECTION_SEP, render_explanation
-from services.explanation_storage import explanation_from_db_row, explanation_to_db_fields
-from services.portion_calculator import PortionSuggestion
+from services.explanations import i18n
+from services.nutrition.deficit_calculator import DeficitCalculator
+from services.explanations.facts import CONDITION_PATTERNS, NUTRIENT_KEYS, alternatives_for, build_facts, has_facts
+from services.explanations.renderer import SECTION_SEP, render_explanation
+from services.explanations.storage import explanation_from_db_row, explanation_to_db_fields
+from services.recommendations.portion_calculator import PortionSuggestion
 
 PORTION = PortionSuggestion(amount=150, unit="g", grams_equivalent=150)
 ROMANIAN_LETTERS = re.compile(r"[ăâîșțĂÂÎȘȚ]")

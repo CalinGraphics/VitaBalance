@@ -11,7 +11,7 @@ import hashlib
 import os
 
 from config import get_settings
-from schemas import (
+from domain.schemas import (
     UserCreate,
     UserResponse,
     LabResultCreate,
@@ -20,8 +20,8 @@ from schemas import (
     RecommendationRequest,
     FeedbackCreate,
 )
-from services.recommender import RecommenderService
-from services.deficit_calculator import DeficitCalculator
+from services.recommendations.recommender import RecommenderService
+from services.nutrition.deficit_calculator import DeficitCalculator
 from services.auth import AuthError, sign_in, sign_out, sign_up, refresh_session
 from domain.models import UserProfile
 from repositories import (
@@ -34,9 +34,9 @@ from repositories import (
 from middleware.auth import get_current_user, security
 from fastapi.security import HTTPAuthorizationCredentials
 from middleware.rate_limit import RateLimitMiddleware
-from services.recommendation_materialize import materialize_recommendations
-from services.explanation_i18n import normalize_lang
-from services.explanation_facts import has_facts
+from services.recommendations.materialize import materialize_recommendations
+from services.explanations.i18n import normalize_lang
+from services.explanations.facts import has_facts
 
 app = FastAPI(
     title="VitaBalance API",
@@ -117,7 +117,7 @@ async def health_check(settings=Depends(get_settings)):
     checks["supabase"] = "skipped"
     if settings.supabase_url and settings.effective_supabase_secret_key():
         try:
-            from supabase_client import get_supabase_client
+            from repositories.supabase_client import get_supabase_client
 
             client = get_supabase_client()
             client.table("users").select("id").limit(1).execute()
@@ -139,8 +139,7 @@ if settings.debug:
     @app.get("/debug/rule-engine")
     async def debug_rule_engine():
         try:
-            from services import rule_engine as re_mod
-
+            from services.rules import rule_engine as re_mod
             src = inspect.getsource(re_mod.NutritionalRuleEngine.evaluate_food)
             src_hash = hashlib.md5(src.encode("utf-8")).hexdigest()
             return {
@@ -424,7 +423,7 @@ async def extract_lab_values_from_text(
     body: LabResultExtractFromTextRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    from services.lab_text_extractor import extract_lab_values_from_text
+    from services.nutrition.lab_text_extractor import extract_lab_values_from_text
     extracted = extract_lab_values_from_text(body.text)
     return extracted
 
@@ -439,7 +438,7 @@ async def list_stored_recommendations(
     current_user: dict = Depends(get_current_user),
 ):
     _ensure_user_resource(current_user, user_id)
-    from services.recommendation_materialize import list_stored_recommendations_fast
+    from services.recommendations.materialize import list_stored_recommendations_fast
     return list_stored_recommendations_fast(user_id, _user_verified=True, lang=lang)
 
 
@@ -452,7 +451,7 @@ async def get_recommendation_explanation(
 ):
     """Explicația unei recomandări, specifică pacientului (analize, alergii, afecțiuni, dietă), în limba cerută."""
     _ensure_user_resource(current_user, user_id)
-    from services.recommendation_materialize import list_stored_recommendations_fast
+    from services.recommendations.materialize import list_stored_recommendations_fast
 
     for item in list_stored_recommendations_fast(user_id, _user_verified=True, lang=lang):
         if item["recommendation_id"] == recommendation_id:

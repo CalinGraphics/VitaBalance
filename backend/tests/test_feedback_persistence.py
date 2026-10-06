@@ -3,7 +3,7 @@ import pytest
 
 from domain.models import FoodItem, RecommendationItem
 from repositories.feedback_repository import FeedbackRepository
-from services.recommendation_materialize import (
+from services.recommendations.materialize import (
     _api_item_from_rec,
     _build_feedback_by_food,
     _rating_by_food,

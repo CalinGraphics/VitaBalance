@@ -4,7 +4,7 @@ Recommendations data access – Supabase only.
 from typing import List, Optional
 from supabase import Client
 
-from supabase_client import get_supabase_client
+from repositories.supabase_client import get_supabase_client
 from domain.models import RecommendationItem, row_to_recommendation
 
 

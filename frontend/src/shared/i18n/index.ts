@@ -7,7 +7,7 @@ export const SUPPORTED_LANGUAGES = ['ro', 'en'] as const
 export type Language = (typeof SUPPORTED_LANGUAGES)[number]
 
 export const DEFAULT_LANGUAGE: Language = 'ro'
-export const LANGUAGE_STORAGE_KEY = 'vitabalance_lang'
+const LANGUAGE_STORAGE_KEY = 'vitabalance_lang'
 
 const isSupported = (value: unknown): value is Language =>
   typeof value === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(value)
@@ -50,6 +50,4 @@ i18n.on('languageChanged', syncDocumentLanguage)
 export const currentLanguage = (): Language => (isSupported(i18n.language) ? i18n.language : DEFAULT_LANGUAGE)
 
 /** Locale BCP-47 pentru formatarea datelor/numerelor. */
-export const currentLocale = (): string => (currentLanguage() === 'en' ? 'en-GB' : 'ro-RO')
-
 export default i18n

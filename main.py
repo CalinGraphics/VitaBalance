@@ -3,8 +3,8 @@ Punct de intrare pentru hosting care rulează din rădăcina repo-ului (ex. un s
 Root Directory nu este setat pe `backend`): expune aceeași aplicație FastAPI ca `backend/main.py`,
 deci `uvicorn main:app` funcționează atât de aici, cât și din `backend/`.
 
-Dacă serviciul are Root Directory = backend (varianta recomandată, vezi render.yaml), fișierul acesta
-nu este folosit deloc.
+Serviciul Render `VitaBalance-1` rulează din rădăcină, deci pornește prin acest fișier. Dacă Root
+Directory devine `backend`, fișierul nu mai e folosit.
 """
 from __future__ import annotations
 

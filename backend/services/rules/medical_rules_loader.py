@@ -61,7 +61,7 @@ def resolve_allergy_token(normalized_user_allergy: str) -> str:
 
 
 def load_medical_rules_config() -> Dict[str, Any]:
-    cfg_path = Path(__file__).resolve().parents[1] / "config" / "medical_rules.json"
+    cfg_path = Path(__file__).resolve().parents[2] / "data" / "medical_rules.json"
     if not cfg_path.exists():
         return {"condition_food_rules": [], "condition_trigger_rules": []}
     try:

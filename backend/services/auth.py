@@ -11,11 +11,10 @@ import threading
 import time
 from typing import Any, Dict, Optional
 
-import bcrypt
 import httpx
 
 from config import get_settings
-from supabase_client import get_supabase_client
+from repositories.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -142,8 +141,7 @@ def _profile_row(email: str) -> Optional[Dict[str, Any]]:
     resp = (
         get_supabase_client()
         .table("users")
-        # `*` și nu o listă de coloane: password_hash dispare cu migrarea 008, iar atunci .get() întoarce None.
-        .select("*")
+        .select("id, name, auth_user_id")
         .eq("email", email)
         .limit(1)
         .execute()
@@ -160,31 +158,6 @@ def _profile_name(email: str) -> str:
     return (row or {}).get("name") or ""
 
 
-def _bcrypt_matches(password: str, password_hash: str) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode("utf-8")[:72], password_hash.encode("utf-8"))
-    except ValueError:
-        return False
-
-
-def _migrate_legacy_account(email: str, password: str) -> bool:
-    """
-    Cont creat de versiunea veche (main) după migrarea 007: are `password_hash` în public.users, dar
-    nu are cont în auth.users. Dacă parola se potrivește, îl mutăm acum în Supabase Auth.
-    """
-    row = _profile_row(email)
-    if not row or row.get("auth_user_id") or not row.get("password_hash"):
-        return False
-    if not _bcrypt_matches(password, row["password_hash"]):
-        return False
-    try:
-        _admin_create_user(email, password, row.get("name") or "")
-    except AuthError as exc:
-        if exc.detail != _ALREADY_REGISTERED:
-            raise
-    return True
-
-
 # ---------- API folosit de rute ----------
 def _normalize_email(email: str) -> str:
     return (email or "").strip().lower()
@@ -195,8 +168,6 @@ def sign_in(email: str, password: str) -> Dict[str, Any]:
     if not email or not password:
         raise AuthError(401, _INVALID_CREDENTIALS)
     session = _password_grant(email, password)
-    if session is None and _migrate_legacy_account(email, password):
-        session = _password_grant(email, password)
     if session is None:
         raise AuthError(401, _INVALID_CREDENTIALS)
     session["fullName"] = _profile_name(email) or session["fullName"]
@@ -208,7 +179,7 @@ def sign_up(email: str, password: str, full_name: str) -> Dict[str, Any]:
     Creează contul în Supabase Auth și deschide sesiunea.
 
     Profilele vechi fără parolă (fost magic link) sunt adoptate de trigger: utilizatorul își păstrează
-    profilul, analizele și recomandările. Un profil care are deja cont sau parolă e respins.
+    profilul, analizele și recomandările. Un profil care are deja cont e respins.
     """
     email = _normalize_email(email)
     full_name = (full_name or "").strip()
@@ -224,7 +195,7 @@ def sign_up(email: str, password: str, full_name: str) -> Dict[str, Any]:
         raise AuthError(400, "Parola trebuie să aibă minim 6 caractere")
 
     existing = _profile_row(email)
-    if existing and (existing.get("auth_user_id") or existing.get("password_hash")):
+    if existing and existing.get("auth_user_id"):
         raise AuthError(400, _ALREADY_REGISTERED)
 
     _admin_create_user(email, password, full_name)

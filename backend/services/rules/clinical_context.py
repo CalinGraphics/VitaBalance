@@ -11,7 +11,7 @@ from dataclasses import replace
 from typing import Dict, List, Optional, Sequence, TypedDict
 
 from domain.models import LabResultItem, UserProfile
-from services.medical_rules_loader import normalize_clinical_text
+from services.rules.medical_rules_loader import normalize_clinical_text
 
 
 class ObservationRule(TypedDict, total=False):

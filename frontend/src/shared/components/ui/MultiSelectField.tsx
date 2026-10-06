@@ -2,7 +2,7 @@ import React, { useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronDown, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-export interface MultiSelectOption {
+interface MultiSelectOption {
   value: string
   label: string
   description?: string

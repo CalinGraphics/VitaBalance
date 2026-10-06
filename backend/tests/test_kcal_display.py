@@ -1,6 +1,6 @@
 """Calorii afișate informativ: doar valori plauzibile per 100 g (preparatele per porție sunt excluse)."""
 from domain.models import FoodItem
-from services.recommendation_materialize import kcal_per_100g_for_display
+from services.recommendations.materialize import kcal_per_100g_for_display
 
 
 def _food(**kw) -> FoodItem:

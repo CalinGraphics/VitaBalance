@@ -1,7 +1,7 @@
 """Teste extragere lab — limită text și warnings."""
 import unittest
 
-from services.lab_text_extractor import MAX_LAB_TEXT_CHARS, extract_lab_values_from_text
+from services.nutrition.lab_text_extractor import MAX_LAB_TEXT_CHARS, extract_lab_values_from_text
 
 
 class TestLabTextExtractor(unittest.TestCase):

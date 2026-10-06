@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 import re
 from domain.models import UserProfile, FoodItem, LabResultItem
-from services.compatibility_core import is_compatible_diet_and_allergies
-from services.medical_rules_loader import (
+from services.rules.compatibility_core import is_compatible_diet_and_allergies
+from services.rules.medical_rules_loader import (
     load_medical_rules_config,
     normalize_clinical_text,
     normalize_diet_type,

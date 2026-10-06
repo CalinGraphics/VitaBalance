@@ -11,13 +11,13 @@ from dataclasses import dataclass
 from typing import Optional
 
 from domain.models import FoodItem, UserProfile
-from services.food_category_resolver import (
+from services.nutrition.food_category_resolver import (
     beverage_hint_from_name,
     is_dessert_food_category,
     is_liquid_food_category,
     resolve_category_group,
 )
-from services.medical_rules_loader import normalize_clinical_text
+from services.rules.medical_rules_loader import normalize_clinical_text
 
 # Gramaj de referință (porție standard ~70 kg, activitate moderată).
 # Cheile trebuie să fie EXACT valorile întoarse de resolve_category_group(); altfel porția cade pe

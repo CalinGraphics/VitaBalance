@@ -8,7 +8,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * Formatează câmpul `detail` din răspunsurile FastAPI/Pydantic (string, listă sau obiect).
  */
-export function formatApiDetail(detail: unknown): string {
+function formatApiDetail(detail: unknown): string {
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) {
     return detail
@@ -52,12 +52,12 @@ const KNOWN_API_ERRORS: Array<{ code: string; match: RegExp }> = [
 ]
 
 /** Codul erorii cunoscute pentru un mesaj brut de la backend, sau `null`. */
-export function classifyApiMessage(raw: string): string | null {
+function classifyApiMessage(raw: string): string | null {
   return KNOWN_API_ERRORS.find(({ match }) => match.test(raw))?.code ?? null
 }
 
 /** Traduce mesajul dacă e unul cunoscut; altfel îl returnează neschimbat. */
-export function localizeApiMessage(raw: string): string {
+function localizeApiMessage(raw: string): string {
   const code = classifyApiMessage(raw)
   return code ? i18n.t(`apiErrors.${code}`) : raw
 }

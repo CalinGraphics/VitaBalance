@@ -5,9 +5,9 @@ import {
   type RecommendationsSyncMeta,
 } from '../../../services/api'
 
-export const SYNC_POLL_INITIAL_MS = 400
-export const SYNC_POLL_MAX_INTERVAL_MS = 5000
-export const SYNC_POLL_MAX_MS = 120_000
+const SYNC_POLL_INITIAL_MS = 400
+const SYNC_POLL_MAX_INTERVAL_MS = 5000
+const SYNC_POLL_MAX_MS = 120_000
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -17,11 +17,11 @@ function syncPollDelayMs(attempt: number): number {
   return Math.min(SYNC_POLL_INITIAL_MS * 2 ** attempt, SYNC_POLL_MAX_INTERVAL_MS)
 }
 
-export function isHttp404(err: unknown): boolean {
+function isHttp404(err: unknown): boolean {
   return isAxiosError(err) && err.response?.status === 404
 }
 
-export function syncMetaIsFresh(meta: {
+function syncMetaIsFresh(meta: {
   user_updated_at: string | null
   latest_rec_created_at: string | null
   labs_fresh_at?: string | null
@@ -51,7 +51,7 @@ export function shouldSkipBackgroundRefresh(
   )
 }
 
-export function isRefreshPollComplete(
+function isRefreshPollComplete(
   meta: RecommendationsSyncMeta,
   forceRegenerate: boolean
 ): boolean {
