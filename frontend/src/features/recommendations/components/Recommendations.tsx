@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { UtensilsCrossed, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard, PageHeader, Spinner } from '../../../shared/components'
@@ -6,7 +6,10 @@ import i18n, { currentLanguage } from '../../../shared/i18n'
 import { recommendationsService } from '../../../services/api'
 import type { User } from '../../../shared/types'
 import RecommendationCard from './RecommendationCard'
-import NutrientChart from './NutrientChart'
+import RecommendationSkeleton, { ChartSkeleton } from './RecommendationSkeleton'
+
+// Graficul (recharts) e greu: se încarcă separat, după ce cardurile sunt deja pe ecran.
+const NutrientChart = lazy(() => import('./NutrientChart'))
 import UserProfileInfo from './UserProfileInfo'
 import CaloricGoalProgress from './CaloricGoalProgress'
 import type { Recommendation } from '../types'
@@ -478,7 +481,9 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
           </div>
 
           {/* Aceeași listă (și același filtru de categorie) ca în carduri. */}
-          <NutrientChart recommendations={filteredRecommendations} />
+          <Suspense fallback={<ChartSkeleton />}>
+            <NutrientChart recommendations={filteredRecommendations} />
+          </Suspense>
         </GlassCard>
       )}
 
@@ -568,14 +573,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         </div>
       )}
 
-      {showFullPageLoader && (
-        <GlassCard className="text-center py-12">
-          <div role="status" aria-live="polite">
-            <Spinner className="mb-4 h-7 w-7 text-accent" />
-            <p className="text-lg text-zinc-300">{t('recommendations.loading')}</p>
-          </div>
-        </GlassCard>
-      )}
+      {showFullPageLoader && <RecommendationSkeleton label={t('recommendations.loading')} />}
 
       {!loading && error && recommendations.length === 0 && (
         <GlassCard className="text-center py-12">

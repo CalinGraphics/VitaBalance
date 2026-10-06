@@ -231,6 +231,8 @@ export type RecommendationsSyncMeta = {
   refresh_at?: string | null
   /** Recomandări create înainte de explicațiile pe bază de fapte: se regenerează o singură dată. */
   explanations_outdated?: boolean
+  /** Recomandările salvate au fost calculate din exact profilul + analizele de acum (hash-ul intrărilor). */
+  up_to_date?: boolean
 }
 
 export const recommendationsService = {

@@ -60,6 +60,8 @@ describe('schimbarea limbii', () => {
     const roName = recs[0].food.name_ro
     await waitFor(() => expect(screen.getAllByText(roName).length).toBeGreaterThan(0))
     await waitFor(() => expect(api.getSyncMeta).toHaveBeenCalled())
+    // Graficul se încarcă lazy: așteptăm pagina completă, ca măsurătoarea să cuprindă doar schimbarea limbii.
+    await screen.findByText(i18n.t('recommendations.chart.title'), {}, { timeout: 5000 })
 
     const callsBefore = Object.values(api).map((fn) => fn.mock.calls.length)
     const start = performance.now()

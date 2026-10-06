@@ -26,7 +26,10 @@ function syncMetaIsFresh(meta: {
   latest_rec_created_at: string | null
   labs_fresh_at?: string | null
   explanations_outdated?: boolean
+  up_to_date?: boolean
 }): boolean {
+  // Backend-ul compară hash-ul intrărilor (profil + analize + catalog): sursa exactă, nu doar timpii.
+  if (typeof meta.up_to_date === 'boolean') return meta.up_to_date
   if (!meta.latest_rec_created_at) return false
   // Explicații vechi (fără fapte): se regenerează o dată, ca să fie specifice pacientului și disponibile în RO/EN.
   if (meta.explanations_outdated) return false
