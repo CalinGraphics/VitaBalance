@@ -449,7 +449,11 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     <div className="space-y-8">
       <UserProfileInfo user={user} />
 
-      <CaloricGoalProgress goal={user.caloric_goal} recommendations={recommendations} />
+      <CaloricGoalProgress
+        goal={user.caloric_goal}
+        recommendations={recommendations}
+        warning={user.caloric_goal_warning}
+      />
 
       {(showInlineRegenerating || backgroundRefreshNote) && (
         <GlassCard className="border-accent-border">
@@ -491,7 +495,8 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
             </button>
           </div>
 
-          <NutrientChart recommendations={recommendations} />
+          {/* Aceeași listă (și același filtru de categorie) ca în carduri. */}
+          <NutrientChart recommendations={filteredRecommendations} />
         </GlassCard>
       )}
 

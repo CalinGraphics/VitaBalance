@@ -31,8 +31,10 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
   const { t } = useTranslation()
   const seriesName = t('recommendations.chart.series')
 
+  // Primele 5 din lista primită (ordinea backend-ului = ordinea cardurilor); `coverage` e același procent ca pe card.
   const chartData = recommendations.slice(0, 5).map((rec) => ({
-    name: rec.food.name.length > 15 ? rec.food.name.substring(0, 15) + '...' : rec.food.name,
+    name: rec.food.name.length > 18 ? rec.food.name.substring(0, 18) + '…' : rec.food.name,
+    fullName: rec.food.name,
     coverage: Math.round(rec.coverage),
   }))
 
@@ -65,6 +67,7 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
             <Tooltip
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               formatter={(value: number) => [`${value}%`, seriesName]}
+              labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName ?? _label}
               contentStyle={{
                 backgroundColor: '#101113',
                 border: '1px solid rgba(255,255,255,0.16)',

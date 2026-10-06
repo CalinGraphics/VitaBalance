@@ -96,6 +96,10 @@
     "mustar": {
       "label": "Mustard",
       "description": "Allergies to mustard and mustard-containing products"
+    },
+    "moluste": {
+      "label": "Molluscs",
+      "description": "Allergies to mussels, clams, oysters, squid"
     }
   },
   "conditions": {
@@ -158,6 +162,26 @@
     "gout": {
       "label": "Gout",
       "description": "Limit purines (red meat, seafood), stay hydrated"
+    },
+    "sarcina": {
+      "label": "Pregnancy",
+      "description": "We exclude raw fish, high-mercury fish, liver and soft mould-ripened cheese"
+    },
+    "alaptare": {
+      "label": "Breastfeeding",
+      "description": "We exclude high-mercury fish"
+    },
+    "anticoagulante": {
+      "label": "Anticoagulants (warfarin, acenocoumarol)",
+      "description": "Steady vitamin K: no portions very high in vitamin K"
+    },
+    "hemocromatoza": {
+      "label": "Haemochromatosis",
+      "description": "We don't recommend foods to raise iron"
+    },
+    "imunitate_scazuta": {
+      "label": "Weakened immunity",
+      "description": "We exclude raw fish and shellfish and soft mould-ripened cheese"
     }
   },
   "categories": {
@@ -434,9 +458,9 @@
       "all": "All ({{count}})"
     },
     "chart": {
-      "title": "Deficit coverage comparison - Top 5 recommendations",
-      "series": "Deficit coverage",
-      "yAxis": "Coverage (%)"
+      "title": "How much of your daily need one portion covers — top 5",
+      "series": "Of daily need",
+      "yAxis": "Daily need (%)"
     },
     "caloric": {
       "title": "Daily calorie goal",
@@ -448,7 +472,12 @@
       "disclaimer_one": "Informational: sum of the calories of the suggested portions ({{count}} food), estimated from per-100 g values. It is not a meal plan and does not influence the recommendations.",
       "disclaimer_other": "Informational: sum of the calories of the suggested portions ({{count}} foods), estimated from per-100 g values. It is not a meal plan and does not influence the recommendations.",
       "missing_one": "Calorie data is missing for {{count}} food.",
-      "missing_other": "Calorie data is missing for {{count}} foods."
+      "missing_other": "Calorie data is missing for {{count}} foods.",
+      "warning": {
+        "below_bmr": "Your goal of {{goal}} kcal is below your estimated basal metabolic rate ({{bmr}} kcal), the energy your body needs at rest. Your estimated daily expenditure is about {{tdee}} kcal. Talk to a doctor or dietitian before such a restrictive diet.",
+        "far_from_tdee": "Your goal of {{goal}} kcal differs by {{deviation}}% from your estimated daily expenditure (about {{tdee}} kcal). A change this large is worth discussing with a doctor or dietitian.",
+        "method": "Estimated with the Mifflin-St Jeor equation and your activity level. You can keep your goal; this is only a heads-up."
+      }
     },
     "card": {
       "summary": "Summary",
@@ -471,7 +500,8 @@
       "dislikeBody": "Do you want me to swap this recommendation for an alternative that fits your needs?",
       "replacing": "Replacing...",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "coverageHint": "How much of your daily need for the main nutrient the suggested portion covers"
     }
   },
   "pdf": {
@@ -484,7 +514,7 @@
     "section": "NUTRITION RECOMMENDATIONS",
     "category": "Category",
     "portion": "Suggested portion",
-    "coverage": "Deficit coverage",
+    "coverage": "Of daily need",
     "description": "Description",
     "motivation": "Rationale",
     "rights": "All rights reserved.",

@@ -11,6 +11,7 @@ export const ALLERGY_VALUES = [
   'arahide',
   'sesam',
   'mustar',
+  'moluste',
 ] as const
 
 // Funcție helper pentru a converti string de alergii în array

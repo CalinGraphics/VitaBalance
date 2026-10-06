@@ -16,6 +16,12 @@ export const MEDICAL_CONDITION_VALUES = [
   'obezitate',
   'colesterol_ridicat',
   'gout',
+  // Etape de viață și tratamente cu reguli de siguranță (backend/rules/contraindications.py)
+  'sarcina',
+  'alaptare',
+  'anticoagulante',
+  'hemocromatoza',
+  'imunitate_scazuta',
 ] as const
 
 export const parseMedicalConditions = (str: string | undefined | null): string[] => {

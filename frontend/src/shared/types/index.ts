@@ -1,3 +1,11 @@
+export interface CaloricGoalWarning {
+  code: 'below_bmr' | 'far_from_tdee'
+  goal: number
+  bmr: number
+  tdee: number
+  deviation_pct: number
+}
+
 export interface User {
   id?: number
   email: string
@@ -12,6 +20,8 @@ export interface User {
   medical_conditions?: string
   /** Obiectiv caloric zilnic (kcal) — opțional, doar informativ; nu influențează recomandările. */
   caloric_goal?: number | null
+  /** Avertisment informativ calculat de backend (Mifflin-St Jeor); textul se construiește din locales. */
+  caloric_goal_warning?: CaloricGoalWarning | null
   /** Link semnat, temporar, către poza de profil din Supabase Storage (null = fără poză). */
   avatar_url?: string | null
   /** ISO datetime de la API — folosit la polling după regenerare async */

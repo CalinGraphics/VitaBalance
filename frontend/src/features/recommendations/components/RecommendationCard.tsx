@@ -441,7 +441,7 @@ const RecommendationCard = ({
                     </span>
                   )}
                 </p>
-                <div className="flex items-center gap-2 mb-4 min-w-0">
+                <div className="flex items-center gap-2 mb-4 min-w-0" title={t('recommendations.card.coverageHint')}>
                   <div className="flex-1 min-w-0 bg-white/10 rounded-full h-3 sm:h-2.5 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}

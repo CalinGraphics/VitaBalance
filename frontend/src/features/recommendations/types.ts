@@ -5,10 +5,13 @@ export interface Recommendation {
     id: number
     name: string
     category: string
+    /** Categoria stabilă din catalogul validat (nuts, legumes, ...). */
+    category_key?: string | null
     /** kcal la 100 g (din catalogul de alimente); lipsește în răspunsuri mai vechi. */
     calories?: number
   }
   score: number
+  /** % din necesarul zilnic al nutrientului principal acoperit de porție (aceeași cifră în grafic și pe card). */
   coverage: number
   explanation: {
     text: string

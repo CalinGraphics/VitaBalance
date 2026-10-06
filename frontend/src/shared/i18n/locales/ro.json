@@ -98,6 +98,10 @@
     "mustar": {
       "label": "Muștar",
       "description": "Alergii la muștar și produse care conțin muștar"
+    },
+    "moluste": {
+      "label": "Moluște",
+      "description": "Alergii la midii, scoici, stridii, calamar"
     }
   },
   "conditions": {
@@ -160,6 +164,26 @@
     "gout": {
       "label": "Gută",
       "description": "Limitare purine (carne roșie, fructe de mare), hidratare"
+    },
+    "sarcina": {
+      "label": "Sarcină",
+      "description": "Excludem peștele crud, peștele bogat în mercur, ficatul și brânzeturile moi cu mucegai"
+    },
+    "alaptare": {
+      "label": "Alăptare",
+      "description": "Excludem peștele bogat în mercur"
+    },
+    "anticoagulante": {
+      "label": "Anticoagulante (warfarină, acenocumarol)",
+      "description": "Vitamina K constantă: fără porții foarte bogate în vitamina K"
+    },
+    "hemocromatoza": {
+      "label": "Hemocromatoză",
+      "description": "Nu recomandăm alimente pentru creșterea fierului"
+    },
+    "imunitate_scazuta": {
+      "label": "Imunitate scăzută",
+      "description": "Excludem peștele și fructele de mare crude și brânzeturile moi cu mucegai"
     }
   },
   "categories": {
@@ -437,9 +461,9 @@
       "all": "Toate ({{count}})"
     },
     "chart": {
-      "title": "Comparație acoperire deficit - Top 5 recomandări",
-      "series": "Acoperire deficit",
-      "yAxis": "Acoperire (%)"
+      "title": "Cât din necesarul zilnic acoperă o porție — primele 5",
+      "series": "Din necesarul zilnic",
+      "yAxis": "Necesar zilnic (%)"
     },
     "caloric": {
       "title": "Obiectiv caloric zilnic",
@@ -453,7 +477,12 @@
       "disclaimer_other": "Informativ: suma caloriilor porțiilor sugerate ({{count}} de alimente), estimată din valorile la 100 g. Nu este un plan alimentar și nu influențează recomandările.",
       "missing_one": "Pentru {{count}} aliment lipsesc datele calorice.",
       "missing_few": "Pentru {{count}} alimente lipsesc datele calorice.",
-      "missing_other": "Pentru {{count}} de alimente lipsesc datele calorice."
+      "missing_other": "Pentru {{count}} de alimente lipsesc datele calorice.",
+      "warning": {
+        "below_bmr": "Obiectivul tău de {{goal}} kcal e sub metabolismul bazal estimat ({{bmr}} kcal), energia de care corpul are nevoie în repaus. Consumul tău zilnic estimat e de aproximativ {{tdee}} kcal. Discută cu un medic sau nutriționist înainte de o dietă atât de restrictivă.",
+        "far_from_tdee": "Obiectivul tău de {{goal}} kcal diferă cu {{deviation}}% de consumul zilnic estimat (aproximativ {{tdee}} kcal). O schimbare atât de mare e bine să fie discutată cu un medic sau nutriționist.",
+        "method": "Estimare cu ecuația Mifflin-St Jeor și nivelul tău de activitate. Poți păstra obiectivul; e doar o atenționare."
+      }
     },
     "card": {
       "summary": "Rezumat",
@@ -476,7 +505,8 @@
       "dislikeBody": "Vrei să îți schimb această recomandare cu o alternativă potrivită nevoilor tale?",
       "replacing": "Se înlocuiește...",
       "yes": "Da",
-      "no": "Nu"
+      "no": "Nu",
+      "coverageHint": "Cât din necesarul tău zilnic pentru nutrientul principal acoperă porția sugerată"
     }
   },
   "pdf": {
@@ -489,7 +519,7 @@
     "section": "RECOMANDĂRI NUTRIȚIONALE",
     "category": "Categorie",
     "portion": "Porție sugerată",
-    "coverage": "Acoperire deficit",
+    "coverage": "Din necesarul zilnic",
     "description": "Descriere",
     "motivation": "Motivație",
     "rights": "Toate drepturile rezervate.",

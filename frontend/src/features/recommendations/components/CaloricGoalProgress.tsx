@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Flame } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '../../../shared/components'
+import type { CaloricGoalWarning } from '../../../shared/types'
 import type { Recommendation } from '../types'
 import { sumRecommendationCalories } from '../utils/calories'
 
@@ -9,13 +10,15 @@ interface CaloricGoalProgressProps {
   /** Obiectivul caloric zilnic al utilizatorului (kcal). Componenta nu se afișează fără el. */
   goal: number | null | undefined
   recommendations: Recommendation[]
+  /** Obiectiv sub metabolismul bazal sau departe de consumul estimat; nu blochează nimic. */
+  warning?: CaloricGoalWarning | null
 }
 
 /**
  * Bară de progres informativă: caloriile porțiilor sugerate vs. obiectivul caloric setat în profil.
  * Nu influențează scorarea sau selecția recomandărilor — doar le raportează la obiectiv.
  */
-const CaloricGoalProgress = ({ goal, recommendations }: CaloricGoalProgressProps) => {
+const CaloricGoalProgress = ({ goal, recommendations, warning }: CaloricGoalProgressProps) => {
   const { t } = useTranslation()
   const { total, counted } = useMemo(() => sumRecommendationCalories(recommendations), [recommendations])
 
@@ -38,6 +41,20 @@ const CaloricGoalProgress = ({ goal, recommendations }: CaloricGoalProgressProps
           <p className="text-xs text-zinc-400">{t('recommendations.caloric.subtitle')}</p>
         </div>
       </div>
+
+      {warning && (
+        <div role="note" className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3 text-sm leading-relaxed text-amber-200">
+          <p>
+            {t(`recommendations.caloric.warning.${warning.code}`, {
+              goal: warning.goal,
+              bmr: warning.bmr,
+              tdee: warning.tdee,
+              deviation: Math.abs(warning.deviation_pct),
+            })}
+          </p>
+          <p className="mt-1 text-xs text-amber-200/70">{t('recommendations.caloric.warning.method')}</p>
+        </div>
+      )}
 
       {counted === 0 ? (
         <p className="text-sm text-zinc-400">{t('recommendations.caloric.noData')}</p>
