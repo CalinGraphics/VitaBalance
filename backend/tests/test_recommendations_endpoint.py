@@ -18,6 +18,7 @@ if HAS_FASTAPI:
     import main as main_module
     from services.recommendations import materialize as materialize_module
 from domain.models import FoodItem, LabResultItem, RecommendationItem, UserProfile
+from tests.catalog_fixture import food
 
 
 def make_user_profile(**overrides) -> UserProfile:
@@ -127,11 +128,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
     def test_excludes_chicken_when_medical_condition_says_no_chicken(self):
         user = make_user_profile(medical_conditions="nu mananc pui")
-        foods = [
-            FoodItem(id=10, name="Pui la rotisor", category="carne", protein=30, iron=1.2),
-            FoodItem(id=11, name="Somon la cuptor", category="pește & fructe de mare", protein=25, vitamin_d=8),
-            FoodItem(id=12, name="Linte fiartă", category="leguminoase", protein=9, iron=3.3, folate=180),
-        ]
+        foods = [food("chicken_breast", id=10), food("salmon_farmed", id=11), food("lentils", id=12)]
         labs = LabResultItem(id=1, user_id=1)  # fără biomarkeri completați
 
         ctx = self._make_repo_patches(user, foods, labs)
@@ -145,10 +142,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
     def test_no_lab_data_uses_profile_wording_not_medical_analyses(self):
         user = make_user_profile()
-        foods = [
-            FoodItem(id=21, name="Năut fiert", category="leguminoase", protein=8.5, folate=170, iron=2.7),
-            FoodItem(id=22, name="Macrou", category="pește & fructe de mare", vitamin_d=10, vitamin_b12=9),
-        ]
+        foods = [food("chickpeas", id=21), food("mackerel", id=22)]
         labs = LabResultItem(id=2, user_id=1)  # toate None
 
         ctx = self._make_repo_patches(user, foods, labs)
@@ -165,10 +159,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
     def test_low_hemoglobin_without_ferritin_triggers_iron_context(self):
         user = make_user_profile()
-        foods = [
-            FoodItem(id=30, name="Ficat de pui", category="carne", iron=8.5, vitamin_b12=16),
-            FoodItem(id=31, name="Castravete", category="legume", iron=0.3, vitamin_c=5),
-        ]
+        foods = [food("chicken_liver", id=30), food("cucumber", id=31)]
         labs = LabResultItem(id=3, user_id=1, hemoglobin=11.0, ferritin=None)
 
         ctx = self._make_repo_patches(user, foods, labs)
@@ -182,9 +173,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
     def test_list_stored_recommendations_returns_db_rows(self):
         user = make_user_profile()
-        foods = [
-            FoodItem(id=40, name="Ovăz", category="cereale", protein=12, iron=2),
-        ]
+        foods = [food("oats", id=40)]
         labs = LabResultItem(id=4, user_id=1)
 
         class FakeRecRepoWithRows:

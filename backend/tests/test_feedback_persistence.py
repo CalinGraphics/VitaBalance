@@ -3,11 +3,8 @@ import pytest
 
 from domain.models import FoodItem, RecommendationItem
 from repositories.feedback_repository import FeedbackRepository
-from services.recommendations.materialize import (
-    _api_item_from_rec,
-    _build_feedback_by_food,
-    _rating_by_food,
-)
+from services.recommendations.materialize import _api_item_from_rec, _rating_by_food
+from services.recommendations.recommender import feedback_map
 
 
 class _Resp:
@@ -96,7 +93,7 @@ def test_feedback_without_recommendation_link_is_kept_by_food():
     feedbacks = repo.get_by_user_id(1)
     assert len(feedbacks) == 1 and feedbacks[0].recommendation_id is None
     assert _rating_by_food(feedbacks) == {5: -1}
-    assert set(_build_feedback_by_food(feedbacks)) == {5}
+    assert feedback_map(feedbacks) == {5: "dislike"}  # votul scade scorul alimentului la regenerare
 
 
 def test_deleted_recommendation_falls_back_to_given_food_id():

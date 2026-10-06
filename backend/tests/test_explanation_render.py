@@ -1,15 +1,16 @@
-"""Explicații specifice pacientului, randate din fapte în RO/EN."""
+"""Explicații specifice pacientului, randate din fapte în RO/EN (fapte produse de motorul real, pe catalogul real)."""
 import re
 
-from domain.models import FoodItem, LabResultItem, UserProfile, food_display_name
+from domain.models import LabResultItem, UserProfile, food_display_name
 from services.explanations import i18n
-from services.nutrition.deficit_calculator import DeficitCalculator
-from services.explanations.facts import CONDITION_PATTERNS, NUTRIENT_KEYS, alternatives_for, build_facts, has_facts
+from services.explanations.facts import NUTRIENT_KEYS, build_facts, has_facts
 from services.explanations.renderer import SECTION_SEP, render_explanation
 from services.explanations.storage import explanation_from_db_row, explanation_to_db_fields
-from services.recommendations.portion_calculator import PortionSuggestion
+from services.nutrition.needs import detect_needs
+from services.nutrition.profile_context import CONDITION_CODES, TEXT_PATTERNS
+from services.recommendations.scoring import rank_foods
+from tests.catalog_fixture import food
 
-PORTION = PortionSuggestion(amount=150, unit="g", grams_equivalent=150)
 ROMANIAN_LETTERS = re.compile(r"[ăâîșțĂÂÎȘȚ]")
 
 
@@ -24,19 +25,11 @@ def _lab(**kw) -> LabResultItem:
     return LabResultItem(id=1, user_id=1, **kw)
 
 
-def _food(**kw) -> FoodItem:
-    base = dict(id=1, name="Spanac", name_en="Spinach", category="Legume",
-                iron=2.7, calcium=99, vitamin_c=28, magnesium=79, potassium=558, vitamin_b12=1.2)
-    base.update(kw)
-    return FoodItem(**base)
-
-
-def _facts(user, lab, food=None, covered=None, has_lab=True):
-    food = food or _food()
-    deficits = DeficitCalculator().calculate_deficits(user, lab)
-    rec = {"nutrients_covered": covered or [], "coverage": 30.0, "score": 5.0, "matched_rules": []}
-    return build_facts(food=food, user=user, lab_results=lab, deficits=deficits, rec=rec,
-                       portion=PORTION, has_lab_data=has_lab)
+def _facts(user, lab, key="spinach_cooked"):
+    f = food(key)
+    ranking = rank_foods([f], detect_needs(user, lab))
+    assert ranking.items, f"{key} nu a fost recomandat"
+    return build_facts(ranking.items[0], ranking, has_lab_data=lab is not None)
 
 
 def _all_text(expl) -> str:
@@ -46,89 +39,99 @@ def _all_text(expl) -> str:
 # ---------- specific pacientului ----------
 
 def test_lab_value_and_threshold_are_quoted_in_both_languages():
-    facts = _facts(_user(), _lab(ferritin=12.0), covered=["iron"])
+    facts = _facts(_user(), _lab(ferritin=12.0))
     iron = facts["nutrients"][0]
     assert iron["key"] == "iron"
-    assert iron["need"] == {"source": "lab", "marker": "ferritin", "value": 12.0, "threshold": 30.0, "unit": "ng/mL"}
+    assert iron["need"] == {"nutrient": "iron", "source": "lab", "severity": "moderate", "daily_reference": 16.0,
+                            "marker": "ferritin", "value": 12.0, "threshold": 15.0, "unit": "ng/mL"}
 
-    ro = render_explanation(facts, food_name="Spanac", lang="ro")
-    en = render_explanation(facts, food_name="Spinach", lang="en")
-    assert "Feritină: 12 ng/mL (prag: 30 ng/mL)" in ro["reasons"][0]
-    assert "Ferritin: 12 ng/mL (threshold: 30 ng/mL)" in en["reasons"][0]
+    ro = render_explanation(facts, food_name="Spanac fiert", lang="ro")
+    en = render_explanation(facts, food_name="Cooked spinach", lang="en")
+    assert "Feritină: 12 ng/mL (prag: 15 ng/mL)" in ro["reasons"][0]
+    assert "Ferritin: 12 ng/mL (threshold: 15 ng/mL)" in en["reasons"][0]
     assert "valori sub pragul clinic pentru: fier" in ro["text"]
     assert "below the clinical threshold for: iron" in en["text"]
 
 
-def test_hemoglobin_is_used_when_ferritin_is_missing():
-    facts = _facts(_user(), _lab(hemoglobin=10.5), covered=["iron"])
-    need = facts["nutrients"][0]["need"]
+def test_hemoglobin_is_used_when_ferritin_is_missing_with_sex_specific_threshold():
+    need = _facts(_user(), _lab(hemoglobin=10.5))["nutrients"][0]["need"]
     assert (need["marker"], need["value"], need["threshold"], need["unit"]) == ("hemoglobin", 10.5, 12.0, "g/dL")
+    need_m = _facts(_user(sex="M"), _lab(hemoglobin=12.5))["nutrients"][0]["need"]
+    assert need_m["threshold"] == 13.0
 
 
 def test_decimal_separator_follows_language():
-    facts = _facts(_user(), _lab(hemoglobin=10.5), covered=["iron"])
+    facts = _facts(_user(), _lab(hemoglobin=10.5))
     assert "10,5 g/dL" in render_explanation(facts, food_name="x", lang="ro")["reasons"][0]
     assert "10.5 g/dL" in render_explanation(facts, food_name="x", lang="en")["reasons"][0]
 
 
 def test_diet_allergies_and_conditions_appear_with_their_restriction():
     user = _user(diet_type="vegan", allergies="lactoza, nuci", medical_conditions="hipertensiune")
-    facts = _facts(user, _lab(vitamin_b12=165.0), covered=["vitamin_b12"])
+    facts = _facts(user, _lab(vitamin_b12=165.0), key="soy_milk_fortified")
     assert facts["profile"] == {"diet": "vegan", "allergies": ["lactoza", "nuci"], "conditions": ["hypertension"]}
 
-    ro = render_explanation(facts, food_name="Spanac", lang="ro")
-    en = render_explanation(facts, food_name="Spinach", lang="en")
+    ro = render_explanation(facts, food_name="Lapte de soia", lang="ro")
+    en = render_explanation(facts, food_name="Soy milk", lang="en")
     ro_reasons, en_reasons = " ".join(ro["reasons"]), " ".join(en["reasons"])
     assert "dieta vegană" in ro_reasons and "lactoză și nuci" in ro_reasons and "hipertensiune" in ro_reasons
-    assert "fără sare adăugată" in ro_reasons
-    assert "a vegan diet" in en_reasons and "lactose and tree nuts" in en_reasons and "hypertension" in en_reasons
-    assert "no added salt" in en_reasons
+    assert "fără alimente bogate în sare" in ro_reasons
+    assert "a vegan diet" in en_reasons and "lactose and tree nuts" in en_reasons and "high blood pressure" in en_reasons
+    assert "no high-salt foods" in en_reasons
     assert any("dieta vegană" in t and "medicul" in t for t in ro["tips"])
     assert any("vegan diet" in t and "doctor" in t for t in en["tips"])
 
 
-def test_need_mentioned_in_notes_is_worded_as_patient_reported():
-    user = _user(medical_conditions="deficiență de magneziu")
-    facts = _facts(user, None, food=_food(), has_lab=False)
+def test_need_stated_in_notes_is_worded_as_user_reported_and_lab_need_never_is():
+    facts = _facts(_user(medical_conditions="deficiență de magneziu"), None)
     assert facts["nutrients"][0]["key"] == "magnesium"
-    assert facts["nutrients"][0]["need"] == {"source": "notes"}
+    assert facts["nutrients"][0]["need"]["source"] == "notes"
     ro = render_explanation(facts, food_name="Spanac", lang="ro")
     assert "ai menționat nevoia de: magneziu" in ro["text"]
     assert "nu ai încă analize" in " ".join(ro["reasons"])
 
+    # Același text în observații, dar analiza arată deficit: sursa e analiza, nu „ai menționat”.
+    lab_facts = _facts(_user(medical_conditions="deficiență de magneziu"), _lab(magnesium=1.4))
+    mg = next(n for n in lab_facts["nutrients"] if n["key"] == "magnesium")
+    assert mg["need"]["source"] == "lab"
+    assert "menționat" not in render_explanation(lab_facts, food_name="Spanac", lang="ro")["text"]
+
 
 # ---------- strict: doar ce ține de pacient ----------
 
-def test_only_nutrients_with_a_modelled_deficit_are_mentioned():
-    # Spanacul e bogat și în calciu/magneziu/potasiu, dar analizele arată deficit doar la fier.
-    facts = _facts(_user(), _lab(ferritin=12.0, calcium=9.5, magnesium=2.0, potassium=4.2), covered=["iron", "calcium"])
+def test_only_nutrients_with_a_deficit_are_mentioned():
+    # Spanacul aduce și calciu/magneziu/potasiu, dar analizele arată deficit doar la fier.
+    facts = _facts(_user(), _lab(ferritin=12.0, calcium=9.5, magnesium=2.0, potassium=4.2))
     assert [n["key"] for n in facts["nutrients"]] == ["iron"]
     ro = render_explanation(facts, food_name="Spanac", lang="ro")
     assert "calciu" not in _all_text(ro) and "magneziu" not in _all_text(ro)
 
 
 def test_without_deficits_only_general_contribution_is_stated_no_deficit_claim():
-    facts = _facts(_user(), None, has_lab=False)
+    facts = _facts(_user(), None)
     assert facts["nutrients"] and all(n["need"]["source"] == "general" for n in facts["nutrients"])
     ro = render_explanation(facts, food_name="Spanac", lang="ro")
     assert "compatibil cu profilul tău" in ro["text"]
     assert "sub pragul" not in _all_text(ro) and "deficit" not in _all_text(ro).lower()
 
 
-def test_kidney_condition_never_gets_a_generic_advice_to_increase_potassium():
-    facts = _facts(_user(medical_conditions="insuficiență renală"), _lab(potassium=3.0), covered=["potassium"])
-    ro = render_explanation(facts, food_name="Spanac", lang="ro")
-    en = render_explanation(facts, food_name="Spinach", lang="en")
-    assert any("discută cu medicul înainte de a crește aportul de potasiu" in t for t in ro["tips"])
-    assert any("talk to your doctor before increasing your potassium" in t for t in en["tips"])
-    assert i18n.TIPS["ro"]["potassium"] not in ro["tips"]
+def test_every_tip_has_a_source():
+    assert set(i18n.TIPS["ro"]) == set(i18n.TIPS["en"]) == set(i18n.TIP_SOURCES)
+    assert all(i18n.TIP_SOURCES.values())
+
+
+def test_vitamin_c_iron_tip_only_for_plant_iron():
+    plant = render_explanation(_facts(_user(), _lab(ferritin=8.0), key="lentils"), food_name="x", lang="en")
+    animal = render_explanation(_facts(_user(), _lab(ferritin=8.0), key="beef_lean"), food_name="x", lang="en")
+    assert any("vitamin C" in t for t in plant["tips"] or [])
+    assert not any("vitamin C" in t for t in animal["tips"] or [])
 
 
 # ---------- traducere ----------
 
 def test_english_output_has_no_romanian_text_and_matches_romanian_structure():
     user = _user(diet_type="vegan", allergies="oua", medical_conditions="hipertensiune, deficiență de magneziu")
-    facts = _facts(user, _lab(ferritin=12.0, vitamin_b12=150.0), covered=["iron", "vitamin_b12"])
+    facts = _facts(user, _lab(ferritin=12.0, vitamin_b12=150.0))
     facts["alternatives"] = [2, 3]
     names_en = {2: "Lentils", 3: "Tofu"}
     names_ro = {2: "Linte", 3: "Tofu"}
@@ -138,12 +141,12 @@ def test_english_output_has_no_romanian_text_and_matches_romanian_structure():
     assert not ROMANIAN_LETTERS.search(_all_text(en)), _all_text(en)
     assert en["alternatives"] == ["Lentils", "Tofu"] and ro["alternatives"] == ["Linte", "Tofu"]
     assert len(en["reasons"]) == len(ro["reasons"])
-    assert len(en["tips"]) == len(ro["tips"])
+    assert len(en["tips"] or []) == len(ro["tips"] or [])
     assert len(en["text"].split(SECTION_SEP)) == len(ro["text"].split(SECTION_SEP))
 
 
 def test_unknown_language_falls_back_to_romanian():
-    facts = _facts(_user(), _lab(ferritin=12.0), covered=["iron"])
+    facts = _facts(_user(), _lab(ferritin=12.0))
     assert render_explanation(facts, food_name="Spanac", lang="fr")["text"] == \
         render_explanation(facts, food_name="Spanac", lang="ro")["text"]
     assert [i18n.normalize_lang(x) for x in ("EN", "en-GB", "en_US", None, "de")] == ["en", "en", "en", "ro", "ro"]
@@ -154,28 +157,21 @@ def test_catalogs_are_complete_in_both_languages():
                     i18n.CONDITION_LABELS, i18n.DIET_LABELS, i18n.MARKER_LABELS):
         assert set(catalog["ro"]) == set(catalog["en"])
     assert set(NUTRIENT_KEYS) == set(i18n.NUTRIENT_LABELS["ro"]) == set(i18n.NUTRIENT_UNITS)
-    assert set(CONDITION_PATTERNS) == set(i18n.CONDITION_LABELS["ro"])
+    assert set(CONDITION_CODES.values()) | set(TEXT_PATTERNS) == set(i18n.CONDITION_LABELS["ro"])
 
 
 def test_food_display_name_uses_english_name_with_fallback():
-    assert food_display_name(_food(), "en") == "Spinach"
-    assert food_display_name(_food(name_en=None), "en") == "Spanac"
-    assert food_display_name(_food(), "ro") == "Spanac"
-
-
-# ---------- alternative ----------
-
-def test_alternatives_share_the_primary_nutrient():
-    recs = [{"food_id": 1}, {"food_id": 2}, {"food_id": 3}]
-    keys = {1: ["iron", "calcium"], 2: ["calcium", "iron"], 3: ["magnesium"]}
-    # 1 (fier) -> 2 conține fier; 2 (calciu) -> 1 conține calciu; 3 (magneziu) nu are alte surse în listă
-    assert alternatives_for(recs, keys) == {1: [2], 2: [1], 3: []}
+    f = food("spinach_raw")
+    assert food_display_name(f, "en") == "Raw spinach"
+    assert food_display_name(food("spinach_raw", name_en=None), "en") == "Spanac crud"
+    assert food_display_name(f, "ro") == "Spanac crud"
 
 
 # ---------- persistență ----------
 
 def test_facts_roundtrip_through_db_fields_and_render_in_requested_language():
-    facts = _facts(_user(), _lab(ferritin=12.0), covered=["iron"])
+    facts = _facts(_user(), _lab(ferritin=12.0))
+    assert facts["trace"]["components"] and facts["trace"]["score"] > 0  # scorul e urmăribil până la cifre
     expl = render_explanation(facts, food_name="Spanac", lang="ro")
     expl["facts"] = facts
     fields = explanation_to_db_fields(expl)

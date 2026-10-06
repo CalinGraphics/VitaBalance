@@ -18,6 +18,7 @@ from services.explanations.i18n import (
     NUTRIENT_UNITS,
     SENTENCES,
     TIPS,
+    TIP_SOURCES,
     normalize_lang,
 )
 
@@ -43,20 +44,26 @@ def _portion_label(portion: Dict[str, Any]) -> str:
 
 
 def _tips_for(facts: Dict[str, Any], lang: str) -> List[str]:
+    """Doar sfaturi cu sursă (i18n.TIP_SOURCES), alese după nutrienții alimentului și profil."""
     catalog = TIPS[lang]
-    conditions = set((facts.get("profile") or {}).get("conditions") or [])
-    diet = (facts.get("profile") or {}).get("diet")
+    profile = facts.get("profile") or {}
+    conditions = set(profile.get("conditions") or [])
     keys: List[str] = []
-    for n in facts.get("nutrients") or []:
-        key = n["key"]
-        if key == "vitamin_b12" and diet == "vegan":
+    nutrient_keys = [n["key"] for n in facts.get("nutrients") or []]
+    need_keys = {n["key"] for n in facts.get("nutrients") or [] if (n.get("need") or {}).get("source") in ("lab", "notes")}
+    for key in nutrient_keys:
+        if key == "vitamin_b12" and profile.get("diet") == "vegan":
             keys.append("vitamin_b12_vegan")
-        elif key in ("potassium", "protein") and "renal" in conditions:
-            keys.append(f"{key}_renal")  # siguranță: fără îndemn generic de a crește aportul
+        elif key == "iron" and facts.get("animal"):
+            continue  # sfatul cu vitamina C privește fierul din plante (non-hem)
         elif key in catalog:
             keys.append(key)
-    tips = [catalog[k] for k in dict.fromkeys(keys)]
-    return (tips or [catalog["default"]])[:MAX_TIPS]
+    if "calcium" in nutrient_keys and "iron" in need_keys:
+        keys.append("calcium_iron")
+    if "anticoagulant" in conditions and facts.get("category") == "leafy_greens":
+        keys.append("vitamin_k_anticoagulant")
+    keys = [k for k in dict.fromkeys(keys) if k in TIP_SOURCES]
+    return [catalog[k] for k in keys][:MAX_TIPS]
 
 
 def render_explanation(
@@ -77,7 +84,7 @@ def render_explanation(
     profile = facts.get("profile") or {}
     portion = facts.get("portion") or {}
 
-    by_source: Dict[str, List[Dict[str, Any]]] = {"lab": [], "notes": [], "profile": [], "general": []}
+    by_source: Dict[str, List[Dict[str, Any]]] = {"lab": [], "notes": [], "general": []}
     for n in nutrients:
         by_source.setdefault((n.get("need") or {}).get("source", "general"), []).append(n)
 
@@ -91,8 +98,6 @@ def render_explanation(
             headline += " " + s["also_notes"].format(list=names(by_source["notes"]))
     elif by_source["notes"]:
         headline = s["headline_notes"].format(food=food_name, list=names(by_source["notes"]))
-    elif by_source["profile"]:
-        headline = s["headline_profile"].format(food=food_name, list=names(by_source["profile"]))
     elif by_source["general"]:
         headline = s["headline_general"].format(food=food_name, list=names(by_source["general"]))
     else:
@@ -136,7 +141,7 @@ def render_explanation(
                 **density(n),
             )
         )
-    for key in ("notes", "profile", "general"):
+    for key in ("notes", "general"):
         for n in by_source[key]:
             reasons.append(
                 s[f"reason_{key}"].format(
@@ -171,6 +176,6 @@ def render_explanation(
         "portion": portion.get("amount") or 0,
         "portion_unit": portion.get("unit") or "g",
         "reasons": reasons,
-        "tips": _tips_for(facts, lang),
+        "tips": _tips_for(facts, lang) or None,
         "alternatives": alternatives or None,
     }

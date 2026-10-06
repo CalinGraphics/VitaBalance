@@ -1,23 +1,35 @@
-"""Calorii afișate informativ: doar valori plauzibile per 100 g (preparatele per porție sunt excluse)."""
+"""Caloriile porției: kcal_la_100g × grame / 100, doar pe valori validate."""
+import pytest
+
 from domain.models import FoodItem
+from services.nutrition.food_validation import portion_kcal
 from services.recommendations.materialize import kcal_per_100g_for_display
+from tests.catalog_fixture import food
 
 
-def _food(**kw) -> FoodItem:
-    base = dict(id=1, name="X", category="Legume")
-    base.update(kw)
-    return FoodItem(**base)
+def test_portion_kcal_formula():
+    assert portion_kcal(579, 30) == pytest.approx(173.7)
+    assert portion_kcal(100, 0) is None
+    assert portion_kcal(None, 30) is None
 
 
-def test_plausible_per_100g_value_is_returned():
-    assert kcal_per_100g_for_display(_food(calories=114, protein=8, fat=0.5, carbs=20)) == 114
+@pytest.mark.parametrize("key, grams, expected", [
+    ("almonds", 30, 174),          # 579 kcal/100 g (USDA 170567)
+    ("mixed_nuts", 30, 182),       # 607 kcal/100 g — bug-ul vechi dădea 60 kcal
+    ("croutons", 15, 70),          # 465 kcal/100 g — bug-ul vechi dădea 76 kcal pentru 152 g
+    ("egg_boiled", 50, 78),        # 155 kcal/100 g, un ou = 50 g
+    ("wholewheat_bread", 40, 101), # o felie = 40 g
+])
+def test_catalog_portion_kcal(key, grams, expected):
+    f = food(key)
+    assert f.portion_g == grams
+    assert round(portion_kcal(kcal_per_100g_for_display(f), f.portion_g)) == expected
 
 
-def test_meal_with_per_serving_values_is_excluded():
-    # Macronutrienți însumați > 100 g la "100 g" => rând per porție (ex. Paste Alfredo)
-    assert kcal_per_100g_for_display(_food(calories=680, protein=35, fat=38, carbs=45)) is None
+def test_croutons_at_the_old_buggy_portion_would_be_about_700_kcal():
+    assert round(portion_kcal(food("croutons").calories, 152)) == 707
 
 
-def test_missing_or_zero_calories_is_none():
-    assert kcal_per_100g_for_display(_food(calories=0)) is None
-    assert kcal_per_100g_for_display(_food()) is None
+def test_legacy_unvalidated_food_has_no_kcal_estimate():
+    legacy = FoodItem(id=1, name="Crutoane cu Usturoi", category="Cereale", calories=50)
+    assert kcal_per_100g_for_display(legacy) is None

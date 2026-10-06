@@ -1,11 +1,9 @@
-"""Încărcare reguli clinice din JSON + normalizare text pentru matching robust."""
+"""Normalizarea textului clinic (fără diacritice, litere mici) și aliasurile de alergii."""
 from __future__ import annotations
 
-import json
 import re
 import unicodedata
-from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Dict
 
 
 def normalize_clinical_text(value: str) -> str:
@@ -28,13 +26,12 @@ ALLERGY_TOKEN_ALIASES: Dict[str, str] = {
     "peanuts": "arahide",
     "milk": "lactoza",
     "lapte": "lactoza",
-    "dairy": "lactate",
-    "lactate": "lactate",
-    "branza": "lactate",
-    "brânză": "lactate",
-    "cheese": "lactate",
+    "dairy": "lactoza",
+    "lactate": "lactoza",
+    "branza": "lactoza",
+    "cheese": "lactoza",
     "lactose": "lactoza",
-    "casein": "lactate",
+    "casein": "lactoza",
     "egg": "oua",
     "eggs": "oua",
     "wheat": "gluten",
@@ -48,29 +45,6 @@ ALLERGY_TOKEN_ALIASES: Dict[str, str] = {
 }
 
 
-def normalize_diet_type(value: Optional[str]) -> str:
-    """Valoare dietă din UI/DB: vegan, Vegan, OMNIVORE -> lowercase consistent."""
-    if value is None or not str(value).strip():
-        return "omnivore"
-    return str(value).strip().lower()
-
-
 def resolve_allergy_token(normalized_user_allergy: str) -> str:
     """Mapări comune (ex. fish → peste) după normalizare clinică."""
     return ALLERGY_TOKEN_ALIASES.get(normalized_user_allergy, normalized_user_allergy)
-
-
-def load_medical_rules_config() -> Dict[str, Any]:
-    cfg_path = Path(__file__).resolve().parents[2] / "data" / "medical_rules.json"
-    if not cfg_path.exists():
-        return {"condition_food_rules": [], "condition_trigger_rules": []}
-    try:
-        with cfg_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            return {"condition_food_rules": [], "condition_trigger_rules": []}
-        data.setdefault("condition_food_rules", [])
-        data.setdefault("condition_trigger_rules", [])
-        return data
-    except Exception:
-        return {"condition_food_rules": [], "condition_trigger_rules": []}

@@ -54,44 +54,40 @@ DIET_LABELS: Dict[str, Dict[str, str]] = {
 
 ALLERGY_LABELS: Dict[str, Dict[str, str]] = {
     "ro": {"lactoza": "lactoză", "gluten": "gluten", "nuci": "nuci", "oua": "ouă", "soia": "soia", "peste": "pește",
-           "crustacee": "crustacee", "arahide": "arahide", "sesam": "susan", "mustar": "muștar"},
+           "crustacee": "crustacee", "arahide": "arahide", "sesam": "susan", "mustar": "muștar", "moluste": "moluște"},
     "en": {"lactoza": "lactose", "gluten": "gluten", "nuci": "tree nuts", "oua": "eggs", "soia": "soy",
-           "peste": "fish", "crustacee": "shellfish", "arahide": "peanuts", "sesam": "sesame", "mustar": "mustard"},
+           "peste": "fish", "crustacee": "crustaceans", "arahide": "peanuts", "sesam": "sesame", "mustar": "mustard",
+           "moluste": "molluscs"},
 }
 
-# Afecțiuni cu restricții alimentare: (etichetă, restricția respectată). Cheile = ids din explanation_facts.CONDITION_PATTERNS.
+# Afecțiuni cu reguli alimentare: (etichetă, ce s-a respectat). Cheile = ProfileContext.conditions
+# (services/nutrition/profile_context.py); restricțiile descriu regulile din rules/contraindications.py.
 CONDITION_LABELS: Dict[str, Dict[str, tuple]] = {
     "ro": {
-        "celiac": ("boală celiacă / sensibilitate la gluten", "fără gluten (grâu, făină, pâine, paste, ovăz, orz)"),
-        "lactose": ("intoleranță la lactoză", "fără lactate (lapte, brânză, iaurt, smântână)"),
-        "reflux": ("reflux gastroesofagian", "fără alimente picante, cafea, ciocolată sau prăjeli"),
-        "gastritis": ("gastrită / ulcer", "fără alimente picante, alcool sau cafea"),
-        "gout": ("gută", "fără organe, fructe de mare sau carne roșie"),
-        "renal": ("afecțiune renală", "fără alimente bogate în oxalați (spanac, rabarbar) sau sare adăugată"),
-        "diabetes": ("diabet", "fără zahăr adăugat, siropuri sau dulciuri"),
-        "hypertension": ("hipertensiune", "fără sare adăugată, mezeluri sau conserve"),
-        "ibs": ("colon iritabil", "fără lactate, fructoză în exces sau grâu"),
-        "colitis": ("colită / boală Crohn", "fără lactate, grâu sau alimente grase"),
-        "diverticulitis": ("diverticulită", "fără semințe, nuci sau floricele de porumb"),
-        "liver_pancreas": ("afecțiune hepatică, pancreatică sau biliară", "fără alcool, grăsimi în exces sau prăjeli"),
-        "cholesterol_cardio": ("colesterol ridicat / risc cardiovascular",
-                               "fără prăjeli, mezeluri, brânzeturi grase sau unt"),
+        "pregnancy": ("sarcină", "fără pește sau fructe de mare crude, pește bogat în mercur, ficat sau brânzeturi moi cu mucegai"),
+        "lactation": ("alăptare", "fără pește bogat în mercur"),
+        "immunocompromised": ("imunitate scăzută", "fără pește sau fructe de mare crude și brânzeturi moi cu mucegai"),
+        "anticoagulant": ("tratament anticoagulant", "fără porții foarte bogate în vitamina K, pentru un aport constant"),
+        "ckd": ("boală cronică de rinichi", "fără alimente bogate în potasiu; fosforul e limitat"),
+        "hemochromatosis": ("hemocromatoză", "fără alimente alese pentru creșterea fierului și fără ficat"),
+        "hypertension": ("hipertensiune", "fără alimente bogate în sare"),
+        "diabetes": ("diabet", "preferăm porțiile cu puțini carbohidrați disponibili și fără zahăr adăugat"),
+        "celiac": ("boală celiacă", "fără gluten"),
+        "gout": ("gută", "fără organe și fructe de mare; puțină carne roșie"),
+        "cardiovascular": ("colesterol ridicat / risc cardiovascular", "fără mezeluri"),
     },
     "en": {
-        "celiac": ("celiac disease / gluten sensitivity", "gluten-free (wheat, flour, bread, pasta, oats, barley)"),
-        "lactose": ("lactose intolerance", "no dairy (milk, cheese, yogurt, cream)"),
-        "reflux": ("acid reflux", "no spicy food, coffee, chocolate or fried food"),
-        "gastritis": ("gastritis / ulcer", "no spicy food, alcohol or coffee"),
-        "gout": ("gout", "no organ meats, seafood or red meat"),
-        "renal": ("kidney disease", "no oxalate-rich foods (spinach, rhubarb) or added salt"),
-        "diabetes": ("diabetes", "no added sugar, syrups or sweets"),
-        "hypertension": ("hypertension", "no added salt, cured meats or canned food"),
-        "ibs": ("irritable bowel", "no dairy, excess fructose or wheat"),
-        "colitis": ("colitis / Crohn's disease", "no dairy, wheat or fatty food"),
-        "diverticulitis": ("diverticulitis", "no seeds, nuts or popcorn"),
-        "liver_pancreas": ("liver, pancreas or gallbladder condition", "no alcohol, excess fat or fried food"),
-        "cholesterol_cardio": ("high cholesterol / cardiovascular risk",
-                               "no fried food, cured meats, fatty cheeses or butter"),
+        "pregnancy": ("pregnancy", "no raw fish or shellfish, high-mercury fish, liver or soft mould-ripened cheese"),
+        "lactation": ("breastfeeding", "no high-mercury fish"),
+        "immunocompromised": ("weakened immunity", "no raw fish or shellfish and no soft mould-ripened cheese"),
+        "anticoagulant": ("anticoagulant treatment", "no portions very high in vitamin K, to keep intake steady"),
+        "ckd": ("chronic kidney disease", "no high-potassium foods; phosphorus is limited"),
+        "hemochromatosis": ("haemochromatosis", "no foods chosen to raise iron and no liver"),
+        "hypertension": ("high blood pressure", "no high-salt foods"),
+        "diabetes": ("diabetes", "we prefer portions low in available carbohydrate and without added sugar"),
+        "celiac": ("coeliac disease", "gluten-free"),
+        "gout": ("gout", "no offal or shellfish; little red meat"),
+        "cardiovascular": ("high cholesterol / cardiovascular risk", "no processed meat"),
     },
 }
 
@@ -101,7 +97,6 @@ SENTENCES: Dict[str, Dict[str, str]] = {
         "and": "și",
         "headline_lab": "**{food}** este recomandat pentru că analizele tale arată valori sub pragul clinic pentru: {list}.",
         "headline_notes": "**{food}** este recomandat pentru că ai menționat nevoia de: {list}.",
-        "headline_profile": "**{food}** este recomandat pentru a acoperi necesarul zilnic estimat din profilul tău: {list}.",
         "headline_general": "**{food}** este compatibil cu profilul tău și contribuie la aportul zilnic de: {list}.",
         "headline_none": "**{food}** este o opțiune compatibilă cu profilul și restricțiile tale.",
         "also_notes": "Ai menționat și nevoia de: {list}.",
@@ -109,7 +104,6 @@ SENTENCES: Dict[str, Dict[str, str]] = {
         "portion_part": "{nutrient} ~{amount} {unit} (~{pct}% din necesarul zilnic estimat)",
         "reason_lab": "{marker}: {value} {unit} (prag: {threshold} {unit}) — {food} aduce {per100} {nutrient_unit} {nutrient} la 100 g.",
         "reason_notes": "Ai menționat nevoia de {nutrient}; {food} aduce {per100} {nutrient_unit} la 100 g.",
-        "reason_profile": "Necesar de {nutrient} estimat din profil; {food} aduce {per100} {nutrient_unit} la 100 g.",
         "reason_general": "{food} aduce {per100} {nutrient_unit} {nutrient} la 100 g.",
         "reason_diet": "Compatibil cu {diet}.",
         "reason_allergies": "Ales cu respectarea alergiilor declarate: {list}.",
@@ -121,7 +115,6 @@ SENTENCES: Dict[str, Dict[str, str]] = {
         "and": "and",
         "headline_lab": "**{food}** is recommended because your lab results are below the clinical threshold for: {list}.",
         "headline_notes": "**{food}** is recommended because you mentioned needing: {list}.",
-        "headline_profile": "**{food}** is recommended to cover the daily need estimated from your profile: {list}.",
         "headline_general": "**{food}** fits your profile and adds to your daily intake of: {list}.",
         "headline_none": "**{food}** is an option compatible with your profile and restrictions.",
         "also_notes": "You also mentioned needing: {list}.",
@@ -129,7 +122,6 @@ SENTENCES: Dict[str, Dict[str, str]] = {
         "portion_part": "{nutrient} ~{amount} {unit} (~{pct}% of the estimated daily need)",
         "reason_lab": "{marker}: {value} {unit} (threshold: {threshold} {unit}) — {food} provides {per100} {nutrient_unit} {nutrient} per 100 g.",
         "reason_notes": "You mentioned needing {nutrient}; {food} provides {per100} {nutrient_unit} per 100 g.",
-        "reason_profile": "{nutrient} need estimated from your profile; {food} provides {per100} {nutrient_unit} per 100 g.",
         "reason_general": "{food} provides {per100} {nutrient_unit} {nutrient} per 100 g.",
         "reason_diet": "Suitable for {diet}.",
         "reason_allergies": "Chosen respecting your declared allergies: {list}.",
@@ -139,44 +131,51 @@ SENTENCES: Dict[str, Dict[str, str]] = {
     },
 }
 
-# Sfaturi: cheie -> text. Alese în explanation_renderer după nutrienți și afecțiunile pacientului.
+# Sfaturi practice. Fiecare sfat are o sursă (TIP_SOURCES); un sfat fără sursă nu are voie să apară.
+TIP_SOURCES: Dict[str, str] = {
+    # Hallberg et al., Am J Clin Nutr 1989;49:140 (acidul ascorbic crește absorbția fierului non-hem);
+    # Hurrell et al., Br J Nutr 1999;81:289 (polifenolii din ceai/cafea o reduc).
+    "iron": "Hallberg 1989 AJCN 49:140; Hurrell 1999 BJN 81:289",
+    # Hallberg et al., Am J Clin Nutr 1991;53:112: calciul consumat la aceeași masă scade absorbția fierului.
+    "calcium_iron": "Hallberg 1991 AJCN 53:112",
+    # Vitaminele D și A sunt liposolubile: Dawson-Hughes et al., J Acad Nutr Diet 2015;115:225 (vitamina D3 se
+    # absoarbe mai bine la o masă cu grăsimi); NIH ODS, Vitamin A fact sheet (2023).
+    "vitamin_d": "Dawson-Hughes 2015 JAND 115:225",
+    "vitamin_a": "NIH ODS 2023 Vitamin A fact sheet",
+    # EFSA 2015 (B12): sursele vegetale nu conțin B12 activă în cantități utile; veganii au nevoie de alimente
+    # fortificate sau suplimente (NIH ODS, Vitamin B12 fact sheet, 2024).
+    "vitamin_b12_vegan": "EFSA 2015 EFSA Journal 13(7):4150; NIH ODS 2024 Vitamin B12",
+    # NIH ODS, Vitamin K fact sheet (2021): aport constant la persoanele care iau warfarină.
+    "vitamin_k_anticoagulant": "NIH ODS 2021 Vitamin K",
+    # Gibson et al., Food Nutr Bull 2010;31:S134: înmuierea și fermentarea reduc fitații și cresc absorbția zincului.
+    "zinc": "Gibson 2010 FNB 31:S134",
+    # McKillop et al., Br J Nutr 2002;88:681: fierberea prelungită pierde o mare parte din folat; aburul mai puțin.
+    "folate": "McKillop 2002 BJN 88:681",
+    # Vitamina C se degradează la căldură și în apa de fierbere: Lee & Kader, Postharvest Biol Technol 2000;20:207.
+    "vitamin_c": "Lee & Kader 2000 PBT 20:207",
+}
+
 TIPS: Dict[str, Dict[str, str]] = {
     "ro": {
-        "iron": "Combină cu o sursă de vitamina C (lămâie, ardei) pentru o absorbție mai bună a fierului și evită ceaiul sau cafeaua la aceeași masă.",
-        "calcium": "Evită să-l consumi la aceeași masă cu alimente foarte bogate în fier, pentru o absorbție optimă.",
-        "vitamin_d": "Consumă-l împreună cu puțină grăsime pentru o absorbție mai bună; 10–15 minute de soare zilnic ajută la sinteza vitaminei D.",
-        "vitamin_b12_vegan": "La dieta vegană, B12 provine doar din alimente fortificate sau suplimente: discută suplimentarea cu medicul tău.",
-        "vitamin_b12": "Consumat regulat, ajută la menținerea valorilor de B12; repetă analizele la recomandarea medicului.",
-        "magnesium": "Magneziul se absoarbe mai bine împreună cu vitamina D; evită dozele mari de calciu la aceeași masă.",
-        "zinc": "Leguminoasele și cerealele integrale conțin fitați care reduc absorbția zincului: înmoaie-le sau fermentează-le.",
-        "folate": "Folatul se pierde la gătit prelungit: preferă prepararea scurtă sau consumul crud.",
-        "vitamin_c": "Vitamina C se degradează la căldură: consumă alimentul crud sau gătit scurt.",
-        "vitamin_a": "Vitamina A este liposolubilă: se absoarbe mai bine împreună cu puțină grăsime.",
-        "vitamin_k": "Dacă urmezi tratament anticoagulant, păstrează un aport constant de vitamina K și întreabă medicul înainte de schimbări.",
-        "iodine": "Echilibrează aportul de iod și evită excesul, mai ales dacă ai o afecțiune tiroidiană.",
-        "potassium": "Acoperă necesarul de potasiu din surse variate, distribuite pe parcursul zilei.",
-        "potassium_renal": "Cu o afecțiune renală, discută cu medicul înainte de a crește aportul de potasiu.",
-        "protein": "Distribuie proteinele pe parcursul zilei, nu doar la o singură masă.",
-        "protein_renal": "Cu o afecțiune renală, cantitatea potrivită de proteine se stabilește împreună cu medicul.",
-        "default": "Folosește porția sugerată în mesele zilnice.",
+        "iron": "Mănâncă-l împreună cu o sursă de vitamina C (ardei, lămâie, kiwi), care ajută absorbția fierului din plante. Ceaiul și cafeaua la aceeași masă o reduc.",
+        "calcium_iron": "Calciul consumat la aceeași masă scade absorbția fierului: mănâncă alimentele bogate în calciu la altă masă decât cele pentru fier.",
+        "vitamin_d": "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "vitamin_a": "Vitamina A se absoarbe mai bine împreună cu puțină grăsime (de exemplu un strop de ulei).",
+        "vitamin_b12_vegan": "În dieta vegană, B12 vine doar din alimente fortificate sau suplimente. Discută cu medicul despre supliment.",
+        "vitamin_k_anticoagulant": "Dacă iei warfarină sau acenocumarol, păstrează constantă cantitatea de verdețuri de la o zi la alta.",
+        "zinc": "Înmuiază leguminoasele câteva ore înainte de fiert: zincul se absoarbe mai bine.",
+        "folate": "Gătește-l scurt, la abur: fierberea lungă distruge o parte din folat.",
+        "vitamin_c": "Mănâncă-l crud sau gătit scurt: vitamina C se pierde la căldură.",
     },
     "en": {
-        "iron": "Pair it with a vitamin C source (lemon, peppers) for better iron absorption, and avoid tea or coffee at the same meal.",
-        "calcium": "Avoid having it at the same meal as foods very rich in iron, for optimal absorption.",
-        "vitamin_d": "Have it with a little fat for better absorption; 10–15 minutes of daily sun helps your body make vitamin D.",
-        "vitamin_b12_vegan": "On a vegan diet, B12 only comes from fortified foods or supplements: talk to your doctor about supplementation.",
-        "vitamin_b12": "Eaten regularly, it helps maintain your B12 levels; repeat your tests as your doctor advises.",
-        "magnesium": "Magnesium is absorbed better together with vitamin D; avoid high doses of calcium at the same meal.",
-        "zinc": "Legumes and whole grains contain phytates that reduce zinc absorption: soak or ferment them.",
-        "folate": "Folate is lost during long cooking: prefer short preparation or eating it raw.",
-        "vitamin_c": "Vitamin C breaks down with heat: eat it raw or briefly cooked.",
-        "vitamin_a": "Vitamin A is fat-soluble: it is absorbed better together with a little fat.",
-        "vitamin_k": "If you take anticoagulant medication, keep your vitamin K intake steady and ask your doctor before changes.",
-        "iodine": "Keep your iodine intake balanced and avoid excess, especially if you have a thyroid condition.",
-        "potassium": "Cover your potassium needs from varied sources spread through the day.",
-        "potassium_renal": "With a kidney condition, talk to your doctor before increasing your potassium intake.",
-        "protein": "Spread your protein through the day rather than at a single meal.",
-        "protein_renal": "With a kidney condition, the right amount of protein should be set together with your doctor.",
-        "default": "Use the suggested portion in your daily meals.",
+        "iron": "Eat it with a source of vitamin C (peppers, lemon, kiwi), which helps you absorb iron from plants. Tea and coffee at the same meal reduce it.",
+        "calcium_iron": "Calcium at the same meal lowers iron absorption: have calcium-rich foods at a different meal from your iron foods.",
+        "vitamin_d": "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "vitamin_a": "Vitamin A is absorbed better with a little fat (for example a drizzle of oil).",
+        "vitamin_b12_vegan": "On a vegan diet, B12 only comes from fortified foods or supplements. Talk to your doctor about a supplement.",
+        "vitamin_k_anticoagulant": "If you take warfarin or acenocoumarol, keep the amount of leafy greens steady from day to day.",
+        "zinc": "Soak legumes for a few hours before cooking: zinc is absorbed better.",
+        "folate": "Cook it briefly, by steaming: long boiling destroys part of the folate.",
+        "vitamin_c": "Eat it raw or briefly cooked: vitamin C is lost with heat.",
     },
 }

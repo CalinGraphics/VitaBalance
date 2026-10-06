@@ -8,14 +8,18 @@ from fastapi.testclient import TestClient
 import main as main_module
 from domain.models import FoodItem, LabResultItem, RecommendationItem, UserProfile
 from services.recommendations import materialize as materialize_module
+from tests.catalog_fixture import food
+
 ROMANIAN_LETTERS = re.compile(r"[ăâîșțĂÂÎȘȚ]")
 
 USER = UserProfile(id=1, email="tester@example.com", name="Tester", age=30, sex="F", weight=60, height=165,
                    activity_level="moderate", diet_type="omnivore", allergies="", medical_conditions="")
+# Alimente reale din catalogul validat; id-uri fixe ca testele să fie ușor de citit. Ficatul nu are nume EN,
+# ca să verificăm revenirea la numele românesc.
 FOODS = [
-    FoodItem(id=10, name="Spanac fiert", name_en="Boiled Spinach", category="legume", iron=3.6, vitamin_c=9, protein=3),
-    FoodItem(id=11, name="Linte fiartă", name_en="Boiled Lentils", category="leguminoase", iron=3.3, folate=180, protein=9),
-    FoodItem(id=12, name="Ficat de pui", name_en=None, category="carne", iron=9.0, vitamin_b12=16, protein=17),
+    food("spinach_cooked", id=10),
+    food("lentils", id=11),
+    food("chicken_liver", id=12, name_en=None),
 ]
 LABS = LabResultItem(id=1, user_id=1, ferritin=12.0)
 
@@ -109,12 +113,13 @@ class ExplanationApiTests(unittest.TestCase):
         items = self._generate("en")
         self.assertTrue(items)
         by_id = {i["food_id"]: i for i in items}
-        self.assertEqual(by_id[10]["food"]["name"], "Boiled Spinach")
+        self.assertEqual(by_id[10]["food"]["name"], "Cooked spinach")
         for item in items:
             text = " ".join([item["explanation"]["text"], *item["explanation"]["reasons"], *(item["explanation"]["tips"] or [])])
             self.assertIn("below the clinical threshold for: iron", item["explanation"]["text"])
-            self.assertIn("Ferritin: 12 ng/mL (threshold: 30 ng/mL)", " ".join(item["explanation"]["reasons"]))
-            self.assertFalse(ROMANIAN_LETTERS.search(text), text)
+            self.assertIn("Ferritin: 12 ng/mL (threshold: 15 ng/mL)", " ".join(item["explanation"]["reasons"]))
+            # Ficatul (id 12) nu are nume EN și revine intenționat la numele românesc.
+            self.assertFalse(ROMANIAN_LETTERS.search(text.replace("Ficat de pui gătit", "")), text)
 
     def test_same_stored_recommendations_render_in_romanian_without_regenerating(self):
         self._generate("en")
@@ -124,12 +129,12 @@ class ExplanationApiTests(unittest.TestCase):
         by_id = {i["food_id"]: i for i in items}
         self.assertEqual(by_id[10]["food"]["name"], "Spanac fiert")
         self.assertIn("valori sub pragul clinic pentru: fier", by_id[10]["explanation"]["text"])
-        self.assertIn("Feritină: 12 ng/mL (prag: 30 ng/mL)", " ".join(by_id[10]["explanation"]["reasons"]))
+        self.assertIn("Feritină: 12 ng/mL (prag: 15 ng/mL)", " ".join(by_id[10]["explanation"]["reasons"]))
 
     def test_food_without_translation_falls_back_to_romanian_name_in_english(self):
         self._generate("ro")
         by_id = {i["food_id"]: i for i in self.client.get("/api/recommendations/stored/1?lang=en").json()}
-        self.assertEqual(by_id[12]["food"]["name"], "Ficat de pui")
+        self.assertEqual(by_id[12]["food"]["name"], "Ficat de pui gătit")
 
     def test_explanation_endpoint_returns_one_recommendation_in_requested_language(self):
         self._generate("ro")

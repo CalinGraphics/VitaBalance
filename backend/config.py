@@ -53,14 +53,6 @@ class Settings(BaseSettings):
     # Implicit 2 = rewrite Vercel + proxy Render; 1 dacă backend-ul e expus direct.
     rate_limit_trusted_proxy_hops: int = int(os.getenv("RATE_LIMIT_TRUSTED_PROXY_HOPS", "2"))
 
-    openfoodfacts_enabled: bool = os.getenv("OPENFOODFACTS_ENABLED", "true").lower() in ("1", "true", "yes")
-    openfoodfacts_timeout_seconds: float = float(os.getenv("OPENFOODFACTS_TIMEOUT_SECONDS", "0.35"))
-    openfoodfacts_blocking_mode: bool = os.getenv("OPENFOODFACTS_BLOCKING_MODE", "false").lower() in (
-        "1",
-        "true",
-        "yes",
-    )
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

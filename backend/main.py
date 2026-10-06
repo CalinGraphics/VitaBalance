@@ -6,8 +6,6 @@ from typing import Optional, List, Dict
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import uvicorn
-import inspect
-import hashlib
 import os
 
 from config import get_settings
@@ -21,7 +19,6 @@ from domain.schemas import (
     FeedbackCreate,
 )
 from services.recommendations.recommender import RecommenderService
-from services.nutrition.deficit_calculator import DeficitCalculator
 from services.nutrition.energy import caloric_goal_warning
 from services.auth import AuthError, sign_in, sign_out, sign_up, refresh_session
 from services.profile_avatar import AvatarError, remove_avatar, set_avatar
@@ -153,24 +150,6 @@ async def health_check(settings=Depends(get_settings)):
         "debug": settings.debug,
         "checks": checks,
     }
-
-
-if settings.debug:
-
-    @app.get("/debug/rule-engine")
-    async def debug_rule_engine():
-        try:
-            from services.rules import rule_engine as re_mod
-            src = inspect.getsource(re_mod.NutritionalRuleEngine.evaluate_food)
-            src_hash = hashlib.md5(src.encode("utf-8")).hexdigest()
-            return {
-                "module_file": getattr(re_mod, "__file__", None),
-                "module_mtime": os.path.getmtime(re_mod.__file__) if getattr(re_mod, "__file__", None) else None,
-                "evaluate_food_md5": src_hash,
-                "evaluate_food_first_line": src.splitlines()[0] if src else None,
-            }
-        except Exception as e:
-            return {"error": str(e)}
 
 
 @app.get("/config")
@@ -682,54 +661,27 @@ async def audit_recommendations_quality(
         )
 
     lab_results = lab_repo.get_latest_by_user_id(user_id)
-    has_lab_data = False
-    if lab_results is not None:
-        for key in [
-            "hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium",
-            "protein", "zinc", "folate", "vitamin_a", "vitamin_c", "iodine", "vitamin_k", "potassium"
-        ]:
-            if getattr(lab_results, key, None) is not None:
-                has_lab_data = True
-                break
-
-    calculator = DeficitCalculator()
-    deficits = calculator.calculate_deficits(user, lab_results)
-    active_deficits = {k: float(v) for k, v in deficits.items() if v and v > 0}
-
-    recommender = RecommenderService()
-    rec_list = recommender.generate_recommendations(
-        user=user,
-        deficits=deficits,
-        foods=foods,
-        lab_results=lab_results,
-        user_feedbacks=[],
-        feedback_by_food={},
+    has_lab_data = lab_results is not None and any(
+        getattr(lab_results, key, None) is not None
+        for key in ("hemoglobin", "ferritin", "calcium", "vitamin_d", "vitamin_b12", "magnesium", "protein", "zinc",
+                    "folate", "vitamin_a", "vitamin_c", "iodine", "vitamin_k", "potassium")
     )
-    top = rec_list[:top_n]
-    food_by_id = {f.id: f for f in foods}
-    top_ids: List[int] = [int(x["food_id"]) for x in top if x.get("food_id") is not None]
-    top_names: List[str] = [food_by_id[i].name for i in top_ids if i in food_by_id]
 
-    covered = set()
-    for item in top:
-        for n in item.get("nutrients_covered", []) or []:
-            if n in active_deficits:
-                covered.add(n)
-    missing = [n for n in active_deficits.keys() if n not in covered]
+    ranking = RecommenderService().rank(user, foods, lab_results)
+    active_deficits = {n.nutrient: n.weight for n in ranking.targeted}
+    top = ranking.items[:top_n]
+    top_ids: List[int] = [s.food.id for s in top]
+    top_names: List[str] = [s.food.name for s in top]
+    covered = {c.nutrient for s in top for c in s.components if c.nutrient in active_deficits}
+    missing = [n for n in active_deficits if n not in covered]
 
     warnings: List[str] = []
     if active_deficits and not top:
         warnings.append("Există deficite active, dar nu s-au generat recomandări.")
     if missing:
         warnings.append("Deficite active neacoperite în top: " + ", ".join(sorted(missing)))
-    if "vitamin_b12" in active_deficits and (user.diet_type or "").strip().lower() == "vegan":
-        b12_in_top = any("vitamin_b12" in (x.get("nutrients_covered") or []) for x in top)
-        if not b12_in_top:
-            warnings.append("Profil vegan cu deficit B12: topul nu include suficient suport pentru B12.")
-    if "vitamin_d" in active_deficits:
-        d_in_top = any("vitamin_d" in (x.get("nutrients_covered") or []) for x in top)
-        if not d_in_top:
-            warnings.append("Deficit vitamina D activ: topul nu include suficient suport pentru vitamina D.")
+    if not any(f.validated for f in foods):
+        warnings.append("Catalogul validat lipsește (migrările 011–012 nu sunt aplicate).")
 
     return RecommendationAuditResponse(
         user_id=user_id,
