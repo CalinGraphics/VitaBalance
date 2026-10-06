@@ -1,12 +1,43 @@
 """
 User profile data access – Supabase only.
 """
+import threading
+import time
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Dict, Optional, List, Tuple
 from supabase import Client
 
 from repositories.supabase_client import get_supabase_client
 from domain.models import UserProfile, row_to_user
+
+# Profilul e citit la fiecare cerere autentificată (verificarea accesului); un cache scurt evită un drum la
+# Supabase de fiecare dată. Orice scriere prin acest repository golește intrarea; TTL-ul acoperă scrierile făcute
+# din afara aplicației (triggere, dashboard). Doar profilurile găsite se păstrează.
+_PROFILE_TTL_SECONDS = 20.0
+_profile_lock = threading.Lock()
+_profiles: Dict[str, Tuple[float, UserProfile]] = {}
+
+
+def _profile_cache_get(email: str) -> Optional[UserProfile]:
+    key = (email or "").lower()
+    with _profile_lock:
+        hit = _profiles.get(key)
+        if hit and hit[0] > time.monotonic():
+            return hit[1]
+        _profiles.pop(key, None)
+    return None
+
+
+def _profile_cache_put(profile: UserProfile) -> UserProfile:
+    with _profile_lock:
+        _profiles[(profile.email or "").lower()] = (time.monotonic() + _PROFILE_TTL_SECONDS, profile)
+    return profile
+
+
+def invalidate_profile_cache(user_id: Optional[int] = None, email: Optional[str] = None) -> None:
+    with _profile_lock:
+        for key in [k for k, (_, p) in _profiles.items() if p.id == user_id or k == (email or "").lower()]:
+            _profiles.pop(key, None)
 
 
 class UserRepository:
@@ -22,10 +53,13 @@ class UserRepository:
         return row_to_user(resp.data[0])
 
     def get_by_email(self, email: str) -> Optional[UserProfile]:
+        cached = _profile_cache_get(email)
+        if cached is not None:
+            return cached
         resp = self._client.table(self.TABLE).select("*").eq("email", email).execute()
         if not resp.data or len(resp.data) == 0:
             return None
-        return row_to_user(resp.data[0])
+        return _profile_cache_put(row_to_user(resp.data[0]))
 
     def set_rec_refresh_status(
         self,
@@ -40,10 +74,12 @@ class UserRepository:
             "rec_refresh_at": datetime.now(timezone.utc).isoformat(),
         }
         self._client.table(self.TABLE).update(row).eq("id", user_id).execute()
+        invalidate_profile_cache(user_id=user_id)
 
     def set_avatar_path(self, user_id: int, path: Optional[str]) -> None:
         # Fără updated_at: poza nu face parte din datele care declanșează regenerarea recomandărilor.
         self._client.table(self.TABLE).update({"avatar_path": path}).eq("id", user_id).execute()
+        invalidate_profile_cache(user_id=user_id)
 
     def upsert(
         self,
@@ -85,6 +121,7 @@ class UserRepository:
             resp = self._client.table(self.TABLE).update(row).eq("id", user_id).execute()
         else:
             resp = self._client.table(self.TABLE).upsert(row, on_conflict="email").execute()
+        invalidate_profile_cache(user_id=user_id, email=email)
         if not resp.data or len(resp.data) == 0:
             raise ValueError("Upsert users returned no data")
         return row_to_user(resp.data[0])

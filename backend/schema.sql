@@ -1,7 +1,7 @@
 -- =============================================================================
 -- VitaBalance — schema completă (PostgreSQL / Supabase, schema `public`)
 -- =============================================================================
--- Starea țintă după migrările 001–012 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
+-- Starea țintă după migrările 001–013 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
 -- pentru baza existentă aplică migrările din backend/migrations/ în ordine. Actualizează fișierul la fiecare migrare.
 --
 -- Autentificare: Supabase Auth. Emailul și parola (bcrypt) stau în auth.users; public.users e profilul aplicației,
@@ -129,7 +129,7 @@ create table public.lab_results (
   created_at  timestamptz default now(),
   updated_at  timestamptz not null default now()
 );
-create index idx_lab_results_user_id on public.lab_results (user_id);
+create index idx_lab_results_user_latest on public.lab_results (user_id, updated_at desc, created_at desc);
 
 -- ---------- recommendations (recomandări materializate) ----------
 create table public.recommendations (
@@ -147,6 +147,7 @@ create table public.recommendations (
 );
 create index idx_recommendations_food_id       on public.recommendations (food_id);
 create index idx_recommendations_user_created  on public.recommendations (user_id, created_at desc);
+create index idx_recommendations_user_score    on public.recommendations (user_id, score desc, id);
 
 -- ---------- feedback (persistent per utilizator + aliment) ----------
 create table public.feedback (

@@ -17,7 +17,7 @@ if str(BACKEND_ROOT) not in sys.path:
 if HAS_FASTAPI:
     import main as main_module
     from services.recommendations import materialize as materialize_module
-from domain.models import FoodItem, LabResultItem, RecommendationItem, UserProfile
+from domain.models import FeedbackItem, FoodItem, LabResultItem, RecommendationItem, UserProfile
 from tests.catalog_fixture import food
 
 
@@ -219,10 +219,8 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
         class FakeFeedbackRepo:
             def get_by_user_id(self, user_id):
-                return []
-
-            def get_counts_by_food_ids(self, food_ids, user_id=None):
-                return {int(fid): {"likes": 1, "dislikes": 0} for fid in food_ids}
+                # votul utilizatorului; contorul vine din această listă (fără o a doua interogare)
+                return [FeedbackItem(id=1, user_id=1, food_id=40, rating=5)]
 
         with (
             patch.object(main_module, "UserRepository", FakeUserRepo),
@@ -246,6 +244,7 @@ class RecommendationsEndpointTests(unittest.TestCase):
         self.assertEqual(payload[0]["food_id"], 40)
         self.assertEqual(payload[0]["legacy"]["text"], "Test explicație")
         self.assertEqual(payload[0]["feedback"]["likes"], 1)
+        self.assertEqual(payload[0]["my_rating"], 5)
 
 
 if __name__ == "__main__":

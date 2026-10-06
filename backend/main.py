@@ -35,7 +35,8 @@ from repositories import (
 from middleware.auth import get_current_user, security
 from fastapi.security import HTTPAuthorizationCredentials
 from middleware.rate_limit import RateLimitMiddleware
-from services.recommendations.materialize import materialize_recommendations
+from services.recommendations.materialize import materialize_recommendations, stored_inputs_hashes
+from services.recommendations.recommender import recommendation_inputs_hash
 from services.explanations.facts import has_facts
 
 app = FastAPI(
@@ -99,7 +100,23 @@ async def security_headers(request, call_next):
     response = await call_next(request)
     for key, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(key, value)
+    # Datele sunt per utilizator: niciun cache partajat (CDN/proxy) nu are voie să le păstreze.
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "private, no-store")
     return response
+
+
+@app.on_event("startup")
+def warm_food_catalog() -> None:
+    """Încarcă catalogul și matricea aliment × nutrient o singură dată, la pornire, nu la prima cerere."""
+    try:
+        from services.recommendations.food_matrix import matrix_for
+
+        matrix_for(FoodRepository().get_all())
+    except Exception as exc:  # noqa: BLE001 — pornirea nu trebuie să cadă dacă Supabase e temporar indisponibil
+        import logging
+
+        logging.getLogger(__name__).warning("Încălzirea catalogului a eșuat: %s", exc)
 
 
 def _profile_to_response(p: UserProfile) -> dict:
@@ -496,7 +513,7 @@ async def get_recommendations(
     force_regenerate: bool = Query(False, description="Forțează regenerarea recomandărilor"),
     current_user: dict = Depends(get_current_user),
 ):
-    _ensure_user_resource(current_user, request.user_id)
+    profile = _ensure_user_resource(current_user, request.user_id)
     if request.replace_recommendation_id is not None and request.replace_feedback_rating is not None:
         r = request.replace_feedback_rating
         if r < -1 or r > 5:
@@ -517,6 +534,7 @@ async def get_recommendations(
         force_regenerate,
         request.replace_recommendation_id,
         request.exclude_food_ids,
+        user=profile,
     )
 
 
@@ -534,6 +552,10 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
         stored = fut_all.result()
     # Recomandări create înainte de explicațiile pe bază de fapte: clientul declanșează o regenerare (o singură dată).
     explanations_outdated = any(not has_facts(r.explanation_json) for r in stored)
+    # La zi = calculate din exact profilul + analizele + catalogul de acum (cache pe hash, vezi recommender.py).
+    hashes = stored_inputs_hashes(stored)
+    up_to_date = bool(stored) and not explanations_outdated and None not in hashes and \
+        hashes == {recommendation_inputs_hash(u, FoodRepository().get_all(), labs)}
 
     def iso(v):
         if v is None:
@@ -575,6 +597,7 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
         "refresh_error": refresh_error,
         "refresh_at": refresh_at,
         "explanations_outdated": explanations_outdated,
+        "up_to_date": up_to_date,
     }
 
 

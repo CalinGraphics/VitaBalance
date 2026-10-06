@@ -63,6 +63,8 @@ def build_facts(item: ScoredFood, ranking: Ranking, *, has_lab_data: bool) -> Di
         "flags": list(food.flags),
         "alternatives": list(item.alternatives),
         "trace": item.trace(ranking.rule_ids),
+        # hash(profil + analize + catalog + versiuni): recomandarea rămâne valabilă cât timp hash-ul nu se schimbă
+        "inputs_hash": ranking.inputs_hash,
     }
 
 

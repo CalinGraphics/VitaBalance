@@ -24,6 +24,7 @@ from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple
 from domain.models import FoodItem
 from rules.contraindications import active_rules, exclusion_reasons, no_target_nutrients, penalty_factors
 from services.nutrition.needs import NUTRIENTS, Need, NeedsResult
+from services.recommendations.food_matrix import FoodMatrix, matrix_for, nutrient_scores
 from data.reference_values import reference_intake
 
 SCORING_VERSION = 1
@@ -123,25 +124,22 @@ class ScoredFood:
         }
 
 
-def _value(food: FoodItem, nutrient: str) -> Optional[float]:
-    v = getattr(food, nutrient, None)
-    return None if v is None else float(v)
+class _NutrientArrays:
+    """Scorurile unui nutrient pentru tot catalogul, calculate vectorizat (food_matrix.nutrient_scores)."""
 
+    def __init__(self, m: FoodMatrix, nutrient: str, daily_ref: float, weight: float):
+        self.nutrient, self.daily_ref, self.weight = nutrient, daily_ref, weight
+        self.a = nutrient_scores(m, nutrient, daily_ref, weight, density_cap=DENSITY_CAP, min_share=MIN_PORTION_SHARE,
+                                 min_kcal=MIN_KCAL_FOR_DENSITY,
+                                 bioavailability=OXALATE_BIOAVAILABILITY.get(nutrient, 1.0)) if daily_ref > 0 else None
 
-def _component(food: FoodItem, nutrient: str, daily_ref: float, weight: float) -> Optional[Component]:
-    v100 = _value(food, nutrient)
-    kcal = _value(food, "calories")
-    if v100 is None or v100 <= 0 or kcal is None or daily_ref <= 0 or not food.portion_g:
-        return None
-    per100kcal = v100 / max(kcal, MIN_KCAL_FOR_DENSITY) * 100.0
-    density = per100kcal / daily_ref
-    amount = v100 * food.portion_g / 100.0
-    share = amount / daily_ref
-    if share < MIN_PORTION_SHARE:
-        return None
-    bio = OXALATE_BIOAVAILABILITY.get(nutrient, 1.0) if food.has_flag("high_oxalate") else 1.0
-    return Component(nutrient, v100, per100kcal, daily_ref, density, amount, share, weight,
-                     weight * min(density, DENSITY_CAP) * bio, bio)
+    def component(self, row: int) -> Optional[Component]:
+        a = self.a
+        if a is None or not a["valid"][row]:
+            return None
+        return Component(self.nutrient, float(a["per100"][row]), float(a["per100kcal"][row]), self.daily_ref,
+                         float(a["density"][row]), float(a["amount"][row]), float(a["share"][row]), self.weight,
+                         float(a["contribution"][row]), float(a["bio"][row]))
 
 
 def quality_penalties(food: FoodItem) -> List[Tuple[str, float]]:
@@ -163,6 +161,7 @@ class Ranking:
     diet: str = "omnivore"
     allergies: FrozenSet[str] = frozenset()
     conditions: FrozenSet[str] = frozenset()
+    inputs_hash: Optional[str] = None  # cheia cache-ului (services/recommendations/cache.py)
 
 
 def rank_foods(
@@ -171,17 +170,32 @@ def rank_foods(
     *,
     text_allows: Optional[Callable[[FoodItem], bool]] = None,
     feedback: Optional[Dict[int, str]] = None,
+    exclude_food_ids: Iterable[int] = (),
 ) -> Ranking:
     ctx = needs_result.context
     rules = active_rules(ctx)
     blocked = no_target_nutrients(rules)
     targeted = [n for n in needs_result.needs if n.nutrient not in blocked]
     feedback = feedback or {}
+    exclude = set(exclude_food_ids)
+
+    food_list = foods if isinstance(foods, (list, tuple)) else list(foods)
+    m = matrix_for(food_list)  # construită o singură dată pentru același catalog
+    targeted_arrays = [_NutrientArrays(m, n.nutrient, n.daily_reference, n.weight) for n in targeted]
+    general_cache: List[_NutrientArrays] = []
+
+    def general_components(row: int) -> List[Component]:
+        if not general_cache:
+            for n in NUTRIENTS:
+                ref = reference_intake(n, sex=ctx.sex, age=ctx.age, weight_kg=ctx.weight_kg, pregnant=ctx.pregnant,
+                                       lactating=ctx.lactating, diet=ctx.diet)
+                general_cache.append(_NutrientArrays(m, n, float(ref or 0), 1.0))
+        return [c for arr in general_cache if (c := arr.component(row))]
 
     excluded: Dict[int, List[str]] = {}
     scored: List[ScoredFood] = []
-    for food in foods:
-        if not food.validated:
+    for food in food_list:
+        if not food.validated or food.id in exclude:
             continue
         reasons = exclusion_reasons(food, ctx, rules)
         if text_allows is not None and not text_allows(food):
@@ -189,10 +203,11 @@ def rank_foods(
         if reasons:
             excluded[food.id] = reasons
             continue
+        row = m.index[food.id]
         if targeted:
-            comps = [c for n in targeted if (c := _component(food, n.nutrient, n.daily_reference, n.weight))]
+            comps = [c for arr in targeted_arrays if (c := arr.component(row))]
         else:
-            comps = _general_components(food, ctx)
+            comps = general_components(row)
         base = sum(c.contribution for c in comps)
         bonus = 1.0 + MULTI_DEFICIT_BONUS * (len(comps) - 1) if targeted and len(comps) > 1 else 1.0
         penalties = quality_penalties(food) + penalty_factors(food, rules)
@@ -214,7 +229,7 @@ def rank_foods(
         for s in scored:
             if s in items:
                 continue
-            comps = _general_components(s.food, ctx)
+            comps = general_components(m.index[s.food.id])
             g = sum(c.contribution for c in comps) / len(NUTRIENTS)
             if g <= 0:
                 continue
@@ -237,18 +252,6 @@ def _fill(s: ScoredFood, comps: List[Component], g: float) -> ScoredFood:
     for _, f in s.penalties:
         factor *= f
     return ScoredFood(s.food, g * factor * s.feedback_factor, comps, s.penalties, 1.0, s.feedback_factor, fill=True)
-
-
-def _general_components(food: FoodItem, ctx) -> List[Component]:
-    """Fără deficite: contribuția la necesarul zilnic al tuturor micronutrienților cunoscuți (pondere 1)."""
-    comps = []
-    for n in NUTRIENTS:
-        ref = reference_intake(n, sex=ctx.sex, age=ctx.age, weight_kg=ctx.weight_kg, pregnant=ctx.pregnant,
-                               lactating=ctx.lactating, diet=ctx.diet)
-        c = _component(food, n, float(ref or 0), 1.0)
-        if c:
-            comps.append(c)
-    return comps
 
 
 def _diversify(ordered: List[ScoredFood]) -> List[ScoredFood]:

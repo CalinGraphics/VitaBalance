@@ -26,7 +26,7 @@ from repositories import (
 )
 from services.explanations.facts import build_facts, has_facts
 from services.explanations.storage import explanation_to_db_fields, facts_from_row, legacy_explanation
-from services.recommendations.recommender import RecommenderService
+from services.recommendations.recommender import RecommenderService, recommendation_inputs_hash
 from services.recommendations.scoring import MAX_RECOMMENDATIONS, Ranking, ScoredFood
 
 ACTIVE_REC_LIMIT = MAX_RECOMMENDATIONS
@@ -42,6 +42,18 @@ def _has_lab_data(lab_results) -> bool:
 
 def _rating_by_food(user_feedbacks) -> Dict[int, int]:
     return {fb.food_id: fb.rating for fb in user_feedbacks}
+
+
+def _counts_from_feedbacks(user_feedbacks) -> Dict[int, Dict[str, int]]:
+    """Voturile utilizatorului pe aliment (like ≥ 4, dislike ≤ 2), fără o a doua interogare (era un N+1)."""
+    out: Dict[int, Dict[str, int]] = {}
+    for fb in user_feedbacks:
+        c = out.setdefault(fb.food_id, {"likes": 0, "dislikes": 0})
+        if fb.rating is not None and fb.rating >= 4:
+            c["likes"] += 1
+        elif fb.rating is not None and fb.rating <= 2:
+            c["dislikes"] += 1
+    return out
 
 
 def kcal_per_100g_for_display(food: FoodItem) -> Optional[float]:
@@ -116,20 +128,17 @@ def _sorted_recs(recs: List[RecommendationItem]) -> List[RecommendationItem]:
     return sorted(recs, key=lambda r: (-float(r.score or 0), r.id or 0))
 
 
-def _api_list(recs, food_by_id, feedback_repo, user_id, user_rating_by_food) -> List[dict]:
+def _api_list(recs, food_by_id, user_feedbacks) -> List[dict]:
     out: List[dict] = []
     seen: set[int] = set()
+    counts = _counts_from_feedbacks(user_feedbacks)
+    rating_by_food = _rating_by_food(user_feedbacks)
     for rec in _sorted_recs(recs)[:ACTIVE_REC_LIMIT]:
         food = food_by_id.get(rec.food_id)
         if not food or food.id in seen:
             continue
         seen.add(food.id)
-        out.append(_api_item_from_rec(rec, food, food_by_id, {}, user_rating_by_food))
-    ids = [r["food_id"] for r in out]
-    if ids:
-        counts = feedback_repo.get_counts_by_food_ids(ids, user_id=user_id)
-        for r in out:
-            r["feedback"] = counts.get(int(r["food_id"]), {"likes": 0, "dislikes": 0})
+        out.append(_api_item_from_rec(rec, food, food_by_id, counts, rating_by_food))
     return out
 
 
@@ -153,7 +162,7 @@ def list_stored_recommendations_fast(user_id: int, _user_verified: bool = False)
         return []
 
     food_by_id = {f.id: f for f in FoodRepository().get_all()}
-    return _api_list(existing_recs, food_by_id, feedback_repo, user_id, _rating_by_food(user_feedbacks))
+    return _api_list(existing_recs, food_by_id, user_feedbacks)
 
 
 def _ensure_owner(owner_email: str, user_id: int) -> UserProfile:
@@ -176,12 +185,23 @@ def _to_dt(v):
     return None
 
 
-def _needs_regeneration(existing: List[RecommendationItem], user: UserProfile, lab_results) -> bool:
-    """Recomandări lipsă, mai vechi decât profilul/analizele sau salvate într-un format de fapte vechi."""
+def stored_inputs_hashes(existing: List[RecommendationItem]) -> set:
+    return {(facts_from_row(r.explanation_json) or {}).get("inputs_hash") for r in existing}
+
+
+def _needs_regeneration(existing: List[RecommendationItem], user: UserProfile, lab_results,
+                        current_hash: Optional[str] = None) -> bool:
+    """
+    Recomandări lipsă, în format vechi sau calculate din alte intrări. Cu hash-ul intrărilor salvat, decide doar
+    hash-ul (profil + analize + catalog); pentru rândurile fără hash rămâne comparația de timp.
+    """
     if not existing:
         return True
     if any(not has_facts(r.explanation_json) for r in existing):
         return True
+    hashes = stored_inputs_hashes(existing)
+    if current_hash is not None and None not in hashes:
+        return hashes != {current_hash}
     newest = max((_to_dt(r.created_at) for r in existing if _to_dt(r.created_at)), default=None)
     if newest is None:
         return True
@@ -197,8 +217,11 @@ def materialize_recommendations(
     force_regenerate: bool = False,
     replace_recommendation_id: Optional[int] = None,
     exclude_food_ids: Optional[List[int]] = None,
+    user: Optional[UserProfile] = None,
 ) -> List[dict]:
-    user = _ensure_owner(owner_email, user_id)
+    """`user`: profilul deja încărcat de endpoint (evită încă o interogare); altfel se încarcă aici."""
+    if user is None or user.id != user_id:
+        user = _ensure_owner(owner_email, user_id)
 
     rec_repo = RecommendationRepository()
     feedback_repo = FeedbackRepository()
@@ -216,7 +239,6 @@ def materialize_recommendations(
         existing = fut_recs.result()
 
     has_lab_data = _has_lab_data(lab_results)
-    rating_by_food = _rating_by_food(user_feedbacks)
     recommender = RecommenderService()
     exclude = set(exclude_food_ids or [])
 
@@ -229,13 +251,14 @@ def materialize_recommendations(
         rec_repo.delete_by_id(to_replace.id)
         inserted = rec_repo.insert_many(_insert_rows(user, ranking, ranking.items[:1], has_lab_data)) \
             if ranking.items else []
-        return _api_list(remaining + inserted, food_by_id, feedback_repo, user_id, rating_by_food)
+        return _api_list(remaining + inserted, food_by_id, user_feedbacks)
 
-    if force_regenerate or exclude or _needs_regeneration(existing, user, lab_results):
+    current_hash = recommendation_inputs_hash(user, foods, lab_results)
+    if force_regenerate or exclude or _needs_regeneration(existing, user, lab_results, current_hash):
         ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude)
         rows = _insert_rows(user, ranking, ranking.items, has_lab_data)
         if rows:
             if existing:
                 rec_repo.delete_by_user_id(user_id)
             existing = rec_repo.insert_many(rows)
-    return _api_list(existing, food_by_id, feedback_repo, user_id, rating_by_food)
+    return _api_list(existing, food_by_id, user_feedbacks)
