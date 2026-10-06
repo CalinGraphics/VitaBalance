@@ -1,231 +1,323 @@
-# VitaBalance
+<div align="center">
 
-**Sistem de recomandare nutrițională personalizată bazat pe profil utilizator și analize medicale**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
+  <img src="docs/assets/logo-light.png" alt="VitaBalance" width="420">
+</picture>
 
-## Rezumat
+### Personalised nutrition recommendations from your profile and lab results
 
-VitaBalance este o aplicație web care oferă recomandări alimentare personalizate, adaptate nevoilor nutriționale ale utilizatorului. Sistemul utilizează datele de profil (vârstă, sex, greutate, înălțime, nivel de activitate, tip de dietă, alergii, condiții medicale) și, opțional, rezultatele analizelor medicale (feritină, vitamina D, B12, calciu, magneziu, potasiu etc.) pentru a identifica deficiențe nutriționale și a sugera alimente potrivite, cu explicații și export în format PDF.
+Explainable food recommendations that target your actual nutrient deficits while respecting your diet, allergies and medical conditions.
 
-## Funcționalități
+[![Live demo](https://img.shields.io/badge/Live_demo-vita--balance--app.vercel.app-2dd4bf?style=for-the-badge&logo=vercel&logoColor=white)](https://vita-balance-app.vercel.app)
 
-- **Autentificare** – cont cu email și parolă, gestionat de **Supabase Auth**
-- **Profil utilizator** – gestionare date personale: vârstă, sex, greutate, înălțime, nivel de activitate fizică, tip de dietă (omnivor, vegetarian, vegan, pescatarian), alergii și condiții medicale, plus un **obiectiv caloric zilnic** opțional
-- **Analize medicale** – introducere manuală a rezultatelor analizelor de laborator sau încărcare raport PDF pentru extragere automată
-- **Recomandări personalizate** – generare de alimente recomandate pe baza deficitelor identificate, cu explicații contextuale și sugestii de porții
-- **Export PDF** – export al recomandărilor în format PDF pentru utilizare ușoară
-- **Feedback** – utilizatorul poate evalua recomandările și marca dacă le-a încercat sau dacă au fost utile
-- **Obiectiv caloric** – dacă a fost setat în profil, panoul arată o bară de progres cu caloriile porțiilor sugerate raportate la obiectiv (strict informativ: nu influențează recomandările)
-- **Limbă** – interfața este disponibilă în română și engleză (selector în antet, preferința se păstrează în browser)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres_%2B_Auth-3FCF8E?logo=supabase&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-144_passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-## Arhitectură și flux de funcționare
+[Features](#-features) · [How it works](#-how-it-works) · [Architecture](#-architecture) · [Getting started](#-getting-started) · [API](#-api-overview) · [Security](#-security)
 
-1. **Profilare** – Utilizatorul își creează cont (email + parolă) și completează profilul cu datele personale relevante.
-2. **Analize** – Opțional, utilizatorul introduce rezultatele analizelor medicale (hemoglobină, feritină, vitamina D, B12, calciu, magneziu, zinc, potasiu etc.) sau încarcă un raport PDF; sistemul extrage automat valorile disponibile.
-3. **Calculul deficitelor** – Modulul `DeficitCalculator` estimează deficiențele nutriționale comparând aportul recomandat zilnic (RDI) cu aportul estimat sau cu valorile din analize, ținând cont de vârstă, sex, greutate și tip de dietă.
-4. **Motor de reguli** – `ScopedRulesEngine` și `NutritionalRuleEngine` aplică reguli contextuale (dietă vegan, intoleranță la lactoză, hipertensiune etc.) și selectează alimente din catalogul `foods` care acoperă deficiențele identificate, filtrând conform restricțiilor utilizatorului.
-5. **Recomandări** – Alimentele sunt ordonate după scor și procent de acoperire a deficitului; primele 10 sunt salvate și afișate utilizatorului, cu explicații și sfaturi.
+<br>
 
-## Cerințe
+<img src="docs/screenshots/dashboard.png" alt="VitaBalance dashboard" width="900">
 
-- Python 3.10–3.12 (recomandat 3.11)
-- Node.js (pentru frontend)
-- Cont Supabase (URL + cheie API)
+</div>
 
-## Instalare și rulare
+---
 
-**1. Backend**
+## 📖 About
+
+**VitaBalance** is a full-stack web application that turns a user's profile and blood test results into a short,
+ranked list of foods that cover their nutritional gaps. Every recommendation comes with a patient-specific explanation
+(*which lab value is low, how much of the daily need one portion covers, why it is safe for this user*), so the result
+is something you can understand and verify, not a black box.
+
+It was built as my **Bachelor's thesis (2026)** and is deployed as a public application with real authentication,
+a hardened database and a full test suite.
+
+> [!NOTE]
+> VitaBalance offers general nutritional guidance and is **not** a substitute for medical advice.
+
+## ✨ Features
+
+| | |
+|---|---|
+| 🧪 **Lab-driven deficits** | 14 biomarkers (haemoglobin, ferritin, vitamin D, B12, folate, calcium, magnesium, zinc, potassium, iodine, vitamins A, C, K, protein) compared against sex- and age-specific reference ranges. |
+| 📄 **PDF report import** | Upload a lab report as PDF; values are extracted in the browser with pdf.js and parsed on the server, with low-confidence values flagged for review. |
+| 🥗 **Safe by construction** | A rule engine removes foods that conflict with the user's diet (omnivore, vegetarian, vegan, pescatarian), allergies (including hidden allergens) and 13 medical conditions before anything is scored. |
+| 🎯 **Ranked recommendations** | Foods from a 591-item catalogue are scored by deficit coverage, with realistic portion sizes per food category and approximate calories. |
+| 💬 **Explainable results** | Each card shows *why* the food was picked, nutrient details for the suggested portion, tips and similar alternatives. Explanations are stored as facts and rendered in **Romanian or English** on demand. |
+| 👍 **Feedback loop** | Like or dislike a recommendation; a dislike can instantly swap the food for a suitable alternative, and the vote persists across regenerations. |
+| 📊 **Charts & PDF export** | Deficit-coverage chart for the top recommendations, optional daily calorie goal tracker, and a one-click PDF report. |
+| 🌍 **Bilingual UI** | Full Romanian / English interface, switchable at any time. |
+| 🔐 **Accounts** | Email + password authentication with Supabase Auth, automatic session refresh, per-user data isolation. |
+
+## 🖼️ Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/login.png" alt="Sign in"></td>
+    <td width="50%"><img src="docs/screenshots/lab-results.png" alt="Lab results with PDF import"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Sign in</b> · email + password, RO/EN switch</sub></td>
+    <td align="center"><sub><b>Lab results</b> · manual entry or PDF import</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/recommendation-cards.png" alt="Recommendation cards"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub><b>Recommendations</b> · portion, coverage, explanation, tips, alternatives and feedback</sub></td>
+  </tr>
+</table>
+
+## 🧠 How it works
+
+```mermaid
+flowchart LR
+    A[Profile<br/>age · sex · weight · height<br/>activity · diet] --> C
+    B[Lab results<br/>manual or PDF] --> C
+    C[Deficit calculator<br/>reference ranges → active deficits] --> D
+    D[Rule engine<br/>diet · allergies · conditions] --> E
+    E[Scoring<br/>deficit coverage per portion] --> F
+    F[Explanation facts<br/>stored per recommendation] --> G
+    G[Renderer<br/>RO / EN on read]
+```
+
+1. **Profile & labs.** The user fills in a profile and, optionally, lab values (typed in or imported from a PDF report).
+2. **Deficits.** `DeficitCalculator` compares each biomarker against sex- and age-specific ranges and turns low values into
+   nutrient deficits with a severity.
+3. **Safety filter.** `ScopedRulesEngine` and `NutritionalRuleEngine` drop every food that is incompatible with the diet,
+   allergies or clinical rules (e.g. gluten in coeliac disease, salty foods in hypertension, added sugar in diabetes), using
+   `data/medical_rules.json`.
+4. **Scoring & portions.** Remaining foods are ranked by how much of the user's deficits a realistic portion covers.
+5. **Explanations.** For each pick the backend stores *facts* (lab value vs. threshold, nutrient amounts, diet, allergies,
+   portion). Text is rendered from those facts at read time, so switching language never requires regenerating anything.
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    U([Browser]) -->|HTTPS| V
+    subgraph V[Vercel]
+        SPA[React SPA<br/>static build]
+        RW["/api/* rewrite"]
+    end
+    RW -->|same-origin proxy| R
+    subgraph R[Render]
+        API[FastAPI<br/>REST API]
+    end
+    API -->|service_role| DB[(Supabase Postgres<br/>RLS enabled)]
+    API -->|sign-in · refresh · admin| AUTH[Supabase Auth]
+```
+
+- The **frontend** is a static React build on Vercel. Calls to `/api/*` are proxied by a Vercel rewrite, so the browser
+  only talks to its own origin (no CORS, no backend URL in the bundle).
+- The **backend** (FastAPI on Render) owns all business logic and is the only component that talks to Supabase.
+- **Supabase Auth** stores credentials; `public.users` holds the app profile, linked to `auth.users` and created by a
+  database trigger once an account is confirmed.
+
+## 🛠️ Tech stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, react-i18next, pdf.js, @react-pdf/renderer, Axios |
+| **Backend** | Python 3.11, FastAPI, Pydantic v2, httpx, supabase-py |
+| **Data & auth** | Supabase (PostgreSQL 17, Row Level Security, Supabase Auth) |
+| **Infrastructure** | Vercel (frontend, rewrites, security headers, firewall), Render (API) |
+| **Quality** | pytest / unittest (144 tests), ESLint, TypeScript strict build |
+
+## 📁 Project structure
+
+```text
+VitaBalance/
+├── backend/                      FastAPI application
+│   ├── main.py                   API routes
+│   ├── config.py                 settings (environment variables)
+│   ├── data/                     clinical rules (medical_rules.json)
+│   ├── domain/                   domain models and API schemas
+│   ├── middleware/               session validation, rate limiting
+│   ├── repositories/             Supabase client and one repository per table
+│   ├── services/
+│   │   ├── auth.py               sign-up / sign-in / refresh via Supabase Auth
+│   │   ├── nutrition/            deficits, food categories, lab report parsing
+│   │   ├── rules/                diet, allergy and medical-condition rules
+│   │   ├── recommendations/      scoring, portions, persistence
+│   │   └── explanations/         facts, RO/EN templates, rendering
+│   ├── migrations/               incremental SQL migrations
+│   ├── schema.sql                full target schema
+│   └── tests/                    test suite
+├── frontend/                     React + TypeScript SPA
+│   └── src/
+│       ├── features/             auth, medical profile & labs, recommendations, PDF
+│       ├── services/             API client and session storage
+│       └── shared/               components, hooks, i18n, utilities
+├── docs/
+│   ├── assets/ · screenshots/    README images
+│   ├── diagrams/                 C4 and UML diagrams (PlantUML)
+│   └── demo/                     thesis case studies (profiles, reports, screens)
+├── main.py · requirements.txt    entry points for hosts that build from the repo root
+└── vercel.json                   build, /api rewrite and security headers
+```
+
+## 🚀 Getting started
+
+### Prerequisites
+
+- Python **3.11**
+- Node.js **20.19+** (required by Vite 7)
+- A [Supabase](https://supabase.com) project (URL + `service_role` key)
+
+### 1. Clone
+
+```bash
+git clone https://github.com/CalinGraphics/VitaBalance.git
+cd VitaBalance
+```
+
+### 2. Database
+
+In the Supabase SQL editor, run [`backend/schema.sql`](backend/schema.sql) on a new project, then import your food
+catalogue into the `foods` table. (For an existing database, apply the files in
+[`backend/migrations/`](backend/migrations) in order instead.)
+
+### 3. Backend
 
 ```bash
 cd backend
-.\.venv\Scripts\activate
-python -m pip install -r requirements.txt
-python run.py
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Creează fișierul `backend/.env` cu variabilele necesare (vezi secțiunea următoare). API-ul rulează pe **http://localhost:8000**; documentație interactivă: http://localhost:8000/docs
+Create `backend/.env`:
 
-**2. Frontend**
+```env
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service_role key>
+DEBUG=true
+```
+
+```bash
+python run.py                      # http://localhost:8000 · docs at /docs
+```
+
+### 4. Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev                        # http://localhost:3000 (proxies /api to :8000)
 ```
 
-Interfața este disponibilă la **http://localhost:3000**.
+### 5. Tests
 
-## Variabile de mediu (backend)
-
-| Variabilă | Obligatoriu | Descriere |
-|-----------|-------------|-----------|
-| `SUPABASE_URL` | Da | URL-ul proiectului Supabase |
-| `SUPABASE_KEY` | Da* | Secret API folosit de backend; trebuie să fie JWT **`service_role`**, nu `anon`. *Pe Render, dacă integrarea completează aici doar `anon`, variabila se păstrează și se adaugă `SUPABASE_SERVICE_ROLE_KEY`. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Nu | Opțional: același JWT **service_role** din Supabase. Dacă e setat, **îl preferă** în locul lui `SUPABASE_KEY` (util când Render suprascrie `SUPABASE_KEY` cu cheia publică). |
-| `CORS_ORIGINS` | Nu | Origini permise, separate prin virgulă (implicit localhost:3000 și :5173) |
-| `CORS_ALLOW_ALL` | Nu | Dacă `true`, permite orice origin (doar depanare; în producție lasă `false`) |
-| `RATE_LIMIT_ENABLED` | Nu | Implicit `true`; setează `false` doar în dev dacă testezi multe cereri |
-| `RATE_LIMIT_AUTH_PER_MIN` | Nu | Limită cereri `/api/auth/*` pe minut per IP (implicit 24) |
-| `RATE_LIMIT_RECOMMENDATIONS_PER_MIN` | Nu | Limită `/api/recommendations*` pe minut per IP (implicit 45) |
-| `RATE_LIMIT_TRUSTED_PROXY_HOPS` | Nu | Câte proxy-uri adaugă un element în `X-Forwarded-For` (implicit 2: rewrite Vercel + proxy Render). Pune `1` dacă backendul e expus direct, altfel limita se aplică tuturor la comun. |
-
-## Deployment (Render + Vercel)
-
-### Backend pe Render
-
-Configurația recomandată: **Root Directory = `backend`**, Build Command `pip install -r requirements.txt`,
-Start Command `uvicorn main:app --host 0.0.0.0 --port $PORT`, Health Check Path `/health`.
-
-Repo-ul funcționează și dacă serviciul rulează din rădăcină (Root Directory gol): există `requirements.txt`
-și `main.py` la rădăcină care trimit mai departe către `backend/`. Versiunea de Python e fixată la 3.11.8
-prin `.python-version`; altfel Render folosește ultima versiune, incompatibilă cu dependențele.
-
-Variabile obligatorii în **Environment**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (cheia service_role,
-nu anon), plus `DEBUG=false` și `CORS_ORIGINS` cu adresa frontend-ului. `JWT_SECRET` nu mai e folosit
-(sesiunile sunt emise de Supabase Auth) și poate fi șters din Render.
-
-Backend-ul rulează pe serviciul Render `VitaBalance-1` (`https://vitabalance-1.onrender.com`, branch
-`Update-Version-1.1`, Root Directory gol — de aceea `main.py` și `requirements.txt` din rădăcină). Codul
-care rulează se verifică cu `curl <url>/openapi.json`.
-
-### Frontend pe Vercel
-
-Proiectul Vercel `vita-balance` are Root Directory = rădăcina repo-ului, deci se folosește `vercel.json` din
-rădăcină: build în `frontend/`, iar `/api/*` e redirecționat către backend-ul de pe Render (proxy pe
-server, deci fără CORS). Regula de rewrite e necondiționată, ca să acopere și URL-urile cu hash ale fiecărui
-deployment (`<proiect>-<hash>-<cont>.vercel.app`), nu doar aliasul `…-git-<branch>-<cont>.vercel.app`.
-
-`VITE_API_URL` (build-time, scope Preview/Production) are prioritate față de rewrite și face cereri
-**cross-origin**: dacă îl folosești, adaugă adresa Vercel în `CORS_ORIGINS` pe backend, altfel browserul
-blochează cererile. Lăsat gol, se folosește rewrite-ul de mai sus.
-
-## Performanță și UX
-
-- **Prefetch**: `GET /api/recommendations/stored/{user_id}` returnează rapid recomandările din baza de date; frontend-ul le afișează înainte de `POST /api/recommendations` (regenerare).
-- **Catalog alimente**: cache în memorie TTL pentru `FoodRepository.get_all()` (reduce apeluri Supabase repetate).
-- **Motor**: pre-filtrare alimente incompatibile cu profilul înainte de evaluarea costisitoare a regulilor.
-- **Indexuri DB**: se aplică direct în Supabase (SQL Editor) pe tabelele folosite intens (`recommendations`, `feedback`, `lab_results` etc.), în funcție de volumul de date.
-
-### Flux date (rezumat)
-
-```mermaid
-flowchart LR
-  profile[Profil_si_analize]
-  deficits[DeficitCalculator]
-  rules[RuleEngines]
-  recs[Recomandari_DB]
-  ui[Frontend]
-  profile --> deficits --> rules --> recs
-  recs --> ui
+```bash
+cd backend && python -m pytest     # backend test suite
+cd frontend && npm run lint && npm run build
 ```
 
-## Baza de date
+### Environment variables (backend)
 
-Aplicația folosește **Supabase** (PostgreSQL) ca unică sursă de date. Tabelele principale sunt:
+| Variable | Required | Description |
+|---|:---:|---|
+| `SUPABASE_URL` | ✅ | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | `service_role` key, used server-side only (the app refuses to start with an `anon` key) |
+| `DEBUG` | | `true` only for local development (detailed errors, debug routes) |
+| `CORS_ORIGINS` | | Comma-separated origins; not needed behind the Vercel rewrite |
+| `RATE_LIMIT_AUTH_PER_MIN` | | Requests per minute per IP on `/api/auth/*` (default `24`) |
+| `RATE_LIMIT_RECOMMENDATIONS_PER_MIN` | | Requests per minute per IP on `/api/recommendations*` (default `45`) |
+| `RATE_LIMIT_TRUSTED_PROXY_HOPS` | | Proxies in front of the app (default `2`: Vercel + Render) |
 
-- `users` – profil utilizator
-- `foods` – catalog alimente cu valori nutriționale
-- `lab_results` – rezultate analize medicale
-- `recommendations` – recomandări salvate
-- `feedback` – evaluări utilizator
+## 🔌 API overview
 
-**Schema:** `backend/schema.sql` descrie schema completă (starea țintă după toate migrările) — pentru o bază nouă rulează doar acest fișier. Pentru baza existentă, scripturile din `backend/migrations/` se aplică în ordine în Supabase:
+All routes are under `/api`; everything except sign-up, sign-in and refresh requires a `Bearer` token.
+Interactive documentation is available at `/docs` when running locally.
 
-| Migrare | Rol |
-|---------|-----|
-| `001_add_users_caloric_goal.sql` | coloana opțională `users.caloric_goal` |
-| `003_align_and_harden.sql` | comentarii, unicitate email case-insensitive, `search_path` pe funcții, drepturi retrase pentru `anon`/`authenticated` |
-| `004_integrity_and_cleanup.sql` | `CHECK`-uri pe profil, indexuri redundante eliminate, corecții de date |
-| `005_feedback_persist_by_food.sql` | feedback unic per (utilizator, aliment), care supraviețuiește regenerării recomandărilor. **Aplică-o înainte de a publica codul care o folosește.** |
-| `006_foods_name_en.sql` | `foods.name_en`: numele alimentelor în engleză (interfața și explicațiile EN) |
-| `007_supabase_auth.sql` | trecerea pe Supabase Auth: `users.auth_user_id`, triggerele `auth.users` → profil, conturile cu parolă mutate în `auth.users` (hash-ul bcrypt păstrat), politici RLS de citire a rândurilor proprii |
-| `008_drop_legacy_auth.sql` | șterge `users.password_hash` și tabela `magic_links` (autentificarea veche) |
-| `009_security_hardening.sql` | după auditul de securitate: profilul se creează doar pentru conturi confirmate, profilele vechi se preiau doar cu aprobarea unui admin, `authenticated` fără drepturi directe pe tabele, funcțiile-trigger neexecutabile prin API |
+| Method | Route | Purpose |
+|---|---|---|
+| `POST` | `/auth/register` · `/auth/login` | Create an account / sign in, returns a Supabase session |
+| `POST` | `/auth/refresh` · `/auth/logout` | Renew or revoke the session |
+| `GET` | `/auth/me` | Current user |
+| `POST` · `GET` | `/profile` · `/profile/by-email/{email}` | Save / read the medical profile |
+| `POST` · `GET` | `/lab-results` · `/lab-results/{user_id}` | Save / read lab values |
+| `POST` | `/lab-results/extract-from-text` | Parse lab values from report text |
+| `POST` | `/recommendations?lang=en` | Generate (or replace) recommendations |
+| `GET` | `/recommendations/stored/{user_id}?lang=en` | Stored recommendations, rendered in the chosen language |
+| `GET` | `/recommendations/{user_id}/{id}/explanation` | Explanation for a single recommendation |
+| `POST` | `/feedback` | Like / dislike a food |
 
-### Autentificare (Supabase Auth)
+## 🔒 Security
 
-Emailul și parola stau în `auth.users`, gestionate de Supabase (bcrypt). `public.users` e profilul aplicației,
-legat prin `auth_user_id`. Backend-ul nu semnează tokenuri proprii:
+- **Authentication** through Supabase Auth; passwords never touch the application database. Public sign-up is disabled,
+  so every account is created through the API's validation and rate limiting.
+- **Least privilege:** only the backend accesses the database (`service_role`); the `anon` and `authenticated` roles have
+  no table grants. Row Level Security is enabled on every table, with owner-only policies kept as defence in depth.
+- **Data isolation:** every protected route checks that the requested resource belongs to the signed-in user.
+- **Legacy profiles** created before password accounts can only be claimed after an administrator approves it, so
+  nobody can take over someone else's health data by registering with their email.
+- **Hardening:** rate limiting on authentication and recommendation routes, Vercel Firewall, and security headers
+  (Content-Security-Policy, HSTS, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`) on both the site and
+  the API.
 
-| Rută | Ce face |
-|------|---------|
-| `POST /api/auth/register` | creează contul în Supabase Auth (fără confirmare pe email) și întoarce sesiunea; triggerul `on_auth_user_created` creează profilul |
-| `POST /api/auth/login` | `grant_type=password` la Supabase Auth; întoarce `access_token` + `refresh_token` |
-| `POST /api/auth/refresh` | reînnoiește sesiunea (tokenul de acces expiră după o oră); frontend-ul o apelează singur la un 401 |
-| `POST /api/auth/logout` | revocă sesiunea în Supabase |
-| `GET /api/auth/me` | identitatea din token |
+<details>
+<summary><b>Administration: recovering a legacy profile</b></summary>
 
-Rutele protejate validează tokenul la Supabase (`GET /auth/v1/user`, rezultat ținut în memorie 60 s).
+<br>
 
-**Conturi vechi.** Conturile cu parolă au fost mutate în `auth.users` de migrarea 007, cu hash-ul păstrat, deci
-parolele de dinainte merg. Profilele fără parolă (create pe vremea magic link) nu au cont, iar înregistrarea cu
-emailul lor e **respinsă**: emailul nu se verifică la înregistrare, deci altfel oricine ar ști adresa ar vedea
-datele medicale ale proprietarului. Ca să recuperezi un astfel de profil după ce ai verificat identitatea
-persoanei, rulezi în SQL Editor:
+Profiles created before password accounts have no linked login (`auth_user_id IS NULL`). After verifying the person's
+identity, approve the profile in the Supabase SQL editor; the next sign-up with that email takes it over, together with
+its lab results and recommendations:
 
 ```sql
-update public.users set legacy_adoption_approved_at = now()
- where email = 'adresa@exemplu.ro' and auth_user_id is null;
+update public.users
+   set legacy_adoption_approved_at = now()
+ where email = 'person@example.com' and auth_user_id is null;
 ```
 
-La următoarea înregistrare cu acel email, contul nou preia profilul, analizele și recomandările. Lista profilelor
-vechi: `select id, email from users where auth_user_id is null`.
+List the remaining legacy profiles with `select id, email from public.users where auth_user_id is null;`.
 
-**Setări în Dashboard** (nu se pot face prin SQL): în *Authentication → Sign In / Providers* trebuie
-dezactivat „Allow new users to sign up”, pentru că aplicația creează conturile prin API-ul de admin, iar
-înregistrarea publică ar ocoli backend-ul. Opțional, în *Authentication → Password security*: protecția
-împotriva parolelor compromise (planul Pro) și lungimea minimă a parolei.
+</details>
 
-## Explicații RO/EN
+## ☁️ Deployment
 
-Explicația fiecărei recomandări e **specifică pacientului** și se construiește din fapte, nu din text liber:
+| Component | Platform | Notes |
+|---|---|---|
+| Frontend | Vercel | Builds `frontend/` from the repo root ([`vercel.json`](vercel.json)); production from `main` |
+| API | Render | `uvicorn main:app`, health check `/health`, builds from the repo root |
+| Database & auth | Supabase | Schema in [`backend/schema.sql`](backend/schema.sql), history in [`backend/migrations/`](backend/migrations) |
 
-1. `services/explanations/facts.py` extrage faptele (valoarea din analize și pragul clinic, nutrientul deficitar, dieta, alergiile, afecțiunile cu restricții, porția) și le salvează în `recommendations.explanation_json.facts`.
-2. `services/explanations/renderer.py` le transformă în text cu șabloanele din `services/explanations/i18n.py` (RO/EN), la citire — deci schimbarea limbii nu cere regenerarea recomandărilor.
+Both Vercel and Render deploy automatically on every push to `main`. Day-to-day work happens on a feature branch
+(Vercel builds a protected preview for each push) and is merged into `main` to publish.
 
-API: parametrul `?lang=ro|en` (implicit `ro`) pe `GET /api/recommendations/stored/{user_id}` și `POST /api/recommendations`; `GET /api/recommendations/{user_id}/{recommendation_id}/explanation?lang=en` returnează explicația unei singure recomandări. Numele alimentelor vin din `foods.name_en`. Recomandările create înainte de această schimbare se regenerează o singură dată (`sync-meta.explanations_outdated`).
+> [!TIP]
+> On Render's free tier the API sleeps after 15 minutes of inactivity, so the first request can take about a minute.
 
-Toate datele (catalogul `foods`, conturile de test) se află exclusiv în Supabase, nu în repo. Catalogul de alimente se gestionează direct din Supabase (import CSV). Schema include coloane pentru macro- și micronutrienți (fier, calciu, magneziu, vitamine, fibre etc.), categorie și alerjeni.
+## 📚 Documentation
 
-## Structura proiectului
+- [`docs/diagrams/`](docs/diagrams) — C4 context and container diagrams, UML class, component, package,
+  use-case and activity diagrams (PlantUML)
+- [`docs/demo/`](docs/demo) — 15 case studies used in the thesis: user profiles, lab reports and resulting screens
+- [`docs/metrics.tex`](docs/metrics.tex) — performance evaluation
 
-```
-VitaBalance/
-├── main.py, requirements.txt   # trimit către backend/ (Render rulează din rădăcină)
-├── vercel.json                 # build frontend + proxy /api către Render
-├── backend/                    # API FastAPI
-│   ├── main.py                 # Rute API
-│   ├── config.py               # Setări (variabile de mediu)
-│   ├── data/                   # Reguli clinice (medical_rules.json)
-│   ├── domain/                 # Modele de domeniu și scheme API (schemas.py)
-│   ├── repositories/           # Acces date (client Supabase + câte un repository pe tabel)
-│   ├── middleware/             # Validare sesiune Supabase Auth, rate limiting
-│   ├── services/
-│   │   ├── auth.py             # Login / înregistrare / sesiune prin Supabase Auth
-│   │   ├── nutrition/          # Deficite din analize, categorii alimente, extragere analize din text
-│   │   ├── rules/              # Reguli clinice, compatibilitate dietă / alergii
-│   │   ├── recommendations/    # Scorare, porții, materializare
-│   │   └── explanations/       # Fapte, șabloane RO/EN, randare, stocare
-│   ├── migrations/             # Scripturi SQL incrementale
-│   ├── tests/                  # Suită de teste (unittest + pytest)
-│   └── schema.sql              # Schema completă (starea țintă)
-├── frontend/                   # Aplicație React (Vite, TypeScript)
-│   └── src/
-│       ├── features/           # Pagini (auth, profil, analize, recomandări, PDF)
-│       ├── shared/             # Componente, hooks, tipuri, i18n, utilitare
-│       └── services/           # Apeluri API și sesiunea
-└── docs/
-    ├── diagrams/        # Diagrame C4 și UML (PlantUML)
-    ├── demo/            # Cazuri de test: profil, rapoarte PDF, capturi
-    └── metrics.tex      # Evaluarea performanței
-```
+## ⚠️ Disclaimer
 
-## Stack tehnologic
+VitaBalance provides general, educational nutrition suggestions. It does not diagnose, treat or prevent any disease and
+is not a substitute for professional medical advice. Always consult a doctor or registered dietitian before changing
+your diet, especially if you have a medical condition.
 
-- **Backend:** FastAPI, Supabase (PostgreSQL + Supabase Auth)
-- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, @react-pdf/renderer, react-i18next
+## 📄 License
 
-## Disclaimer
+Released under the [MIT License](LICENSE).
 
-Recomandările furnizate sunt sugestii generale și nu constituie sfaturi medicale. Pentru decizii legate de dietă și sănătate, se recomandă consultarea unui medic sau nutriționist.
+## 👤 Author
 
-Proiect realizat în scop academic — Licență 2026.
+**Miertescu Ștefan Călin**: Bachelor's thesis, 2026
+
+If you find this project useful, consider giving it a ⭐.
