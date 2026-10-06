@@ -1,0 +1,2695 @@
+{
+ "p1_male_omnivore": [
+  {
+   "food_id": 1049,
+   "recommendation_id": 1,
+   "food": {
+    "id": 1049,
+    "name_ro": "Ciuperci albe expuse la UV",
+    "name_en": "UV-exposed white mushrooms",
+    "category": "Legume",
+    "category_key": "vegetables",
+    "calories": 22.0
+   },
+   "score": 2.0,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1049,
+    "food_key": "mushrooms_uv",
+    "category": "vegetables",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 20.96,
+      "per100": 26.2,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 18.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": []
+   },
+   "alternatives": [],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1071,
+   "recommendation_id": 2,
+   "food": {
+    "id": 1071,
+    "name_ro": "Păstrăv de crescătorie, gătit",
+    "name_en": "Farmed rainbow trout, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 168.0
+   },
+   "score": 1.948696,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1071,
+    "food_key": "trout",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a fillet (130 g)"
+    },
+    "kcal_portion": 218,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 24.7,
+      "per100": 19.0,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 18.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     },
+     {
+      "key": "magnesium",
+      "amount": 39.0,
+      "per100": 30.0,
+      "daily_reference": 350.0,
+      "pct": 11,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.6,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1078,
+     1068,
+     1073
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1078,
+     "name_ro": "Pește-spadă gătit",
+     "name_en": "Swordfish, cooked"
+    },
+    {
+     "id": 1068,
+     "name_ro": "Somon de crescătorie, gătit",
+     "name_en": "Farmed salmon, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1078,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1078,
+    "name_ro": "Pește-spadă gătit",
+    "name_en": "Swordfish, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 172.0
+   },
+   "score": 1.681202,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1078,
+    "food_key": "swordfish",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a steak (130 g)"
+    },
+    "kcal_portion": 224,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 21.58,
+      "per100": 16.6,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 18.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     },
+     {
+      "key": "magnesium",
+      "amount": 45.5,
+      "per100": 35.0,
+      "daily_reference": 350.0,
+      "pct": 13,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.6,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_mercury"
+    ],
+    "alternatives": [
+     1071,
+     1068,
+     1073
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1071,
+     "name_ro": "Păstrăv de crescătorie, gătit",
+     "name_en": "Farmed rainbow trout, cooked"
+    },
+    {
+     "id": 1068,
+     "name_ro": "Somon de crescătorie, gătit",
+     "name_en": "Farmed salmon, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1068,
+   "recommendation_id": 4,
+   "food": {
+    "id": 1068,
+    "name_ro": "Somon de crescătorie, gătit",
+    "name_en": "Farmed salmon, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 206.0
+   },
+   "score": 1.111882,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1068,
+    "food_key": "salmon_farmed",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a fillet (130 g)"
+    },
+    "kcal_portion": 268,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 17.03,
+      "per100": 13.1,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 18.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     },
+     {
+      "key": "magnesium",
+      "amount": 39.0,
+      "per100": 30.0,
+      "daily_reference": 350.0,
+      "pct": 11,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.6,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1071,
+     1078,
+     1073
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1071,
+     "name_ro": "Păstrăv de crescătorie, gătit",
+     "name_en": "Farmed rainbow trout, cooked"
+    },
+    {
+     "id": 1078,
+     "name_ro": "Pește-spadă gătit",
+     "name_en": "Swordfish, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1027,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1027,
+    "name_ro": "Spanac fiert",
+    "name_en": "Cooked spinach",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 23.0
+   },
+   "score": 1.0,
+   "coverage": 19.9,
+   "facts": {
+    "v": 4,
+    "food_id": 1027,
+    "food_key": "spinach_cooked",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "magnesium",
+      "amount": 69.6,
+      "per100": 87.0,
+      "daily_reference": 350.0,
+      "pct": 20,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.6,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "magnesium",
+    "coverage_pct": 19.9,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1029,
+     1026,
+     1032
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1029,
+     "name_ro": "Mangold fiert",
+     "name_en": "Swiss chard, cooked"
+    },
+    {
+     "id": 1026,
+     "name_ro": "Spanac crud",
+     "name_en": "Raw spinach"
+    },
+    {
+     "id": 1032,
+     "name_ro": "Frunze de sfeclă fierte",
+     "name_en": "Beet greens, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  }
+ ],
+ "p2_female_vegan": [
+  {
+   "food_id": 1109,
+   "recommendation_id": 1,
+   "food": {
+    "id": 1109,
+    "name_ro": "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12)",
+    "name_en": "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12)",
+    "category": "Băuturi vegetale",
+    "category_key": "plant_milks",
+    "calories": 33.0
+   },
+   "score": 2.522727,
+   "coverage": 69.4,
+   "facts": {
+    "v": 4,
+    "food_id": 1109,
+    "food_key": "soy_milk_fortified",
+    "category": "plant_milks",
+    "animal": null,
+    "portion": {
+     "amount": 250,
+     "unit": "ml",
+     "label_ro": "un pahar (250 ml)",
+     "label_en": "a glass (250 ml)"
+    },
+    "kcal_portion": 82,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_b12",
+      "amount": 2.77,
+      "per100": 1.11,
+      "daily_reference": 4.0,
+      "pct": 69,
+      "need": {
+       "nutrient": "vitamin_b12",
+       "source": "lab",
+       "severity": "severe",
+       "daily_reference": 4.0,
+       "marker": "vitamin_b12",
+       "value": 150.0,
+       "threshold": 200.0,
+       "unit": "pg/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_b12",
+    "coverage_pct": 69.4,
+    "profile": {
+     "diet": "vegan",
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": []
+   },
+   "alternatives": [],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1027,
+   "recommendation_id": 2,
+   "food": {
+    "id": 1027,
+    "name_ro": "Spanac fiert",
+    "name_en": "Cooked spinach",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 23.0
+   },
+   "score": 1.455163,
+   "coverage": 17.8,
+   "facts": {
+    "v": 4,
+    "food_id": 1027,
+    "food_key": "spinach_cooked",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iron",
+      "amount": 2.86,
+      "per100": 3.57,
+      "daily_reference": 16.0,
+      "pct": 18,
+      "need": {
+       "nutrient": "iron",
+       "source": "lab",
+       "severity": "severe",
+       "daily_reference": 16.0,
+       "marker": "ferritin",
+       "value": 9.0,
+       "threshold": 15.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "iron",
+    "coverage_pct": 17.8,
+    "profile": {
+     "diet": "vegan",
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1026,
+     1029
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1026,
+     "name_ro": "Spanac crud",
+     "name_en": "Raw spinach"
+    },
+    {
+     "id": 1029,
+     "name_ro": "Mangold fiert",
+     "name_en": "Swiss chard, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1026,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1026,
+    "name_ro": "Spanac crud",
+    "name_en": "Raw spinach",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 23.0
+   },
+   "score": 1.10462,
+   "coverage": 13.6,
+   "facts": {
+    "v": 4,
+    "food_id": 1026,
+    "food_key": "spinach_raw",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "un bol (80 g)",
+     "label_en": "a bowl (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iron",
+      "amount": 2.17,
+      "per100": 2.71,
+      "daily_reference": 16.0,
+      "pct": 14,
+      "need": {
+       "nutrient": "iron",
+       "source": "lab",
+       "severity": "severe",
+       "daily_reference": 16.0,
+       "marker": "ferritin",
+       "value": 9.0,
+       "threshold": 15.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "iron",
+    "coverage_pct": 13.6,
+    "profile": {
+     "diet": "vegan",
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1027,
+     1029
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1027,
+     "name_ro": "Spanac fiert",
+     "name_en": "Cooked spinach"
+    },
+    {
+     "id": 1029,
+     "name_ro": "Mangold fiert",
+     "name_en": "Swiss chard, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1029,
+   "recommendation_id": 4,
+   "food": {
+    "id": 1029,
+    "name_ro": "Mangold fiert",
+    "name_en": "Swiss chard, cooked",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 20.0
+   },
+   "score": 1.059375,
+   "coverage": 11.3,
+   "facts": {
+    "v": 4,
+    "food_id": 1029,
+    "food_key": "swiss_chard",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 16,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iron",
+      "amount": 1.81,
+      "per100": 2.26,
+      "daily_reference": 16.0,
+      "pct": 11,
+      "need": {
+       "nutrient": "iron",
+       "source": "lab",
+       "severity": "severe",
+       "daily_reference": 16.0,
+       "marker": "ferritin",
+       "value": 9.0,
+       "threshold": 15.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "iron",
+    "coverage_pct": 11.3,
+    "profile": {
+     "diet": "vegan",
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1027,
+     1026
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1027,
+     "name_ro": "Spanac fiert",
+     "name_en": "Cooked spinach"
+    },
+    {
+     "id": 1026,
+     "name_ro": "Spanac crud",
+     "name_en": "Raw spinach"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1019,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1019,
+    "name_ro": "Linte fiartă",
+    "name_en": "Lentils, cooked",
+    "category": "Leguminoase",
+    "category_key": "legumes",
+    "calories": 116.0
+   },
+   "score": 0.538254,
+   "coverage": 31.2,
+   "facts": {
+    "v": 4,
+    "food_id": 1019,
+    "food_key": "lentils",
+    "category": "legumes",
+    "animal": null,
+    "portion": {
+     "amount": 150,
+     "unit": "g",
+     "label_ro": "un castron mic (150 g)",
+     "label_en": "a small bowl (150 g)"
+    },
+    "kcal_portion": 174,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iron",
+      "amount": 5.0,
+      "per100": 3.33,
+      "daily_reference": 16.0,
+      "pct": 31,
+      "need": {
+       "nutrient": "iron",
+       "source": "lab",
+       "severity": "severe",
+       "daily_reference": 16.0,
+       "marker": "ferritin",
+       "value": 9.0,
+       "threshold": 15.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "iron",
+    "coverage_pct": 31.2,
+    "profile": {
+     "diet": "vegan",
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1017,
+     1022,
+     1021
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1017,
+     "name_ro": "Fasole albă fiartă",
+     "name_en": "White beans, cooked"
+    },
+    {
+     "id": 1022,
+     "name_ro": "Tofu tare",
+     "name_en": "Firm tofu"
+    },
+    {
+     "id": 1021,
+     "name_ro": "Edamame (boabe de soia verzi)",
+     "name_en": "Edamame"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  }
+ ],
+ "p3_pregnant_pescatarian": [
+  {
+   "food_id": 1049,
+   "recommendation_id": 1,
+   "food": {
+    "id": 1049,
+    "name_ro": "Ciuperci albe expuse la UV",
+    "name_en": "UV-exposed white mushrooms",
+    "category": "Legume",
+    "category_key": "vegetables",
+    "calories": 22.0
+   },
+   "score": 2.0,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1049,
+    "food_key": "mushrooms_uv",
+    "category": "vegetables",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 20.96,
+      "per100": 26.2,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": "pescatarian",
+     "allergies": [],
+     "conditions": [
+      "pregnancy"
+     ]
+    },
+    "safety_rules": [
+     "pregnancy_immuno_no_raw_animal",
+     "pregnancy_lactation_no_high_mercury",
+     "pregnancy_no_liver",
+     "pregnancy_immuno_no_soft_mould_cheese"
+    ],
+    "flags": [],
+    "alternatives": []
+   },
+   "alternatives": [],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1071,
+   "recommendation_id": 2,
+   "food": {
+    "id": 1071,
+    "name_ro": "Păstrăv de crescătorie, gătit",
+    "name_en": "Farmed rainbow trout, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 168.0
+   },
+   "score": 1.507937,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1071,
+    "food_key": "trout",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a fillet (130 g)"
+    },
+    "kcal_portion": 218,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 24.7,
+      "per100": 19.0,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": "pescatarian",
+     "allergies": [],
+     "conditions": [
+      "pregnancy"
+     ]
+    },
+    "safety_rules": [
+     "pregnancy_immuno_no_raw_animal",
+     "pregnancy_lactation_no_high_mercury",
+     "pregnancy_no_liver",
+     "pregnancy_immuno_no_soft_mould_cheese"
+    ],
+    "flags": [],
+    "alternatives": [
+     1068,
+     1073,
+     1072
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1068,
+     "name_ro": "Somon de crescătorie, gătit",
+     "name_en": "Farmed salmon, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    },
+    {
+     "id": 1072,
+     "name_ro": "Sardine în ulei, scurse",
+     "name_en": "Sardines in oil, drained"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1110,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1110,
+    "name_ro": "Băutură de migdale neîndulcită, fortificată (Ca, vitamina D)",
+    "name_en": "Unsweetened almond drink, fortified (Ca, vitamin D)",
+    "category": "Băuturi vegetale",
+    "category_key": "plant_milks",
+    "calories": 15.0
+   },
+   "score": 0.888889,
+   "coverage": 16.7,
+   "facts": {
+    "v": 4,
+    "food_id": 1110,
+    "food_key": "almond_milk",
+    "category": "plant_milks",
+    "animal": null,
+    "portion": {
+     "amount": 250,
+     "unit": "ml",
+     "label_ro": "un pahar (250 ml)",
+     "label_en": "a glass (250 ml)"
+    },
+    "kcal_portion": 38,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 2.5,
+      "per100": 1.0,
+      "daily_reference": 15.0,
+      "pct": 17,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 16.7,
+    "profile": {
+     "diet": "pescatarian",
+     "allergies": [],
+     "conditions": [
+      "pregnancy"
+     ]
+    },
+    "safety_rules": [
+     "pregnancy_immuno_no_raw_animal",
+     "pregnancy_lactation_no_high_mercury",
+     "pregnancy_no_liver",
+     "pregnancy_immuno_no_soft_mould_cheese"
+    ],
+    "flags": [],
+    "alternatives": [
+     1109
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1109,
+     "name_ro": "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12)",
+     "name_en": "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12)"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1068,
+   "recommendation_id": 4,
+   "food": {
+    "id": 1068,
+    "name_ro": "Somon de crescătorie, gătit",
+    "name_en": "Farmed salmon, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 206.0
+   },
+   "score": 0.847896,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1068,
+    "food_key": "salmon_farmed",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a fillet (130 g)"
+    },
+    "kcal_portion": 268,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 17.03,
+      "per100": 13.1,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": "pescatarian",
+     "allergies": [],
+     "conditions": [
+      "pregnancy"
+     ]
+    },
+    "safety_rules": [
+     "pregnancy_immuno_no_raw_animal",
+     "pregnancy_lactation_no_high_mercury",
+     "pregnancy_no_liver",
+     "pregnancy_immuno_no_soft_mould_cheese"
+    ],
+    "flags": [],
+    "alternatives": [
+     1071,
+     1073,
+     1072
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1071,
+     "name_ro": "Păstrăv de crescătorie, gătit",
+     "name_en": "Farmed rainbow trout, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    },
+    {
+     "id": 1072,
+     "name_ro": "Sardine în ulei, scurse",
+     "name_en": "Sardines in oil, drained"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1109,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1109,
+    "name_ro": "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12)",
+    "name_en": "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12)",
+    "category": "Băuturi vegetale",
+    "category_key": "plant_milks",
+    "calories": 33.0
+   },
+   "score": 0.484848,
+   "coverage": 20.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1109,
+    "food_key": "soy_milk_fortified",
+    "category": "plant_milks",
+    "animal": null,
+    "portion": {
+     "amount": 250,
+     "unit": "ml",
+     "label_ro": "un pahar (250 ml)",
+     "label_en": "a glass (250 ml)"
+    },
+    "kcal_portion": 82,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 3.0,
+      "per100": 1.2,
+      "daily_reference": 15.0,
+      "pct": 20,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 20.0,
+    "profile": {
+     "diet": "pescatarian",
+     "allergies": [],
+     "conditions": [
+      "pregnancy"
+     ]
+    },
+    "safety_rules": [
+     "pregnancy_immuno_no_raw_animal",
+     "pregnancy_lactation_no_high_mercury",
+     "pregnancy_no_liver",
+     "pregnancy_immuno_no_soft_mould_cheese"
+    ],
+    "flags": [],
+    "alternatives": [
+     1110
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1110,
+     "name_ro": "Băutură de migdale neîndulcită, fortificată (Ca, vitamina D)",
+     "name_en": "Unsweetened almond drink, fortified (Ca, vitamin D)"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  }
+ ],
+ "p4_warfarin": [
+  {
+   "food_id": 1071,
+   "recommendation_id": 1,
+   "food": {
+    "id": 1071,
+    "name_ro": "Păstrăv de crescătorie, gătit",
+    "name_en": "Farmed rainbow trout, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 168.0
+   },
+   "score": 2.012472,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1071,
+    "food_key": "trout",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a fillet (130 g)"
+    },
+    "kcal_portion": 218,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 24.7,
+      "per100": 19.0,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     },
+     {
+      "key": "magnesium",
+      "amount": 39.0,
+      "per100": 30.0,
+      "daily_reference": 350.0,
+      "pct": 11,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.5,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "anticoagulant"
+     ]
+    },
+    "safety_rules": [
+     "anticoagulant_steady_vitamin_k"
+    ],
+    "flags": [],
+    "alternatives": [
+     1078,
+     1068,
+     1073
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1078,
+     "name_ro": "Pește-spadă gătit",
+     "name_en": "Swordfish, cooked"
+    },
+    {
+     "id": 1068,
+     "name_ro": "Somon de crescătorie, gătit",
+     "name_en": "Farmed salmon, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1049,
+   "recommendation_id": 2,
+   "food": {
+    "id": 1049,
+    "name_ro": "Ciuperci albe expuse la UV",
+    "name_en": "UV-exposed white mushrooms",
+    "category": "Legume",
+    "category_key": "vegetables",
+    "calories": 22.0
+   },
+   "score": 2.0,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1049,
+    "food_key": "mushrooms_uv",
+    "category": "vegetables",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 20.96,
+      "per100": 26.2,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "anticoagulant"
+     ]
+    },
+    "safety_rules": [
+     "anticoagulant_steady_vitamin_k"
+    ],
+    "flags": [],
+    "alternatives": []
+   },
+   "alternatives": [],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1078,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1078,
+    "name_ro": "Pește-spadă gătit",
+    "name_en": "Swordfish, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 172.0
+   },
+   "score": 1.753876,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1078,
+    "food_key": "swordfish",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a steak (130 g)"
+    },
+    "kcal_portion": 224,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 21.58,
+      "per100": 16.6,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     },
+     {
+      "key": "magnesium",
+      "amount": 45.5,
+      "per100": 35.0,
+      "daily_reference": 350.0,
+      "pct": 13,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.5,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "anticoagulant"
+     ]
+    },
+    "safety_rules": [
+     "anticoagulant_steady_vitamin_k"
+    ],
+    "flags": [
+     "high_mercury"
+    ],
+    "alternatives": [
+     1071,
+     1068,
+     1073
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1071,
+     "name_ro": "Păstrăv de crescătorie, gătit",
+     "name_en": "Farmed rainbow trout, cooked"
+    },
+    {
+     "id": 1068,
+     "name_ro": "Somon de crescătorie, gătit",
+     "name_en": "Farmed salmon, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1068,
+   "recommendation_id": 4,
+   "food": {
+    "id": 1068,
+    "name_ro": "Somon de crescătorie, gătit",
+    "name_en": "Farmed salmon, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 206.0
+   },
+   "score": 1.163893,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1068,
+    "food_key": "salmon_farmed",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a fillet (130 g)"
+    },
+    "kcal_portion": 268,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 17.03,
+      "per100": 13.1,
+      "daily_reference": 15.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     },
+     {
+      "key": "magnesium",
+      "amount": 39.0,
+      "per100": 30.0,
+      "daily_reference": 350.0,
+      "pct": 11,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.5,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "anticoagulant"
+     ]
+    },
+    "safety_rules": [
+     "anticoagulant_steady_vitamin_k"
+    ],
+    "flags": [],
+    "alternatives": [
+     1071,
+     1078,
+     1073
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1071,
+     "name_ro": "Păstrăv de crescătorie, gătit",
+     "name_en": "Farmed rainbow trout, cooked"
+    },
+    {
+     "id": 1078,
+     "name_ro": "Pește-spadă gătit",
+     "name_en": "Swordfish, cooked"
+    },
+    {
+     "id": 1073,
+     "name_ro": "Hering gătit",
+     "name_en": "Herring, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1109,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1109,
+    "name_ro": "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12)",
+    "name_en": "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12)",
+    "category": "Băuturi vegetale",
+    "category_key": "plant_milks",
+    "calories": 33.0
+   },
+   "score": 0.952381,
+   "coverage": 20.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1109,
+    "food_key": "soy_milk_fortified",
+    "category": "plant_milks",
+    "animal": null,
+    "portion": {
+     "amount": 250,
+     "unit": "ml",
+     "label_ro": "un pahar (250 ml)",
+     "label_en": "a glass (250 ml)"
+    },
+    "kcal_portion": 82,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_d",
+      "amount": 3.0,
+      "per100": 1.2,
+      "daily_reference": 15.0,
+      "pct": 20,
+      "need": {
+       "nutrient": "vitamin_d",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 15.0,
+       "marker": "vitamin_d",
+       "value": 15.0,
+       "threshold": 30.0,
+       "unit": "ng/mL"
+      }
+     },
+     {
+      "key": "magnesium",
+      "amount": 40.0,
+      "per100": 16.0,
+      "daily_reference": 350.0,
+      "pct": 11,
+      "need": {
+       "nutrient": "magnesium",
+       "source": "lab",
+       "severity": "moderate",
+       "daily_reference": 350.0,
+       "marker": "magnesium",
+       "value": 1.5,
+       "threshold": 1.7,
+       "unit": "mg/dL"
+      }
+     }
+    ],
+    "primary": "vitamin_d",
+    "coverage_pct": 20.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "anticoagulant"
+     ]
+    },
+    "safety_rules": [
+     "anticoagulant_steady_vitamin_k"
+    ],
+    "flags": [],
+    "alternatives": [
+     1110
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1110,
+     "name_ro": "Băutură de migdale neîndulcită, fortificată (Ca, vitamina D)",
+     "name_en": "Unsweetened almond drink, fortified (Ca, vitamin D)"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  }
+ ],
+ "p5_ckd_high_potassium": [
+  {
+   "food_id": 1031,
+   "recommendation_id": 1,
+   "food": {
+    "id": 1031,
+    "name_ro": "Salată romană",
+    "name_en": "Romaine lettuce",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 17.0
+   },
+   "score": 3.0,
+   "coverage": 33.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1031,
+    "food_key": "romaine",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "un bol (80 g)",
+     "label_en": "a bowl (80 g)"
+    },
+    "kcal_portion": 14,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "folate",
+      "amount": 108.8,
+      "per100": 136.0,
+      "daily_reference": 330.0,
+      "pct": 33,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_a",
+      "amount": 348.8,
+      "per100": 436.0,
+      "daily_reference": 750.0,
+      "pct": 47,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_k",
+      "amount": 82.0,
+      "per100": 102.5,
+      "daily_reference": 70.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "folate",
+    "coverage_pct": 33.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "ckd"
+     ]
+    },
+    "safety_rules": [
+     "ckd_limit_potassium",
+     "ckd_limit_phosphorus"
+    ],
+    "flags": [],
+    "alternatives": []
+   },
+   "alternatives": [],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1033,
+   "recommendation_id": 2,
+   "food": {
+    "id": 1033,
+    "name_ro": "Varză furajeră (collard) fiartă",
+    "name_en": "Collard greens, cooked",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 33.0
+   },
+   "score": 2.951138,
+   "coverage": 40.5,
+   "facts": {
+    "v": 4,
+    "food_id": 1033,
+    "food_key": "collards",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 26,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_a",
+      "amount": 304.0,
+      "per100": 380.0,
+      "daily_reference": 750.0,
+      "pct": 41,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_k",
+      "amount": 325.28,
+      "per100": 406.6,
+      "daily_reference": 70.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_c",
+      "amount": 14.56,
+      "per100": 18.2,
+      "daily_reference": 110.0,
+      "pct": 13,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "vitamin_a",
+    "coverage_pct": 40.5,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "ckd"
+     ]
+    },
+    "safety_rules": [
+     "ckd_limit_potassium",
+     "ckd_limit_phosphorus"
+    ],
+    "flags": [],
+    "alternatives": [
+     1031
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1031,
+     "name_ro": "Salată romană",
+     "name_en": "Romaine lettuce"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1038,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1038,
+    "name_ro": "Varză albă",
+    "name_en": "White cabbage",
+    "category": "Legume",
+    "category_key": "vegetables",
+    "calories": 25.0
+   },
+   "score": 2.521212,
+   "coverage": 26.6,
+   "facts": {
+    "v": 4,
+    "food_id": 1038,
+    "food_key": "cabbage",
+    "category": "vegetables",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 20,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_c",
+      "amount": 29.28,
+      "per100": 36.6,
+      "daily_reference": 110.0,
+      "pct": 27,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_k",
+      "amount": 60.8,
+      "per100": 76.0,
+      "daily_reference": 70.0,
+      "pct": 87,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "folate",
+      "amount": 34.4,
+      "per100": 43.0,
+      "daily_reference": 330.0,
+      "pct": 10,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "vitamin_c",
+    "coverage_pct": 26.6,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "ckd"
+     ]
+    },
+    "safety_rules": [
+     "ckd_limit_potassium",
+     "ckd_limit_phosphorus"
+    ],
+    "flags": [],
+    "alternatives": [
+     1040
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1040,
+     "name_ro": "Ardei gras roșu",
+     "name_en": "Red bell pepper"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1040,
+   "recommendation_id": 4,
+   "food": {
+    "id": 1040,
+    "name_ro": "Ardei gras roșu",
+    "name_en": "Red bell pepper",
+    "category": "Legume",
+    "category_key": "vegetables",
+    "calories": 26.0
+   },
+   "score": 2.341259,
+   "coverage": 92.9,
+   "facts": {
+    "v": 4,
+    "food_id": 1040,
+    "food_key": "red_pepper",
+    "category": "vegetables",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "jumătate de ardei (80 g)",
+     "label_en": "half a pepper (80 g)"
+    },
+    "kcal_portion": 21,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "vitamin_c",
+      "amount": 102.16,
+      "per100": 127.7,
+      "daily_reference": 110.0,
+      "pct": 93,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_a",
+      "amount": 125.6,
+      "per100": 157.0,
+      "daily_reference": 750.0,
+      "pct": 17,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "folate",
+      "amount": 36.8,
+      "per100": 46.0,
+      "daily_reference": 330.0,
+      "pct": 11,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "vitamin_c",
+    "coverage_pct": 92.9,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "ckd"
+     ]
+    },
+    "safety_rules": [
+     "ckd_limit_potassium",
+     "ckd_limit_phosphorus"
+    ],
+    "flags": [],
+    "alternatives": [
+     1038
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1038,
+     "name_ro": "Varză albă",
+     "name_en": "White cabbage"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1045,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1045,
+    "name_ro": "Sparanghel fiert",
+    "name_en": "Asparagus, cooked",
+    "category": "Legume",
+    "category_key": "vegetables",
+    "calories": 22.0
+   },
+   "score": 2.0,
+   "coverage": 36.1,
+   "facts": {
+    "v": 4,
+    "food_id": 1045,
+    "food_key": "asparagus",
+    "category": "vegetables",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "folate",
+      "amount": 119.2,
+      "per100": 149.0,
+      "daily_reference": 330.0,
+      "pct": 36,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_k",
+      "amount": 40.48,
+      "per100": 50.6,
+      "daily_reference": 70.0,
+      "pct": 58,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "folate",
+    "coverage_pct": 36.1,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": [
+      "ckd"
+     ]
+    },
+    "safety_rules": [
+     "ckd_limit_potassium",
+     "ckd_limit_phosphorus"
+    ],
+    "flags": [],
+    "alternatives": [
+     1038,
+     1040
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1038,
+     "name_ro": "Varză albă",
+     "name_en": "White cabbage"
+    },
+    {
+     "id": 1040,
+     "name_ro": "Ardei gras roșu",
+     "name_en": "Red bell pepper"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  }
+ ],
+ "p6_athlete_low_goal": [
+  {
+   "food_id": 1026,
+   "recommendation_id": 1,
+   "food": {
+    "id": 1026,
+    "name_ro": "Spanac crud",
+    "name_en": "Raw spinach",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 23.0
+   },
+   "score": 6.174534,
+   "coverage": 47.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1026,
+    "food_key": "spinach_raw",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "un bol (80 g)",
+     "label_en": "a bowl (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": false,
+    "nutrients": [
+     {
+      "key": "folate",
+      "amount": 155.2,
+      "per100": 194.0,
+      "daily_reference": 330.0,
+      "pct": 47,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_a",
+      "amount": 375.2,
+      "per100": 469.0,
+      "daily_reference": 750.0,
+      "pct": 50,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_c",
+      "amount": 22.48,
+      "per100": 28.1,
+      "daily_reference": 110.0,
+      "pct": 20,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "folate",
+    "coverage_pct": 47.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1027,
+     1030,
+     1028
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1027,
+     "name_ro": "Spanac fiert",
+     "name_en": "Cooked spinach"
+    },
+    {
+     "id": 1030,
+     "name_ro": "Rucola",
+     "name_en": "Arugula"
+    },
+    {
+     "id": 1028,
+     "name_ro": "Kale crud",
+     "name_en": "Raw kale"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1027,
+   "recommendation_id": 2,
+   "food": {
+    "id": 1027,
+    "name_ro": "Spanac fiert",
+    "name_en": "Cooked spinach",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 23.0
+   },
+   "score": 5.390095,
+   "coverage": 19.9,
+   "facts": {
+    "v": 4,
+    "food_id": 1027,
+    "food_key": "spinach_cooked",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 18,
+    "has_lab_data": false,
+    "nutrients": [
+     {
+      "key": "magnesium",
+      "amount": 69.6,
+      "per100": 87.0,
+      "daily_reference": 350.0,
+      "pct": 20,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "folate",
+      "amount": 116.8,
+      "per100": 146.0,
+      "daily_reference": 330.0,
+      "pct": 35,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_a",
+      "amount": 419.2,
+      "per100": 524.0,
+      "daily_reference": 750.0,
+      "pct": 56,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "magnesium",
+    "coverage_pct": 19.9,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1026,
+     1029,
+     1030
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1026,
+     "name_ro": "Spanac crud",
+     "name_en": "Raw spinach"
+    },
+    {
+     "id": 1029,
+     "name_ro": "Mangold fiert",
+     "name_en": "Swiss chard, cooked"
+    },
+    {
+     "id": 1030,
+     "name_ro": "Rucola",
+     "name_en": "Arugula"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1029,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1029,
+    "name_ro": "Mangold fiert",
+    "name_en": "Swiss chard, cooked",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 20.0
+   },
+   "score": 5.102468,
+   "coverage": 19.7,
+   "facts": {
+    "v": 4,
+    "food_id": 1029,
+    "food_key": "swiss_chard",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 16,
+    "has_lab_data": false,
+    "nutrients": [
+     {
+      "key": "magnesium",
+      "amount": 68.8,
+      "per100": 86.0,
+      "daily_reference": 350.0,
+      "pct": 20,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_a",
+      "amount": 244.8,
+      "per100": 306.0,
+      "daily_reference": 750.0,
+      "pct": 33,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_k",
+      "amount": 261.84,
+      "per100": 327.3,
+      "daily_reference": 70.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "magnesium",
+    "coverage_pct": 19.7,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1026,
+     1027,
+     1030
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1026,
+     "name_ro": "Spanac crud",
+     "name_en": "Raw spinach"
+    },
+    {
+     "id": 1027,
+     "name_ro": "Spanac fiert",
+     "name_en": "Cooked spinach"
+    },
+    {
+     "id": 1030,
+     "name_ro": "Rucola",
+     "name_en": "Arugula"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1092,
+   "recommendation_id": 4,
+   "food": {
+    "id": 1092,
+    "name_ro": "Ficat de pui gătit",
+    "name_en": "Chicken liver, cooked",
+    "category": "Organe",
+    "category_key": "offal",
+    "calories": 167.0
+   },
+   "score": 4.224148,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1092,
+    "food_key": "chicken_liver",
+    "category": "offal",
+    "animal": "poultry",
+    "portion": {
+     "amount": 100,
+     "unit": "g",
+     "label_ro": "o porție (100 g)",
+     "label_en": "a serving (100 g)"
+    },
+    "kcal_portion": 167,
+    "has_lab_data": false,
+    "nutrients": [
+     {
+      "key": "vitamin_b12",
+      "amount": 16.85,
+      "per100": 16.85,
+      "daily_reference": 4.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "folate",
+      "amount": 578.0,
+      "per100": 578.0,
+      "daily_reference": 330.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_a",
+      "amount": 3981.0,
+      "per100": 3981.0,
+      "daily_reference": 750.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "vitamin_b12",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [
+     "liver"
+    ],
+    "alternatives": [
+     1091
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1091,
+     "name_ro": "Ficat de vită gătit",
+     "name_en": "Beef liver, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1035,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1035,
+    "name_ro": "Broccoli fiert",
+    "name_en": "Cooked broccoli",
+    "category": "Legume",
+    "category_key": "vegetables",
+    "calories": 35.0
+   },
+   "score": 2.935065,
+   "coverage": 47.2,
+   "facts": {
+    "v": 4,
+    "food_id": 1035,
+    "food_key": "broccoli_cooked",
+    "category": "vegetables",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 28,
+    "has_lab_data": false,
+    "nutrients": [
+     {
+      "key": "vitamin_c",
+      "amount": 51.92,
+      "per100": 64.9,
+      "daily_reference": 110.0,
+      "pct": 47,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_k",
+      "amount": 112.88,
+      "per100": 141.1,
+      "daily_reference": 70.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "folate",
+      "amount": 86.4,
+      "per100": 108.0,
+      "daily_reference": 330.0,
+      "pct": 26,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "vitamin_c",
+    "coverage_pct": 47.2,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1037,
+     1034,
+     1038
+    ]
+   },
+   "alternatives": [
+    {
+     "id": 1037,
+     "name_ro": "Conopidă",
+     "name_en": "Cauliflower"
+    },
+    {
+     "id": 1034,
+     "name_ro": "Broccoli crud",
+     "name_en": "Raw broccoli"
+    },
+    {
+     "id": 1038,
+     "name_ro": "Varză albă",
+     "name_en": "White cabbage"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  }
+ ]
+}

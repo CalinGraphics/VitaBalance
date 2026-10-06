@@ -1,0 +1,1669 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-tip > p1_male_omnivore 1`] = `
+[
+  {
+    "en": {
+      "alternatives": [],
+      "nutrients": [
+        "A serving (80 g) covers all of your daily vitamin D needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "UV-exposed white mushrooms: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 18 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "As a side with your main meal or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+      ],
+    },
+    "ro": {
+      "alternatives": [],
+      "nutrients": [
+        "O porție (80 g) acoperă tot necesarul tău zilnic de vitamina D.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Ciuperci albe expuse la UV: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 18 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "Ca garnitură la felul principal sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Swordfish, cooked",
+        "Farmed salmon, cooked",
+        "Herring, cooked",
+      ],
+      "nutrients": [
+        "A fillet (130 g) covers all of your daily vitamin D needs.",
+        "It also gives you 11% of your magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Farmed rainbow trout, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 18 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+        "Your magnesium is 1.6 mg/dL, below the minimum of 1.7 mg/dL. That is slightly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Pește-spadă gătit",
+        "Somon de crescătorie, gătit",
+        "Hering gătit",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+        "Îți aduce și 11% din necesarul de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Păstrăv de crescătorie, gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 18 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+        "Magneziul îți e 1,6 mg/dL, sub minimul de 1,7 mg/dL. E puțin sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Farmed rainbow trout, cooked",
+        "Farmed salmon, cooked",
+        "Herring, cooked",
+      ],
+      "nutrients": [
+        "A steak (130 g) covers all of your daily vitamin D needs.",
+        "It also gives you 13% of your magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Swordfish, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 18 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+        "Your magnesium is 1.6 mg/dL, below the minimum of 1.7 mg/dL. That is slightly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Păstrăv de crescătorie, gătit",
+        "Somon de crescătorie, gătit",
+        "Hering gătit",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+        "Îți aduce și 13% din necesarul de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Pește-spadă gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 18 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+        "Magneziul îți e 1,6 mg/dL, sub minimul de 1,7 mg/dL. E puțin sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Farmed rainbow trout, cooked",
+        "Swordfish, cooked",
+        "Herring, cooked",
+      ],
+      "nutrients": [
+        "A fillet (130 g) covers all of your daily vitamin D needs.",
+        "It also gives you 11% of your magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Farmed salmon, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 18 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+        "Your magnesium is 1.6 mg/dL, below the minimum of 1.7 mg/dL. That is slightly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Păstrăv de crescătorie, gătit",
+        "Pește-spadă gătit",
+        "Hering gătit",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+        "Îți aduce și 11% din necesarul de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Somon de crescătorie, gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 18 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+        "Magneziul îți e 1,6 mg/dL, sub minimul de 1,7 mg/dL. E puțin sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Swiss chard, cooked",
+        "Raw spinach",
+        "Beet greens, cooked",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 20% of your daily magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+      ],
+      "summary": [
+        "Cooked spinach: helps you cover your magnesium needs.",
+        "Your magnesium is 1.6 mg/dL, below the minimum of 1.7 mg/dL. That is slightly below the limit.",
+      ],
+      "tips": [
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "Magnesium helps reduce tiredness and supports normal muscle function.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Mangold fiert",
+        "Spanac crud",
+        "Frunze de sfeclă fierte",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 20% din necesarul tău zilnic de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+      ],
+      "summary": [
+        "Spanac fiert: te ajută să-ți acoperi necesarul de magneziu.",
+        "Magneziul îți e 1,6 mg/dL, sub minimul de 1,7 mg/dL. E puțin sub limită.",
+      ],
+      "tips": [
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Magneziul ajută la reducerea oboselii și la funcționarea normală a mușchilor.",
+      ],
+    },
+  },
+]
+`;
+
+exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-tip > p2_female_vegan 1`] = `
+[
+  {
+    "en": {
+      "alternatives": [],
+      "nutrients": [
+        "A glass (250 ml) covers about 69% of your daily vitamin B12 needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "EFSA 2015, EFSA Journal 13(7):4150; NIH ODS 2024, Vitamin B12",
+      ],
+      "summary": [
+        "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12): has added vitamin B12, and on a vegan diet B12 only comes from fortified foods or supplements.",
+        "Your vitamin B12 is 150 pg/mL, below the minimum of 200 pg/mL. That is well below the limit.",
+      ],
+      "tips": [
+        "On a vegan diet, B12 only comes from fortified foods or supplements. Talk to your doctor about a supplement.",
+        "In porridge, coffee or a smoothie. Shake the carton first: the added calcium settles at the bottom.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin B12 helps form red blood cells and supports a normal nervous system.",
+        "It fits your vegan diet.",
+      ],
+    },
+    "ro": {
+      "alternatives": [],
+      "nutrients": [
+        "Un pahar (250 ml) acoperă aproximativ 69% din necesarul tău zilnic de vitamina B12.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "EFSA 2015, EFSA Journal 13(7):4150; NIH ODS 2024, Vitamin B12",
+      ],
+      "summary": [
+        "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12): are vitamina B12 adăugată, iar în dieta vegană B12 vine doar din alimente fortificate sau suplimente.",
+        "Vitamina B12 îți e 150 pg/mL, sub minimul de 200 pg/mL. E mult sub limită.",
+      ],
+      "tips": [
+        "În dieta vegană, B12 vine doar din alimente fortificate sau suplimente. Vorbește cu medicul despre un supliment.",
+        "În terci, cafea sau smoothie. Agită cutia înainte: calciul adăugat se depune la fund.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina B12 ajută la formarea globulelor roșii și la funcționarea normală a sistemului nervos.",
+        "Se potrivește dietei tale vegane.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Raw spinach",
+        "Swiss chard, cooked",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 18% of your daily iron needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Cooked spinach: helps you cover your iron needs.",
+        "Your ferritin is 9 ng/mL, below the minimum of 15 ng/mL. That is well below the limit.",
+      ],
+      "tips": [
+        "Add a source of vitamin C to the same meal (peppers, lemon, kiwi): it helps you absorb iron from plants. Tea and coffee with the meal make it harder.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iron helps form red blood cells and carry oxygen around your body.",
+        "It fits your vegan diet.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Spanac crud",
+        "Mangold fiert",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 18% din necesarul tău zilnic de fier.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Spanac fiert: te ajută să-ți acoperi necesarul de fier.",
+        "Feritina îți e 9 ng/mL, sub minimul de 15 ng/mL. E mult sub limită.",
+      ],
+      "tips": [
+        "Adaugă la aceeași masă o sursă de vitamina C (ardei, lămâie, kiwi): te ajută să absorbi fierul din plante. Ceaiul și cafeaua băute la masă îl fac mai greu de absorbit.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Fierul ajută la formarea globulelor roșii și la transportul oxigenului în corp.",
+        "Se potrivește dietei tale vegane.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Cooked spinach",
+        "Swiss chard, cooked",
+      ],
+      "nutrients": [
+        "A bowl (80 g) covers about 14% of your daily iron needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Raw spinach: helps you cover your iron needs.",
+        "Your ferritin is 9 ng/mL, below the minimum of 15 ng/mL. That is well below the limit.",
+      ],
+      "tips": [
+        "Add a source of vitamin C to the same meal (peppers, lemon, kiwi): it helps you absorb iron from plants. Tea and coffee with the meal make it harder.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iron helps form red blood cells and carry oxygen around your body.",
+        "It fits your vegan diet.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Spanac fiert",
+        "Mangold fiert",
+      ],
+      "nutrients": [
+        "Un bol (80 g) acoperă aproximativ 14% din necesarul tău zilnic de fier.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Spanac crud: te ajută să-ți acoperi necesarul de fier.",
+        "Feritina îți e 9 ng/mL, sub minimul de 15 ng/mL. E mult sub limită.",
+      ],
+      "tips": [
+        "Adaugă la aceeași masă o sursă de vitamina C (ardei, lămâie, kiwi): te ajută să absorbi fierul din plante. Ceaiul și cafeaua băute la masă îl fac mai greu de absorbit.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Fierul ajută la formarea globulelor roșii și la transportul oxigenului în corp.",
+        "Se potrivește dietei tale vegane.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Cooked spinach",
+        "Raw spinach",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 11% of your daily iron needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Swiss chard, cooked: helps you cover your iron needs.",
+        "Your ferritin is 9 ng/mL, below the minimum of 15 ng/mL. That is well below the limit.",
+      ],
+      "tips": [
+        "Add a source of vitamin C to the same meal (peppers, lemon, kiwi): it helps you absorb iron from plants. Tea and coffee with the meal make it harder.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iron helps form red blood cells and carry oxygen around your body.",
+        "It fits your vegan diet.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Spanac fiert",
+        "Spanac crud",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 11% din necesarul tău zilnic de fier.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Mangold fiert: te ajută să-ți acoperi necesarul de fier.",
+        "Feritina îți e 9 ng/mL, sub minimul de 15 ng/mL. E mult sub limită.",
+      ],
+      "tips": [
+        "Adaugă la aceeași masă o sursă de vitamina C (ardei, lămâie, kiwi): te ajută să absorbi fierul din plante. Ceaiul și cafeaua băute la masă îl fac mai greu de absorbit.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Fierul ajută la formarea globulelor roșii și la transportul oxigenului în corp.",
+        "Se potrivește dietei tale vegane.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "White beans, cooked",
+        "Firm tofu",
+        "Edamame",
+      ],
+      "nutrients": [
+        "A small bowl (150 g) covers about 31% of your daily iron needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Lentils, cooked: helps you cover your iron needs.",
+        "Your ferritin is 9 ng/mL, below the minimum of 15 ng/mL. That is well below the limit.",
+      ],
+      "tips": [
+        "Add a source of vitamin C to the same meal (peppers, lemon, kiwi): it helps you absorb iron from plants. Tea and coffee with the meal make it harder.",
+        "In soups, salads or stews.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iron helps form red blood cells and carry oxygen around your body.",
+        "It fits your vegan diet.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Fasole albă fiartă",
+        "Tofu tare",
+        "Edamame (boabe de soia verzi)",
+      ],
+      "nutrients": [
+        "Un castron mic (150 g) acoperă aproximativ 31% din necesarul tău zilnic de fier.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Linte fiartă: te ajută să-ți acoperi necesarul de fier.",
+        "Feritina îți e 9 ng/mL, sub minimul de 15 ng/mL. E mult sub limită.",
+      ],
+      "tips": [
+        "Adaugă la aceeași masă o sursă de vitamina C (ardei, lămâie, kiwi): te ajută să absorbi fierul din plante. Ceaiul și cafeaua băute la masă îl fac mai greu de absorbit.",
+        "În supe, salate sau tocănițe.",
+      ],
+      "warnings": [],
+      "why": [
+        "Fierul ajută la formarea globulelor roșii și la transportul oxigenului în corp.",
+        "Se potrivește dietei tale vegane.",
+      ],
+    },
+  },
+]
+`;
+
+exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-tip > p3_pregnant_pescatarian 1`] = `
+[
+  {
+    "en": {
+      "alternatives": [],
+      "nutrients": [
+        "A serving (80 g) covers all of your daily vitamin D needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "UV-exposed white mushrooms: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "As a side with your main meal or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "It fits your pescatarian diet.",
+        "We took your pregnancy into account: no raw fish or shellfish, high-mercury fish, liver or soft mould-ripened cheese.",
+      ],
+    },
+    "ro": {
+      "alternatives": [],
+      "nutrients": [
+        "O porție (80 g) acoperă tot necesarul tău zilnic de vitamina D.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Ciuperci albe expuse la UV: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "Ca garnitură la felul principal sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Se potrivește dietei tale pescetariene.",
+        "Am ținut cont de sarcină: fără pește sau fructe de mare crude, pește bogat în mercur, ficat sau brânzeturi moi cu mucegai.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Farmed salmon, cooked",
+        "Herring, cooked",
+        "Sardines in oil, drained",
+      ],
+      "nutrients": [
+        "A fillet (130 g) covers all of your daily vitamin D needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+        "NHS 2023, Foods to avoid in pregnancy",
+      ],
+      "summary": [
+        "Farmed rainbow trout, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [
+        "If you are pregnant, eat it only when well cooked.",
+      ],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "It fits your pescatarian diet.",
+        "We took your pregnancy into account: no raw fish or shellfish, high-mercury fish, liver or soft mould-ripened cheese.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Somon de crescătorie, gătit",
+        "Hering gătit",
+        "Sardine în ulei, scurse",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+        "NHS 2023, Foods to avoid in pregnancy",
+      ],
+      "summary": [
+        "Păstrăv de crescătorie, gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [
+        "Dacă ești însărcinată, mănâncă-l doar bine gătit.",
+      ],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Se potrivește dietei tale pescetariene.",
+        "Am ținut cont de sarcină: fără pește sau fructe de mare crude, pește bogat în mercur, ficat sau brânzeturi moi cu mucegai.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12)",
+      ],
+      "nutrients": [
+        "A glass (250 ml) covers about 17% of your daily vitamin D needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Unsweetened almond drink, fortified (Ca, vitamin D): among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "In porridge, coffee or a smoothie. Shake the carton first: the added calcium settles at the bottom.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "It fits your pescatarian diet.",
+        "We took your pregnancy into account: no raw fish or shellfish, high-mercury fish, liver or soft mould-ripened cheese.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12)",
+      ],
+      "nutrients": [
+        "Un pahar (250 ml) acoperă aproximativ 17% din necesarul tău zilnic de vitamina D.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Băutură de migdale neîndulcită, fortificată (Ca, vitamina D): printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "În terci, cafea sau smoothie. Agită cutia înainte: calciul adăugat se depune la fund.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Se potrivește dietei tale pescetariene.",
+        "Am ținut cont de sarcină: fără pește sau fructe de mare crude, pește bogat în mercur, ficat sau brânzeturi moi cu mucegai.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Farmed rainbow trout, cooked",
+        "Herring, cooked",
+        "Sardines in oil, drained",
+      ],
+      "nutrients": [
+        "A fillet (130 g) covers all of your daily vitamin D needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+        "NHS 2023, Foods to avoid in pregnancy",
+      ],
+      "summary": [
+        "Farmed salmon, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [
+        "If you are pregnant, eat it only when well cooked.",
+      ],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "It fits your pescatarian diet.",
+        "We took your pregnancy into account: no raw fish or shellfish, high-mercury fish, liver or soft mould-ripened cheese.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Păstrăv de crescătorie, gătit",
+        "Hering gătit",
+        "Sardine în ulei, scurse",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+        "NHS 2023, Foods to avoid in pregnancy",
+      ],
+      "summary": [
+        "Somon de crescătorie, gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [
+        "Dacă ești însărcinată, mănâncă-l doar bine gătit.",
+      ],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Se potrivește dietei tale pescetariene.",
+        "Am ținut cont de sarcină: fără pește sau fructe de mare crude, pește bogat în mercur, ficat sau brânzeturi moi cu mucegai.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Unsweetened almond drink, fortified (Ca, vitamin D)",
+      ],
+      "nutrients": [
+        "A glass (250 ml) covers about 20% of your daily vitamin D needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12): among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "In porridge, coffee or a smoothie. Shake the carton first: the added calcium settles at the bottom.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "It fits your pescatarian diet.",
+        "We took your pregnancy into account: no raw fish or shellfish, high-mercury fish, liver or soft mould-ripened cheese.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Băutură de migdale neîndulcită, fortificată (Ca, vitamina D)",
+      ],
+      "nutrients": [
+        "Un pahar (250 ml) acoperă aproximativ 20% din necesarul tău zilnic de vitamina D.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12): printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "În terci, cafea sau smoothie. Agită cutia înainte: calciul adăugat se depune la fund.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Se potrivește dietei tale pescetariene.",
+        "Am ținut cont de sarcină: fără pește sau fructe de mare crude, pește bogat în mercur, ficat sau brânzeturi moi cu mucegai.",
+      ],
+    },
+  },
+]
+`;
+
+exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-tip > p4_warfarin 1`] = `
+[
+  {
+    "en": {
+      "alternatives": [
+        "Swordfish, cooked",
+        "Farmed salmon, cooked",
+        "Herring, cooked",
+      ],
+      "nutrients": [
+        "A fillet (130 g) covers all of your daily vitamin D needs.",
+        "It also gives you 11% of your magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Farmed rainbow trout, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+        "Your magnesium is 1.5 mg/dL, below the minimum of 1.7 mg/dL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "We took your anticoagulant treatment into account: no portions very high in vitamin K.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Pește-spadă gătit",
+        "Somon de crescătorie, gătit",
+        "Hering gătit",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+        "Îți aduce și 11% din necesarul de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Păstrăv de crescătorie, gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+        "Magneziul îți e 1,5 mg/dL, sub minimul de 1,7 mg/dL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Am ținut cont de tratamentul anticoagulant: fără porții foarte bogate în vitamina K.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [],
+      "nutrients": [
+        "A serving (80 g) covers all of your daily vitamin D needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "UV-exposed white mushrooms: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "As a side with your main meal or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "We took your anticoagulant treatment into account: no portions very high in vitamin K.",
+      ],
+    },
+    "ro": {
+      "alternatives": [],
+      "nutrients": [
+        "O porție (80 g) acoperă tot necesarul tău zilnic de vitamina D.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Ciuperci albe expuse la UV: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "Ca garnitură la felul principal sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Am ținut cont de tratamentul anticoagulant: fără porții foarte bogate în vitamina K.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Farmed rainbow trout, cooked",
+        "Farmed salmon, cooked",
+        "Herring, cooked",
+      ],
+      "nutrients": [
+        "A steak (130 g) covers all of your daily vitamin D needs.",
+        "It also gives you 13% of your magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Swordfish, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+        "Your magnesium is 1.5 mg/dL, below the minimum of 1.7 mg/dL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "We took your anticoagulant treatment into account: no portions very high in vitamin K.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Păstrăv de crescătorie, gătit",
+        "Somon de crescătorie, gătit",
+        "Hering gătit",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+        "Îți aduce și 13% din necesarul de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Pește-spadă gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+        "Magneziul îți e 1,5 mg/dL, sub minimul de 1,7 mg/dL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Am ținut cont de tratamentul anticoagulant: fără porții foarte bogate în vitamina K.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Farmed rainbow trout, cooked",
+        "Swordfish, cooked",
+        "Herring, cooked",
+      ],
+      "nutrients": [
+        "A fillet (130 g) covers all of your daily vitamin D needs.",
+        "It also gives you 11% of your magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Farmed salmon, cooked: among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+        "Your magnesium is 1.5 mg/dL, below the minimum of 1.7 mg/dL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "We took your anticoagulant treatment into account: no portions very high in vitamin K.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Păstrăv de crescătorie, gătit",
+        "Pește-spadă gătit",
+        "Hering gătit",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de vitamina D.",
+        "Îți aduce și 11% din necesarul de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Somon de crescătorie, gătit: printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+        "Magneziul îți e 1,5 mg/dL, sub minimul de 1,7 mg/dL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Am ținut cont de tratamentul anticoagulant: fără porții foarte bogate în vitamina K.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Unsweetened almond drink, fortified (Ca, vitamin D)",
+      ],
+      "nutrients": [
+        "A glass (250 ml) covers about 20% of your daily vitamin D needs.",
+        "It also gives you 11% of your magnesium needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Unsweetened soy milk, fortified (Ca, vitamins A, D, B12): among the few foods that can give you vitamin D.",
+        "Your vitamin D is 15 ng/mL, below the minimum of 30 ng/mL. That is clearly below the limit.",
+        "Your magnesium is 1.5 mg/dL, below the minimum of 1.7 mg/dL. That is clearly below the limit.",
+      ],
+      "tips": [
+        "Vitamin D is absorbed better at a meal that also contains a little fat.",
+        "In porridge, coffee or a smoothie. Shake the carton first: the added calcium settles at the bottom.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamin D helps keep your bones healthy and supports normal immune function.",
+        "We took your anticoagulant treatment into account: no portions very high in vitamin K.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Băutură de migdale neîndulcită, fortificată (Ca, vitamina D)",
+      ],
+      "nutrients": [
+        "Un pahar (250 ml) acoperă aproximativ 20% din necesarul tău zilnic de vitamina D.",
+        "Îți aduce și 11% din necesarul de magneziu.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Dawson-Hughes 2015, J Acad Nutr Diet 115:225",
+      ],
+      "summary": [
+        "Lapte de soia neîndulcit, fortificat (Ca, vitaminele A, D, B12): printre puținele alimente care îți pot aduce vitamina D.",
+        "Vitamina D îți e 15 ng/mL, sub minimul de 30 ng/mL. E destul de mult sub limită.",
+        "Magneziul îți e 1,5 mg/dL, sub minimul de 1,7 mg/dL. E destul de mult sub limită.",
+      ],
+      "tips": [
+        "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+        "În terci, cafea sau smoothie. Agită cutia înainte: calciul adăugat se depune la fund.",
+      ],
+      "warnings": [],
+      "why": [
+        "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+        "Am ținut cont de tratamentul anticoagulant: fără porții foarte bogate în vitamina K.",
+      ],
+    },
+  },
+]
+`;
+
+exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-tip > p5_ckd_high_potassium 1`] = `
+[
+  {
+    "en": {
+      "alternatives": [],
+      "nutrients": [
+        "A bowl (80 g) covers about 33% of your daily folate needs.",
+        "It also gives you 47% of your vitamin A needs and 100% of your vitamin K needs.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Romaine lettuce: fits your profile and gives you 33% of your folate needs, 47% of your vitamin A needs and 100% of your vitamin K needs.",
+      ],
+      "tips": [
+        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "We took your kidney disease into account: no high-potassium foods, with limited phosphorus.",
+      ],
+    },
+    "ro": {
+      "alternatives": [],
+      "nutrients": [
+        "Un bol (80 g) acoperă aproximativ 33% din necesarul tău zilnic de folat.",
+        "Îți aduce și 47% din necesarul de vitamina A și 100% din necesarul de vitamina K.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Salată romană: se potrivește profilului tău și îți aduce 33% din necesarul de folat, 47% din necesarul de vitamina A și 100% din necesarul de vitamina K.",
+      ],
+      "tips": [
+        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Am ținut cont de boala de rinichi: fără alimente bogate în potasiu, cu fosfor limitat.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Romaine lettuce",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 41% of your daily vitamin A needs.",
+        "It also gives you 100% of your vitamin K needs and 13% of your vitamin C needs.",
+      ],
+      "sources": [
+        "NIH ODS 2023, Vitamin A fact sheet",
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+      ],
+      "summary": [
+        "Collard greens, cooked: fits your profile and gives you 41% of your vitamin A needs, 100% of your vitamin K needs and 13% of your vitamin C needs.",
+      ],
+      "tips": [
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "Vitamin C is lost with heat: raw or briefly cooked is best.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "We took your kidney disease into account: no high-potassium foods, with limited phosphorus.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Salată romană",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 41% din necesarul tău zilnic de vitamina A.",
+        "Îți aduce și 100% din necesarul de vitamina K și 13% din necesarul de vitamina C.",
+      ],
+      "sources": [
+        "NIH ODS 2023, Vitamin A fact sheet",
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+      ],
+      "summary": [
+        "Varză furajeră (collard) fiartă: se potrivește profilului tău și îți aduce 41% din necesarul de vitamina A, 100% din necesarul de vitamina K și 13% din necesarul de vitamina C.",
+      ],
+      "tips": [
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Vitamina C se pierde la căldură: crud sau gătit scurt e cel mai bine.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Am ținut cont de boala de rinichi: fără alimente bogate în potasiu, cu fosfor limitat.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Red bell pepper",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 27% of your daily vitamin C needs.",
+        "It also gives you 87% of your vitamin K needs and 10% of your folate needs.",
+      ],
+      "sources": [
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+        "McKillop 2002, Br J Nutr 88:681",
+      ],
+      "summary": [
+        "White cabbage: fits your profile and gives you 27% of your vitamin C needs, 87% of your vitamin K needs and 10% of your folate needs.",
+      ],
+      "tips": [
+        "Vitamin C is lost with heat: raw or briefly cooked is best.",
+        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+        "As a side with your main meal or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "We took your kidney disease into account: no high-potassium foods, with limited phosphorus.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Ardei gras roșu",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 27% din necesarul tău zilnic de vitamina C.",
+        "Îți aduce și 87% din necesarul de vitamina K și 10% din necesarul de folat.",
+      ],
+      "sources": [
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+        "McKillop 2002, Br J Nutr 88:681",
+      ],
+      "summary": [
+        "Varză albă: se potrivește profilului tău și îți aduce 27% din necesarul de vitamina C, 87% din necesarul de vitamina K și 10% din necesarul de folat.",
+      ],
+      "tips": [
+        "Vitamina C se pierde la căldură: crud sau gătit scurt e cel mai bine.",
+        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+        "Ca garnitură la felul principal sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Am ținut cont de boala de rinichi: fără alimente bogate în potasiu, cu fosfor limitat.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "White cabbage",
+      ],
+      "nutrients": [
+        "Half a pepper (80 g) covers about 93% of your daily vitamin C needs.",
+        "It also gives you 17% of your vitamin A needs and 11% of your folate needs.",
+      ],
+      "sources": [
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Red bell pepper: fits your profile and gives you 93% of your vitamin C needs, 17% of your vitamin A needs and 11% of your folate needs.",
+      ],
+      "tips": [
+        "Vitamin C is lost with heat: raw or briefly cooked is best.",
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "As a side with your main meal or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "We took your kidney disease into account: no high-potassium foods, with limited phosphorus.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Varză albă",
+      ],
+      "nutrients": [
+        "Jumătate de ardei (80 g) acoperă aproximativ 93% din necesarul tău zilnic de vitamina C.",
+        "Îți aduce și 17% din necesarul de vitamina A și 11% din necesarul de folat.",
+      ],
+      "sources": [
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Ardei gras roșu: se potrivește profilului tău și îți aduce 93% din necesarul de vitamina C, 17% din necesarul de vitamina A și 11% din necesarul de folat.",
+      ],
+      "tips": [
+        "Vitamina C se pierde la căldură: crud sau gătit scurt e cel mai bine.",
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Ca garnitură la felul principal sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Am ținut cont de boala de rinichi: fără alimente bogate în potasiu, cu fosfor limitat.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "White cabbage",
+        "Red bell pepper",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 36% of your daily folate needs.",
+        "It also gives you 58% of your vitamin K needs.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+      ],
+      "summary": [
+        "Asparagus, cooked: fits your profile and gives you 36% of your folate needs and 58% of your vitamin K needs.",
+      ],
+      "tips": [
+        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+        "As a side with your main meal or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "We took your kidney disease into account: no high-potassium foods, with limited phosphorus.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Varză albă",
+        "Ardei gras roșu",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 36% din necesarul tău zilnic de folat.",
+        "Îți aduce și 58% din necesarul de vitamina K.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+      ],
+      "summary": [
+        "Sparanghel fiert: se potrivește profilului tău și îți aduce 36% din necesarul de folat și 58% din necesarul de vitamina K.",
+      ],
+      "tips": [
+        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+        "Ca garnitură la felul principal sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Am ținut cont de boala de rinichi: fără alimente bogate în potasiu, cu fosfor limitat.",
+      ],
+    },
+  },
+]
+`;
+
+exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-tip > p6_athlete_low_goal 1`] = `
+[
+  {
+    "en": {
+      "alternatives": [
+        "Cooked spinach",
+        "Arugula",
+        "Raw kale",
+      ],
+      "nutrients": [
+        "A bowl (80 g) covers about 47% of your daily folate needs.",
+        "It also gives you 50% of your vitamin A needs and 20% of your vitamin C needs.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Raw spinach: fits your profile and gives you 47% of your folate needs, 50% of your vitamin A needs and 20% of your vitamin C needs.",
+      ],
+      "tips": [
+        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "You have not added lab results yet, so this is based on your profile.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Spanac fiert",
+        "Rucola",
+        "Kale crud",
+      ],
+      "nutrients": [
+        "Un bol (80 g) acoperă aproximativ 47% din necesarul tău zilnic de folat.",
+        "Îți aduce și 50% din necesarul de vitamina A și 20% din necesarul de vitamina C.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Spanac crud: se potrivește profilului tău și îți aduce 47% din necesarul de folat, 50% din necesarul de vitamina A și 20% din necesarul de vitamina C.",
+      ],
+      "tips": [
+        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Raw spinach",
+        "Swiss chard, cooked",
+        "Arugula",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 20% of your daily magnesium needs.",
+        "It also gives you 35% of your folate needs and 56% of your vitamin A needs.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Cooked spinach: fits your profile and gives you 20% of your magnesium needs, 35% of your folate needs and 56% of your vitamin A needs.",
+      ],
+      "tips": [
+        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "You have not added lab results yet, so this is based on your profile.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Spanac crud",
+        "Mangold fiert",
+        "Rucola",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 20% din necesarul tău zilnic de magneziu.",
+        "Îți aduce și 35% din necesarul de folat și 56% din necesarul de vitamina A.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Spanac fiert: se potrivește profilului tău și îți aduce 20% din necesarul de magneziu, 35% din necesarul de folat și 56% din necesarul de vitamina A.",
+      ],
+      "tips": [
+        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Raw spinach",
+        "Cooked spinach",
+        "Arugula",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 20% of your daily magnesium needs.",
+        "It also gives you 33% of your vitamin A needs and 100% of your vitamin K needs.",
+      ],
+      "sources": [
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Swiss chard, cooked: fits your profile and gives you 20% of your magnesium needs, 33% of your vitamin A needs and 100% of your vitamin K needs.",
+      ],
+      "tips": [
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "You have not added lab results yet, so this is based on your profile.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Spanac crud",
+        "Spanac fiert",
+        "Rucola",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 20% din necesarul tău zilnic de magneziu.",
+        "Îți aduce și 33% din necesarul de vitamina A și 100% din necesarul de vitamina K.",
+      ],
+      "sources": [
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Mangold fiert: se potrivește profilului tău și îți aduce 20% din necesarul de magneziu, 33% din necesarul de vitamina A și 100% din necesarul de vitamina K.",
+      ],
+      "tips": [
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Beef liver, cooked",
+      ],
+      "nutrients": [
+        "A serving (100 g) covers all of your daily vitamin B12 needs.",
+        "It also gives you 100% of your folate needs and 100% of your vitamin A needs.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+        "NHS 2023, Vitamin A",
+      ],
+      "summary": [
+        "Chicken liver, cooked: fits your profile and gives you 100% of your vitamin B12 needs, 100% of your folate needs and 100% of your vitamin A needs.",
+      ],
+      "tips": [
+        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "Well cooked, with onions and vegetables.",
+      ],
+      "warnings": [
+        "Liver is very high in vitamin A: no more than one portion a week.",
+      ],
+      "why": [
+        "You have not added lab results yet, so this is based on your profile.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Ficat de vită gătit",
+      ],
+      "nutrients": [
+        "O porție (100 g) acoperă tot necesarul tău zilnic de vitamina B12.",
+        "Îți aduce și 100% din necesarul de folat și 100% din necesarul de vitamina A.",
+      ],
+      "sources": [
+        "McKillop 2002, Br J Nutr 88:681",
+        "NIH ODS 2023, Vitamin A fact sheet",
+        "NHS 2023, Vitamin A",
+      ],
+      "summary": [
+        "Ficat de pui gătit: se potrivește profilului tău și îți aduce 100% din necesarul de vitamina B12, 100% din necesarul de folat și 100% din necesarul de vitamina A.",
+      ],
+      "tips": [
+        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Gătit bine, cu ceapă și legume.",
+      ],
+      "warnings": [
+        "Ficatul are foarte multă vitamina A: cel mult o porție pe săptămână.",
+      ],
+      "why": [
+        "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Cauliflower",
+        "Raw broccoli",
+        "White cabbage",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 47% of your daily vitamin C needs.",
+        "It also gives you 100% of your vitamin K needs and 26% of your folate needs.",
+      ],
+      "sources": [
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+        "McKillop 2002, Br J Nutr 88:681",
+      ],
+      "summary": [
+        "Cooked broccoli: fits your profile and gives you 47% of your vitamin C needs, 100% of your vitamin K needs and 26% of your folate needs.",
+      ],
+      "tips": [
+        "Vitamin C is lost with heat: raw or briefly cooked is best.",
+        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+        "As a side with your main meal or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "You have not added lab results yet, so this is based on your profile.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Conopidă",
+        "Broccoli crud",
+        "Varză albă",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 47% din necesarul tău zilnic de vitamina C.",
+        "Îți aduce și 100% din necesarul de vitamina K și 26% din necesarul de folat.",
+      ],
+      "sources": [
+        "Lee & Kader 2000, Postharvest Biol Technol 20:207",
+        "McKillop 2002, Br J Nutr 88:681",
+      ],
+      "summary": [
+        "Broccoli fiert: se potrivește profilului tău și îți aduce 47% din necesarul de vitamina C, 100% din necesarul de vitamina K și 26% din necesarul de folat.",
+      ],
+      "tips": [
+        "Vitamina C se pierde la căldură: crud sau gătit scurt e cel mai bine.",
+        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+        "Ca garnitură la felul principal sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
+      ],
+    },
+  },
+]
+`;

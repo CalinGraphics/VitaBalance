@@ -4,6 +4,8 @@
  */
 import { pdf } from '@react-pdf/renderer'
 import type { PdfLabels, RecommendationForPdf, UserForPdf } from './RecommendationReportDocument'
+import type { Recommendation } from '../types'
+import { buildExplanation, categoryLabel, foodName } from '../explanations/buildExplanation'
 import { RecommendationReportDocument } from './RecommendationReportDocument'
 import React, { type ReactElement } from 'react'
 import i18n, { DEFAULT_LANGUAGE, type Language } from '../../../shared/i18n'
@@ -22,9 +24,23 @@ const formatDate = (language: Language) =>
 
 interface ExportRecommendationPdfParams {
   user: UserForPdf
-  recommendations: RecommendationForPdf[]
-  /** Limba raportului (implicit RO). Etichetele se traduc; textele explicative generate de server rămân în română. */
+  recommendations: Recommendation[]
+  /** Limba raportului (implicit RO): etichetele și explicațiile se construiesc în această limbă. */
   language?: Language
+}
+
+function toPdfItem(rec: Recommendation, language: Language): RecommendationForPdf {
+  const e = buildExplanation(rec, language)
+  const portion = rec.facts ? `${rec.facts.portion.amount} ${rec.facts.portion.unit === 'ml' ? 'ml' : 'g'}` : '—'
+  return {
+    recommendation_id: rec.recommendation_id,
+    name: foodName(rec, language),
+    category: categoryLabel(rec, language, formatFoodCategory),
+    portion,
+    coverage: rec.coverage,
+    description: [...e.summary, ...e.nutrients],
+    motivation: [...e.why, ...e.warnings],
+  }
 }
 
 /**
@@ -52,10 +68,9 @@ async function generateRecommendationPdfBlob(
   }
   const doc = React.createElement(RecommendationReportDocument, {
     user,
-    recommendations,
+    recommendations: recommendations.map((r) => toPdfItem(r, language)),
     generatedAt: formatDate(language),
     labels,
-    formatCategory: formatFoodCategory,
   }) as ReactElement
   const blob = await pdf(doc).toBlob()
   return blob

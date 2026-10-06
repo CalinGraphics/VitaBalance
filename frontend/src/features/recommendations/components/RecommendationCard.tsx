@@ -1,244 +1,34 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { memo, useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, Flame, Info, Lightbulb, ThumbsUp, ThumbsDown, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Flame, Info, Lightbulb, ThumbsUp, ThumbsDown, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
 import { feedbackService } from '../../../services/api'
-import { formatPortionSuggestion } from '../utils/formatPortion'
 import { estimatePortionCalories } from '../utils/calories'
+import { buildExplanation, categoryLabel, foodName, sourcesLine } from '../explanations/buildExplanation'
+import type { Language } from '../../../shared/i18n'
+import type { Recommendation } from '../types'
 
-/** Elimină prefixul [context: ...] și normalizează spațiile pe un singur rând (motivații, sfaturi). */
-function faraPrefixContext(s: string): string {
-  if (!s || typeof s !== 'string') return ''
-  return stripContextMarker(s).replace(/[ \t]+/g, ' ').replace(/\n+/g, ' ').trim()
-}
-
-function stripContextMarker(s: string): string {
-  return s.replace(/\s*\[[Cc]ontext:\s*[^\]]*\]\s*/g, ' ')
-}
-
-/** Păstrează rândurile utile pentru mesajul principal; comprimă doar spațiile orizontale. */
-function normalizeExplanationRaw(s: string): string {
-  if (!s || typeof s !== 'string') return ''
-  return stripContextMarker(s)
-    .split('\n')
-    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-const EXPL_SECTION_SEP = '\x1e'
-const LEGACY_EXPL_SECTION_SEP = '\n\n---\n\n'
-
-function isSeparatorOnlyChunk(s: string): boolean {
-  const t = s.trim()
-  return t === '---' || /^-+$/.test(t) || t === '\x1e'
-}
-
-function splitExplanationSections(raw: string): string[] {
-  const withLegacy = raw.split(LEGACY_EXPL_SECTION_SEP).join(EXPL_SECTION_SEP)
-  return withLegacy
-    .split(EXPL_SECTION_SEP)
-    .map((p) => p.trim())
-    .filter((p) => p && !isSeparatorOnlyChunk(p))
-}
-
-/** Scoate formulările legale de tip disclaimer din textul afișat la aliment (inclusiv date vechi din DB). */
-function stripMedicalDisclaimersFromExplanation(s: string): string {
-  let t = s.replace(
-    /\s*Valorile sunt orientative\s*\([^)]*\)\s*;\s*nu\s+înlocuiesc consultul medical\.?\s*/gi,
-    '\n'
-  )
-  t = t.replace(/\s*Valorile sunt orientative[^.\n]*(?:catalog|model)[^.\n]*\.?\s*/gi, '\n')
-  t = t.replace(/\s*nu\s+înlocuiesc consultul medical\.?\s*/gi, '\n')
-  t = t.replace(/\s*Valorile per 100 g provin[^.\n]*\.?\s*/gi, '\n')
-  return t
-    .split('\n')
-    .filter((ln) => {
-      const l = ln.toLowerCase().trim()
-      if (!l) return false
-      if (l.includes('valorile sunt orientative') && (l.includes('catalog') || l.includes('model')))
-        return false
-      if (l.includes('nu înlocuiesc consultul medical')) return false
-      if (l.includes('valorile per 100 g provin') && l.includes('orientativ')) return false
-      return true
-    })
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function renderInlineBold(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <strong key={i} className="font-semibold text-zinc-50">
-          {part.slice(2, -2)}
-        </strong>
-      )
-    }
-    return <span key={i}>{part}</span>
-  })
-}
-
-/** Împarte rezumatul: intro, contribuții, acoperire — pe linii separate când e posibil. */
-function splitReadableChunks(text: string): string[] {
-  const t = text.trim()
-  if (!t) return []
-
-  const markerRes = [/Contribuții nutriționale dominante:/i, /Acoperirea globală estimată/i]
-  const hitIdx = markerRes
-    .map((re) => t.search(re))
-    .filter((idx) => idx >= 0)
-    .sort((a, b) => a - b)
-  const uniqueHits = hitIdx.filter((idx, i) => i === 0 || idx !== hitIdx[i - 1])
-
-  if (uniqueHits.length > 0) {
-    const chunks: string[] = []
-    let pos = 0
-    for (const idx of uniqueHits) {
-      if (idx > pos) {
-        const slice = t.slice(pos, idx).trim()
-        if (slice && !isSeparatorOnlyChunk(slice)) chunks.push(slice)
-      }
-      pos = idx
-    }
-    const tail = t.slice(pos).trim()
-    if (tail && !isSeparatorOnlyChunk(tail)) chunks.push(tail)
-    if (chunks.length >= 2) return chunks
-  }
-
-  const byNewline = t
-    .split(/\n+/)
-    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-    .filter((line) => line && !isSeparatorOnlyChunk(line))
-  if (byNewline.length >= 2) return byNewline
-
-  const bySemi = t.split(/;\s+/).map((s) => s.trim()).filter((s) => s && !isSeparatorOnlyChunk(s))
-  if (bySemi.length >= 2) return bySemi
-
-  const sentences = t
-    .split(/(?<=[.!?])\s+(?=[A-ZĂÂÎȘȚ])/u)
-    .map((s) => s.trim())
-    .filter((s) => s && !isSeparatorOnlyChunk(s))
-  if (sentences.length >= 2) return sentences
-
-  return [t]
-}
-
-function ReadableParagraphs({ text }: { text: string }) {
-  const chunks = splitReadableChunks(text)
-  if (chunks.length <= 1) {
-    return (
-      <p className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words whitespace-pre-line">
-        {renderInlineBold(chunks[0] ?? '')}
-      </p>
-    )
-  }
+function Section({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null
   return (
-    <ul className="space-y-2.5 list-none pl-0 m-0">
-      {chunks.map((chunk, idx) => (
-        <li key={idx} className="flex gap-2.5 text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/90" aria-hidden />
-          <span className="min-w-0">{renderInlineBold(chunk)}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function ExplanationSections({ rawText }: { rawText: string }) {
-  const { t } = useTranslation()
-  const normalized = stripMedicalDisclaimersFromExplanation(normalizeExplanationRaw(rawText))
-  const parts = splitExplanationSections(normalized)
-  if (parts.length <= 1) {
-    return <ReadableParagraphs text={parts[0] ?? normalized} />
-  }
-  const first = parts[0] ?? ''
-  const last = parts[parts.length - 1]
-  const middleText = parts
-    .slice(1, -1)
-    .join('\n\n')
-    .trim()
-
-  if (parts.length === 2) {
-    return (
-      <div className="space-y-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">{t('recommendations.card.summary')}</p>
-          <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
-            <ReadableParagraphs text={first} />
-          </div>
-        </div>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">
-            {t('recommendations.card.nutrientDetail')}
-          </p>
-          <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
-            <ReadableParagraphs text={last} />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">{t('recommendations.card.summary')}</p>
-        <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
-          <ReadableParagraphs text={first} />
-        </div>
-      </div>
-      {middleText ? (
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/85 mb-1.5">
-            {t('recommendations.card.nutrientDetail')}
-          </p>
-          <div className="text-zinc-200 text-base sm:text-sm leading-relaxed break-words">
-            <ReadableParagraphs text={middleText} />
-          </div>
-        </div>
-      ) : null}
-      {parts.length >= 2 ? (
-        <div className="rounded-lg border border-line bg-white/[0.02] px-3 py-2.5">
-          <div className="text-xs text-zinc-400 leading-relaxed break-words">
-            <ReadableParagraphs text={last} />
-          </div>
-        </div>
-      ) : null}
+    <div>
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent/85">{title}</p>
+      <ul className="m-0 list-none space-y-2 pl-0">
+        {items.map((item, idx) => (
+          <li key={idx} className="flex gap-2.5 break-words text-base leading-relaxed text-zinc-200 sm:text-sm">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/90" aria-hidden />
+            <span className="min-w-0">{item}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
 
 interface RecommendationCardProps {
-  recommendation: {
-    food_id: number
-    food: {
-      id: number
-      name: string
-      category: string
-      calories?: number
-    }
-    score: number
-    coverage: number
-    explanation: {
-      text: string
-      portion: number
-      portion_unit?: 'g' | 'ml' | string
-      reasons: string[]
-      tips?: string[]
-      alternatives?: string[]
-    }
-    recommendation_id: number
-    feedback?: {
-      likes: number
-      dislikes: number
-    }
-    my_rating?: number | null
-  }
+  recommendation: Recommendation
   index: number
   userId?: number
   onFeedbackSent?: (recId: number, rating: number | null, newLikes: number, newDislikes: number) => void
@@ -251,8 +41,14 @@ const RecommendationCard = ({
   onFeedbackSent,
   onReplaceRequested,
 }: RecommendationCardProps) => {
-  const { t } = useTranslation()
-  const { food, explanation, coverage, feedback } = recommendation
+  const { t, i18n } = useTranslation()
+  // Textul se construiește în browser din fapte: schimbarea limbii nu face nicio cerere la server.
+  const lang: Language = i18n.language === 'en' ? 'en' : 'ro'
+  const { coverage, feedback, facts } = recommendation
+  const explanation = useMemo(() => buildExplanation(recommendation, lang), [recommendation, lang])
+  const name = foodName(recommendation, lang)
+  const category = categoryLabel(recommendation, lang, formatFoodCategory)
+  const portionText = facts ? `${facts.portion.amount} ${facts.portion.unit === 'ml' ? 'ml' : 'g'}` : '—'
   const portionKcal = estimatePortionCalories(recommendation)
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'sent' | 'error'>('idle')
   const [feedbackError, setFeedbackError] = useState<string | null>(null)
@@ -419,17 +215,15 @@ const RecommendationCard = ({
             <div className="flex items-start justify-between mb-4 min-w-0">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-50 break-words">{food.name}</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-50 break-words">{name}</h3>
                   <span className="flex-shrink-0 rounded-md border border-accent-border bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
-                    {formatFoodCategory(food.category)}
+                    {category}
                   </span>
                 </div>
                 <p className="text-base sm:text-sm text-zinc-300 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span>
                     {t('recommendations.card.portion')}{' '}
-                    <strong className="text-accent">
-                      {formatPortionSuggestion(explanation.portion, explanation.portion_unit, food.category)}
-                    </strong>
+                    <strong className="text-accent">{portionText}</strong>
                   </span>
                   {portionKcal != null && (
                     <span
@@ -457,53 +251,69 @@ const RecommendationCard = ({
               </div>
             </div>
 
-            {/* Explanation */}
-            <div className="mb-5 rounded-lg border border-line bg-white/[0.03] p-4">
-              <ExplanationSections rawText={explanation.text} />
+            {/* Explicație: construită din fapte + șabloanele din locales */}
+            <div className="mb-5 space-y-3 rounded-lg border border-line bg-white/[0.03] p-4">
+              <Section title={t('recommendations.card.summary')} items={explanation.summary} />
+              <Section title={t('recommendations.card.nutrientDetail')} items={explanation.nutrients} />
             </div>
 
-            {explanation.reasons && explanation.reasons.length > 0 && (
+            {explanation.why.length > 0 && (
               <div className="mb-4 space-y-2">
                 <p className="text-base sm:text-sm font-semibold text-accent mb-3 flex items-center gap-2">
                   <CheckCircle2 aria-hidden="true" className="w-4 h-4 flex-shrink-0" />
                   {t('recommendations.card.whyTitle')}
                 </p>
                 <ul className="space-y-2">
-                  {explanation.reasons.map((reason, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 leading-relaxed break-words"
-                    >
+                  {explanation.why.map((reason, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 leading-relaxed break-words">
                       <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
-                      <span className="leading-relaxed whitespace-pre-line">{faraPrefixContext(reason)}</span>
+                      <span className="leading-relaxed">{reason}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {explanation.tips && explanation.tips.length > 0 && (
+            {explanation.tips.length > 0 && (
               <div className="mt-4 pt-4 border-t border-line">
                 <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2 flex items-center gap-2">
                   <Info aria-hidden="true" className="w-4 h-4 flex-shrink-0 text-accent" />
-                  {t('recommendations.card.tipsTitle')}
+                  {t('recommendations.card.howTitle')}
                 </p>
                 <ul className="space-y-2">
                   {explanation.tips.map((tip, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 bg-white/[0.03] border border-line p-3 rounded-lg break-words">
                       <Lightbulb aria-hidden="true" className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
-                      <span>{faraPrefixContext(tip)}</span>
+                      <span>{tip}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {explanation.alternatives && explanation.alternatives.length > 0 && (
+            {explanation.warnings.length > 0 && (
+              <div role="note" className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
+                <p className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-amber-200">
+                  <AlertTriangle aria-hidden="true" className="h-4 w-4 flex-shrink-0" />
+                  {t('recommendations.card.warningTitle')}
+                </p>
+                <ul className="space-y-1 text-sm text-amber-100/90">
+                  {explanation.warnings.map((w, idx) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {explanation.alternatives.length > 0 && (
               <div className="mt-4 pt-4 border-t border-line">
                 <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2">{t('recommendations.card.alternatives')}</p>
                 <p className="text-base sm:text-sm text-zinc-300 break-words">{explanation.alternatives.join(', ')}</p>
               </div>
+            )}
+
+            {explanation.sources.length > 0 && (
+              <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">{sourcesLine(lang, explanation.sources)}</p>
             )}
           </div>
 
@@ -618,4 +428,5 @@ const RecommendationCard = ({
   )
 }
 
-export default RecommendationCard
+// Memoizat: un vot sau înlocuirea unui card nu redesenează celelalte carduri.
+export default memo(RecommendationCard)

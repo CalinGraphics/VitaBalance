@@ -1,7 +1,6 @@
 import axios, { isAxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
 import type { User } from '../shared/types'
 import { extractErrorMessage } from '../shared/utils/apiErrors'
-import { currentLanguage } from '../shared/i18n'
 import type { LabExtractFromApi, LabKey } from '../features/medical/utils/labLocalExtract'
 import { getToken, getRefreshToken, setSession, clearToken } from './authStorage'
 
@@ -236,10 +235,7 @@ export type RecommendationsSyncMeta = {
 
 export const recommendationsService = {
   listStored: async (userId: number) => {
-    const response = await api.get(`/recommendations/stored/${userId}`, {
-      timeout: REC_STORED_TIMEOUT_MS,
-      params: { lang: currentLanguage() },
-    })
+    const response = await api.get(`/recommendations/stored/${userId}`, { timeout: REC_STORED_TIMEOUT_MS })
     return response.data
   },
   getSyncMeta: async (userId: number) => {
@@ -260,7 +256,7 @@ export const recommendationsService = {
   },
   materializeSync: async (userId: number, forceRegenerate = false) => {
     const response = await api.post(
-      `/recommendations?force_regenerate=${forceRegenerate}&lang=${currentLanguage()}`,
+      `/recommendations?force_regenerate=${forceRegenerate}`,
       { user_id: userId },
       { timeout: REC_MATERIALIZE_TIMEOUT_MS }
     )
@@ -282,10 +278,7 @@ export const recommendationsService = {
     if (options?.replaceFeedbackRating != null) {
       body.replace_feedback_rating = options.replaceFeedbackRating
     }
-    const response = await api.post('/recommendations', body, {
-      timeout: REC_REPLACE_TIMEOUT_MS,
-      params: { lang: currentLanguage() },
-    })
+    const response = await api.post('/recommendations', body, { timeout: REC_REPLACE_TIMEOUT_MS })
     return response.data
   },
 }

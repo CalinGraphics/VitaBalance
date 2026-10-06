@@ -501,7 +501,9 @@
       "replacing": "Replacing...",
       "yes": "Yes",
       "no": "No",
-      "coverageHint": "How much of your daily need for the main nutrient the suggested portion covers"
+      "coverageHint": "How much of your daily need for the main nutrient the suggested portion covers",
+      "warningTitle": "Heads-up",
+      "howTitle": "How to eat it"
     }
   },
   "pdf": {
@@ -519,5 +521,205 @@
     "motivation": "Rationale",
     "rights": "All rights reserved.",
     "fileName": "Recommendations"
+  },
+  "explain": {
+    "nutrient": {
+      "iron": "iron",
+      "calcium": "calcium",
+      "vitamin_d": "vitamin D",
+      "vitamin_b12": "vitamin B12",
+      "magnesium": "magnesium",
+      "protein": "protein",
+      "zinc": "zinc",
+      "folate": "folate",
+      "vitamin_a": "vitamin A",
+      "vitamin_c": "vitamin C",
+      "iodine": "iodine",
+      "vitamin_k": "vitamin K",
+      "potassium": "potassium"
+    },
+    "headline": {
+      "iron": "{food}: helps you cover your iron needs.",
+      "calcium": "{food}: helps you cover your calcium needs.",
+      "vitamin_d": "{food}: among the few foods that can give you vitamin D.",
+      "vitamin_b12": "{food}: helps you cover your vitamin B12 needs.",
+      "magnesium": "{food}: helps you cover your magnesium needs.",
+      "protein": "{food}: helps you cover your protein needs.",
+      "zinc": "{food}: helps you cover your zinc needs.",
+      "folate": "{food}: helps you cover your folate needs.",
+      "vitamin_a": "{food}: helps you cover your vitamin A needs.",
+      "vitamin_c": "{food}: helps you cover your vitamin C needs.",
+      "iodine": "{food}: helps you cover your iodine needs.",
+      "vitamin_k": "{food}: helps you cover your vitamin K needs.",
+      "potassium": "{food}: helps you cover your potassium needs.",
+      "vitamin_b12_vegan": "{food}: has added vitamin B12, and on a vegan diet B12 only comes from fortified foods or supplements.",
+      "general": "{food}: fits your profile and gives you {list}."
+    },
+    "result": {
+      "lab": {
+        "ferritin": "Your ferritin is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "hemoglobin": "Your haemoglobin is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "vitamin_d": "Your vitamin D is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "vitamin_b12": "Your vitamin B12 is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "magnesium": "Your magnesium is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "calcium": "Your calcium is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "protein": "Your total protein is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "zinc": "Your zinc is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "folate": "Your folate is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "vitamin_a": "Your vitamin A is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "vitamin_c": "Your vitamin C is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "iodine": "Your urinary iodine is {value} {unit}, below the minimum of {threshold} {unit}.",
+        "potassium": "Your potassium is {value} {unit}, below the minimum of {threshold} {unit}."
+      },
+      "notes": {
+        "iron": "You told us you need more iron.",
+        "calcium": "You told us you need more calcium.",
+        "vitamin_d": "You told us you need more vitamin D.",
+        "vitamin_b12": "You told us you need more vitamin B12.",
+        "magnesium": "You told us you need more magnesium.",
+        "protein": "You told us you need more protein.",
+        "zinc": "You told us you need more zinc.",
+        "folate": "You told us you need more folate.",
+        "vitamin_a": "You told us you need more vitamin A.",
+        "vitamin_c": "You told us you need more vitamin C.",
+        "iodine": "You told us you need more iodine.",
+        "vitamin_k": "You told us you need more vitamin K.",
+        "potassium": "You told us you need more potassium."
+      },
+      "severity": "{severity, select, severe {That is well below the limit.} moderate {That is clearly below the limit.} other {That is slightly below the limit.}}"
+    },
+    "why": {
+      "iron": "Iron helps form red blood cells and carry oxygen around your body.",
+      "calcium": "Calcium is needed to keep your bones and teeth healthy.",
+      "vitamin_d": "Vitamin D helps keep your bones healthy and supports normal immune function.",
+      "vitamin_b12": "Vitamin B12 helps form red blood cells and supports a normal nervous system.",
+      "magnesium": "Magnesium helps reduce tiredness and supports normal muscle function.",
+      "protein": "Protein helps maintain muscle mass.",
+      "zinc": "Zinc supports normal immune function.",
+      "folate": "Folate helps normal blood formation and supports tissue growth during pregnancy.",
+      "vitamin_a": "Vitamin A helps maintain normal vision.",
+      "vitamin_c": "Vitamin C supports immune function and increases iron absorption.",
+      "iodine": "Iodine helps your thyroid make hormones normally.",
+      "vitamin_k": "Vitamin K helps your blood clot normally.",
+      "potassium": "Potassium supports normal muscle function and normal blood pressure."
+    },
+    "portion": "{full, select, yes {{portion} covers all of your daily {nutrient} needs.} other {{portion} covers about {pct}% of your daily {nutrient} needs.}}",
+    "also": "It also gives you {list}.",
+    "share": "{pct}% of your {nutrient} needs",
+    "serve": {
+      "nuts": "A handful as a snack or sprinkled over yogurt.",
+      "seeds": "Sprinkled over salad, yogurt or porridge.",
+      "legumes": "In soups, salads or stews.",
+      "leafy_greens": "In a salad or as a side, with a drizzle of oil.",
+      "vegetables": "As a side with your main meal or in a salad.",
+      "fruits": "As a snack between meals or at breakfast.",
+      "dried_fruits": "A small handful is enough: they are high in natural sugar.",
+      "fish": "Baked or grilled, with vegetables on the side.",
+      "shellfish": "Well cooked, steamed or in a tomato sauce.",
+      "meat": "Roasted or grilled, with a side of vegetables.",
+      "poultry": "Roasted or grilled, with a side of vegetables.",
+      "offal": "Well cooked, with onions and vegetables.",
+      "processed_meat": "Best kept for rare occasions.",
+      "eggs": "At breakfast or in a salad.",
+      "dairy": "At breakfast or as a snack.",
+      "cheese": "A small portion on a slice of wholegrain bread or in a salad.",
+      "plant_milks": "In porridge, coffee or a smoothie. Shake the carton first: the added calcium settles at the bottom.",
+      "whole_grains": "As the base of a meal, with vegetables and a protein source.",
+      "refined_grains": "With vegetables and a protein source.",
+      "bakery": "Best kept for rare occasions.",
+      "sweets_snacks": "Best kept for rare occasions."
+    },
+    "tip": {
+      "iron": "Add a source of vitamin C to the same meal (peppers, lemon, kiwi): it helps you absorb iron from plants. Tea and coffee with the meal make it harder.",
+      "calcium_iron": "Calcium at the same meal lowers iron absorption: keep calcium-rich foods for a different meal from your iron foods.",
+      "vitamin_d": "Vitamin D is absorbed better at a meal that also contains a little fat.",
+      "vitamin_a": "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+      "vitamin_b12_vegan": "On a vegan diet, B12 only comes from fortified foods or supplements. Talk to your doctor about a supplement.",
+      "vitamin_k_anticoagulant": "If you take warfarin or acenocoumarol, eat about the same amount of leafy greens every day.",
+      "zinc": "Soak legumes for a few hours before cooking: zinc is absorbed better.",
+      "folate": "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
+      "vitamin_c": "Vitamin C is lost with heat: raw or briefly cooked is best."
+    },
+    "warning": {
+      "pregnancy_cooked": "If you are pregnant, eat it only when well cooked.",
+      "liver_weekly": "Liver is very high in vitamin A: no more than one portion a week.",
+      "raw_fresh": "Choose it only very fresh, from a source you trust."
+    },
+    "considered": {
+      "diet": "It fits your {diet, select, vegan {vegan} vegetarian {vegetarian} pescatarian {pescatarian} other {}} diet.",
+      "allergies": "Chosen with your allergies in mind: {list}.",
+      "condition": "We took {condition} into account: {restriction}.",
+      "no_labs": "You have not added lab results yet, so this is based on your profile."
+    },
+    "condition": {
+      "pregnancy": {
+        "label": "your pregnancy",
+        "restriction": "no raw fish or shellfish, high-mercury fish, liver or soft mould-ripened cheese"
+      },
+      "lactation": {
+        "label": "breastfeeding",
+        "restriction": "no high-mercury fish"
+      },
+      "immunocompromised": {
+        "label": "your weakened immunity",
+        "restriction": "no raw fish or shellfish and no soft mould-ripened cheese"
+      },
+      "anticoagulant": {
+        "label": "your anticoagulant treatment",
+        "restriction": "no portions very high in vitamin K"
+      },
+      "ckd": {
+        "label": "your kidney disease",
+        "restriction": "no high-potassium foods, with limited phosphorus"
+      },
+      "hemochromatosis": {
+        "label": "haemochromatosis",
+        "restriction": "no foods chosen to raise iron"
+      },
+      "hypertension": {
+        "label": "high blood pressure",
+        "restriction": "no high-salt foods"
+      },
+      "diabetes": {
+        "label": "diabetes",
+        "restriction": "we prefer portions low in carbohydrate and without added sugar"
+      },
+      "celiac": {
+        "label": "coeliac disease",
+        "restriction": "gluten-free"
+      },
+      "gout": {
+        "label": "gout",
+        "restriction": "no offal or shellfish, little red meat"
+      },
+      "cardiovascular": {
+        "label": "high cholesterol",
+        "restriction": "no processed meat"
+      }
+    },
+    "sources": "Sources: {list}"
+  },
+  "foodCategory": {
+    "nuts": "Nuts",
+    "seeds": "Seeds",
+    "legumes": "Legumes",
+    "leafy_greens": "Leafy greens",
+    "vegetables": "Vegetables",
+    "fruits": "Fruits",
+    "dried_fruits": "Dried fruit",
+    "fish": "Fish",
+    "shellfish": "Shellfish",
+    "meat": "Meat",
+    "poultry": "Poultry",
+    "offal": "Offal",
+    "processed_meat": "Processed meat",
+    "eggs": "Eggs",
+    "dairy": "Dairy",
+    "cheese": "Cheese",
+    "plant_milks": "Plant-based drinks",
+    "whole_grains": "Whole grains",
+    "refined_grains": "Refined grains",
+    "bakery": "Bakery products",
+    "sweets_snacks": "Sweets and snacks"
   }
 }

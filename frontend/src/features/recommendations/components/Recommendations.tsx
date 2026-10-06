@@ -11,7 +11,8 @@ import UserProfileInfo from './UserProfileInfo'
 import CaloricGoalProgress from './CaloricGoalProgress'
 import type { Recommendation } from '../types'
 import { humanizeRecommendationClientError } from '../../../shared/utils/apiErrors'
-import { resolveFoodCategory } from '../../../shared/utils/formatters'
+import { formatFoodCategory, resolveFoodCategory } from '../../../shared/utils/formatters'
+import { categoryLabel } from '../explanations/buildExplanation'
 import {
   loadStoredRecommendations,
   pollRecommendationRefresh,
@@ -260,27 +261,8 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
     recommendationsRef.current = recommendations
   }, [recommendations])
 
-  // Explicațiile și numele alimentelor vin din API în limba curentă: la schimbarea limbii reîncărcăm lista salvată.
-  const previousLanguageRef = useRef(language)
-  useEffect(() => {
-    if (previousLanguageRef.current === language) return
-    previousLanguageRef.current = language
-    const uid = user.id
-    if (!uid) return
-    let cancelled = false
-    loadStoredRecommendations(uid)
-      .then((data) => {
-        if (cancelled || !Array.isArray(data) || data.length === 0) return
-        setRecommendations(data as Recommendation[])
-        writeRecommendationsSessionCache(uid, data as Recommendation[])
-      })
-      .catch(() => {
-        /* rămân textele din limba anterioară până la următoarea reîncărcare */
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [language, user.id])
+  // Schimbarea limbii NU face nicio cerere: API-ul trimite fapte + nume în ambele limbi, iar cardurile, graficul și
+  // categoriile își refac textul în browser (vezi explanations/buildExplanation.ts și testul languageSwitch).
 
   useEffect(() => {
     const prevUserValues = prevUserValuesRef.current
@@ -359,7 +341,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
   const userId = user.id
   const categoryKeyOf = useCallback(
-    (rec: Recommendation) => resolveFoodCategory(rec.food?.category)?.key ?? 'other',
+    (rec: Recommendation) => rec.food?.category_key ?? resolveFoodCategory(rec.food?.category)?.key ?? 'other',
     []
   )
   const categoryCounts = useMemo(
@@ -377,12 +359,12 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   )
   const categoryLabels = useMemo(() => {
     const labels: Record<string, string> = { other: t('recommendations.categoryOther') }
+    const lang = language === 'en' ? 'en' : 'ro'
     for (const rec of recommendations) {
-      const resolved = resolveFoodCategory(rec.food?.category)
-      if (resolved) labels[resolved.key] = resolved.label
+      labels[categoryKeyOf(rec)] = categoryLabel(rec, lang, formatFoodCategory)
     }
     return labels
-  }, [recommendations, t])
+  }, [recommendations, t, language, categoryKeyOf])
   const filteredRecommendations = useMemo(
     () =>
       selectedCategory === 'all'

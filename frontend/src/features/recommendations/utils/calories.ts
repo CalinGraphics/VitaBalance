@@ -1,15 +1,15 @@
 import type { Recommendation } from '../types'
 
 /**
- * Estimare orientativă a caloriilor porției sugerate: `kcal / 100 g` din catalogul de alimente × porție / 100.
- * Mililitrii sunt tratați ca grame (aproximare acceptabilă pentru băuturi). Returnează `null` când lipsesc datele.
- * Este strict informativ (bara de obiectiv caloric) și nu intră în scorarea recomandărilor.
+ * Caloriile porției sugerate: `kcal / 100 g` din catalogul validat × porție / 100 (backend-ul trimite deja rezultatul
+ * în `facts.kcal_portion`). Returnează `null` când lipsesc datele (ex. rânduri vechi, fără fapte).
+ * Strict informativ (bara de obiectiv caloric); nu intră în scorarea recomandărilor.
  */
-export function estimatePortionCalories(
-  rec: Pick<Recommendation, 'food' | 'explanation'>
-): number | null {
+export function estimatePortionCalories(rec: Pick<Recommendation, 'food' | 'facts'>): number | null {
+  const fromFacts = rec.facts?.kcal_portion
+  if (typeof fromFacts === 'number' && Number.isFinite(fromFacts)) return Math.round(fromFacts)
   const per100 = Number(rec.food?.calories)
-  const portion = Number(rec.explanation?.portion)
+  const portion = Number(rec.facts?.portion?.amount)
   if (!Number.isFinite(per100) || per100 <= 0) return null
   if (!Number.isFinite(portion) || portion <= 0) return null
   return Math.round((per100 * portion) / 100)
@@ -17,7 +17,7 @@ export function estimatePortionCalories(
 
 /** Suma caloriilor estimate pentru o listă de recomandări (cele fără date se ignoră). */
 export function sumRecommendationCalories(
-  recs: Array<Pick<Recommendation, 'food' | 'explanation'>>
+  recs: Array<Pick<Recommendation, 'food' | 'facts'>>
 ): { total: number; counted: number } {
   let total = 0
   let counted = 0

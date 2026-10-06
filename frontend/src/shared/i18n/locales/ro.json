@@ -506,7 +506,9 @@
       "replacing": "Se înlocuiește...",
       "yes": "Da",
       "no": "Nu",
-      "coverageHint": "Cât din necesarul tău zilnic pentru nutrientul principal acoperă porția sugerată"
+      "coverageHint": "Cât din necesarul tău zilnic pentru nutrientul principal acoperă porția sugerată",
+      "warningTitle": "Atenție",
+      "howTitle": "Cum să-l mănânci"
     }
   },
   "pdf": {
@@ -524,5 +526,205 @@
     "motivation": "Motivație",
     "rights": "Toate drepturile rezervate.",
     "fileName": "Recomandari"
+  },
+  "explain": {
+    "nutrient": {
+      "iron": "fier",
+      "calcium": "calciu",
+      "vitamin_d": "vitamina D",
+      "vitamin_b12": "vitamina B12",
+      "magnesium": "magneziu",
+      "protein": "proteine",
+      "zinc": "zinc",
+      "folate": "folat",
+      "vitamin_a": "vitamina A",
+      "vitamin_c": "vitamina C",
+      "iodine": "iod",
+      "vitamin_k": "vitamina K",
+      "potassium": "potasiu"
+    },
+    "headline": {
+      "iron": "{food}: te ajută să-ți acoperi necesarul de fier.",
+      "calcium": "{food}: te ajută să-ți acoperi necesarul de calciu.",
+      "vitamin_d": "{food}: printre puținele alimente care îți pot aduce vitamina D.",
+      "vitamin_b12": "{food}: te ajută să-ți acoperi necesarul de vitamina B12.",
+      "magnesium": "{food}: te ajută să-ți acoperi necesarul de magneziu.",
+      "protein": "{food}: te ajută să-ți acoperi necesarul de proteine.",
+      "zinc": "{food}: te ajută să-ți acoperi necesarul de zinc.",
+      "folate": "{food}: te ajută să-ți acoperi necesarul de folat.",
+      "vitamin_a": "{food}: te ajută să-ți acoperi necesarul de vitamina A.",
+      "vitamin_c": "{food}: te ajută să-ți acoperi necesarul de vitamina C.",
+      "iodine": "{food}: te ajută să-ți acoperi necesarul de iod.",
+      "vitamin_k": "{food}: te ajută să-ți acoperi necesarul de vitamina K.",
+      "potassium": "{food}: te ajută să-ți acoperi necesarul de potasiu.",
+      "vitamin_b12_vegan": "{food}: are vitamina B12 adăugată, iar în dieta vegană B12 vine doar din alimente fortificate sau suplimente.",
+      "general": "{food}: se potrivește profilului tău și îți aduce {list}."
+    },
+    "result": {
+      "lab": {
+        "ferritin": "Feritina îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "hemoglobin": "Hemoglobina îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "vitamin_d": "Vitamina D îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "vitamin_b12": "Vitamina B12 îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "magnesium": "Magneziul îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "calcium": "Calciul îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "protein": "Proteinele totale îți sunt {value} {unit}, sub minimul de {threshold} {unit}.",
+        "zinc": "Zincul îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "folate": "Folatul îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "vitamin_a": "Vitamina A îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "vitamin_c": "Vitamina C îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "iodine": "Iodul din urină îți e {value} {unit}, sub minimul de {threshold} {unit}.",
+        "potassium": "Potasiul îți e {value} {unit}, sub minimul de {threshold} {unit}."
+      },
+      "notes": {
+        "iron": "Ne-ai spus că ai nevoie de mai mult fier.",
+        "calcium": "Ne-ai spus că ai nevoie de mai mult calciu.",
+        "vitamin_d": "Ne-ai spus că ai nevoie de mai multă vitamină D.",
+        "vitamin_b12": "Ne-ai spus că ai nevoie de mai multă vitamină B12.",
+        "magnesium": "Ne-ai spus că ai nevoie de mai mult magneziu.",
+        "protein": "Ne-ai spus că ai nevoie de mai multe proteine.",
+        "zinc": "Ne-ai spus că ai nevoie de mai mult zinc.",
+        "folate": "Ne-ai spus că ai nevoie de mai mult folat.",
+        "vitamin_a": "Ne-ai spus că ai nevoie de mai multă vitamină A.",
+        "vitamin_c": "Ne-ai spus că ai nevoie de mai multă vitamină C.",
+        "iodine": "Ne-ai spus că ai nevoie de mai mult iod.",
+        "vitamin_k": "Ne-ai spus că ai nevoie de mai multă vitamină K.",
+        "potassium": "Ne-ai spus că ai nevoie de mai mult potasiu."
+      },
+      "severity": "{severity, select, severe {E mult sub limită.} moderate {E destul de mult sub limită.} other {E puțin sub limită.}}"
+    },
+    "why": {
+      "iron": "Fierul ajută la formarea globulelor roșii și la transportul oxigenului în corp.",
+      "calcium": "Calciul e necesar pentru menținerea oaselor și a dinților.",
+      "vitamin_d": "Vitamina D ajută la menținerea oaselor și la funcționarea normală a imunității.",
+      "vitamin_b12": "Vitamina B12 ajută la formarea globulelor roșii și la funcționarea normală a sistemului nervos.",
+      "magnesium": "Magneziul ajută la reducerea oboselii și la funcționarea normală a mușchilor.",
+      "protein": "Proteinele ajută la menținerea masei musculare.",
+      "zinc": "Zincul ajută la funcționarea normală a imunității.",
+      "folate": "Folatul ajută la formarea normală a sângelui și susține creșterea țesuturilor în sarcină.",
+      "vitamin_a": "Vitamina A ajută la menținerea vederii normale.",
+      "vitamin_c": "Vitamina C ajută imunitatea și crește absorbția fierului.",
+      "iodine": "Iodul ajută la producția normală de hormoni tiroidieni.",
+      "vitamin_k": "Vitamina K ajută la coagularea normală a sângelui.",
+      "potassium": "Potasiul ajută la funcționarea normală a mușchilor și la menținerea unei tensiuni arteriale normale."
+    },
+    "portion": "{full, select, yes {{portion} acoperă tot necesarul tău zilnic de {nutrient}.} other {{portion} acoperă aproximativ {pct}% din necesarul tău zilnic de {nutrient}.}}",
+    "also": "Îți aduce și {list}.",
+    "share": "{pct}% din necesarul de {nutrient}",
+    "serve": {
+      "nuts": "O mână ca gustare sau presărată peste iaurt.",
+      "seeds": "Presărate peste salată, iaurt sau terci.",
+      "legumes": "În supe, salate sau tocănițe.",
+      "leafy_greens": "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      "vegetables": "Ca garnitură la felul principal sau într-o salată.",
+      "fruits": "Ca gustare între mese sau la micul dejun.",
+      "dried_fruits": "O mână mică e de ajuns: au mult zahăr natural.",
+      "fish": "La cuptor sau la grătar, cu legume alături.",
+      "shellfish": "Gătite bine, la abur sau în sos de roșii.",
+      "meat": "La cuptor sau la grătar, cu o garnitură de legume.",
+      "poultry": "La cuptor sau la grătar, cu o garnitură de legume.",
+      "offal": "Gătit bine, cu ceapă și legume.",
+      "processed_meat": "De păstrat pentru ocazii rare.",
+      "eggs": "La micul dejun sau într-o salată.",
+      "dairy": "La micul dejun sau ca gustare.",
+      "cheese": "O porție mică pe o felie de pâine integrală sau într-o salată.",
+      "plant_milks": "În terci, cafea sau smoothie. Agită cutia înainte: calciul adăugat se depune la fund.",
+      "whole_grains": "Ca bază pentru o masă, alături de legume și o sursă de proteine.",
+      "refined_grains": "Alături de legume și o sursă de proteine.",
+      "bakery": "De păstrat pentru ocazii rare.",
+      "sweets_snacks": "De păstrat pentru ocazii rare."
+    },
+    "tip": {
+      "iron": "Adaugă la aceeași masă o sursă de vitamina C (ardei, lămâie, kiwi): te ajută să absorbi fierul din plante. Ceaiul și cafeaua băute la masă îl fac mai greu de absorbit.",
+      "calcium_iron": "Calciul luat la aceeași masă scade absorbția fierului: păstrează alimentele bogate în calciu pentru altă masă decât cele pentru fier.",
+      "vitamin_d": "Vitamina D se absoarbe mai bine la o masă care conține și puțină grăsime.",
+      "vitamin_a": "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+      "vitamin_b12_vegan": "În dieta vegană, B12 vine doar din alimente fortificate sau suplimente. Vorbește cu medicul despre un supliment.",
+      "vitamin_k_anticoagulant": "Dacă iei warfarină sau acenocumarol, mănâncă aproximativ aceeași cantitate de verdețuri în fiecare zi.",
+      "zinc": "Înmoaie leguminoasele câteva ore înainte de fiert: zincul se absoarbe mai bine.",
+      "folate": "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
+      "vitamin_c": "Vitamina C se pierde la căldură: crud sau gătit scurt e cel mai bine."
+    },
+    "warning": {
+      "pregnancy_cooked": "Dacă ești însărcinată, mănâncă-l doar bine gătit.",
+      "liver_weekly": "Ficatul are foarte multă vitamina A: cel mult o porție pe săptămână.",
+      "raw_fresh": "Alege-l doar foarte proaspăt, de la o sursă de încredere."
+    },
+    "considered": {
+      "diet": "Se potrivește dietei tale {diet, select, vegan {vegane} vegetarian {vegetariene} pescatarian {pescetariene} other {}}.",
+      "allergies": "Ales ținând cont de alergiile tale: {list}.",
+      "condition": "Am ținut cont de {condition}: {restriction}.",
+      "no_labs": "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău."
+    },
+    "condition": {
+      "pregnancy": {
+        "label": "sarcină",
+        "restriction": "fără pește sau fructe de mare crude, pește bogat în mercur, ficat sau brânzeturi moi cu mucegai"
+      },
+      "lactation": {
+        "label": "alăptare",
+        "restriction": "fără pește bogat în mercur"
+      },
+      "immunocompromised": {
+        "label": "imunitatea scăzută",
+        "restriction": "fără pește sau fructe de mare crude și fără brânzeturi moi cu mucegai"
+      },
+      "anticoagulant": {
+        "label": "tratamentul anticoagulant",
+        "restriction": "fără porții foarte bogate în vitamina K"
+      },
+      "ckd": {
+        "label": "boala de rinichi",
+        "restriction": "fără alimente bogate în potasiu, cu fosfor limitat"
+      },
+      "hemochromatosis": {
+        "label": "hemocromatoză",
+        "restriction": "fără alimente alese pentru creșterea fierului"
+      },
+      "hypertension": {
+        "label": "hipertensiune",
+        "restriction": "fără alimente bogate în sare"
+      },
+      "diabetes": {
+        "label": "diabet",
+        "restriction": "preferăm porțiile cu puțini carbohidrați și fără zahăr adăugat"
+      },
+      "celiac": {
+        "label": "boala celiacă",
+        "restriction": "fără gluten"
+      },
+      "gout": {
+        "label": "gută",
+        "restriction": "fără organe și fructe de mare, cu puțină carne roșie"
+      },
+      "cardiovascular": {
+        "label": "colesterolul ridicat",
+        "restriction": "fără mezeluri"
+      }
+    },
+    "sources": "Surse: {list}"
+  },
+  "foodCategory": {
+    "nuts": "Nuci",
+    "seeds": "Semințe",
+    "legumes": "Leguminoase",
+    "leafy_greens": "Legume cu frunze verzi",
+    "vegetables": "Legume",
+    "fruits": "Fructe",
+    "dried_fruits": "Fructe uscate",
+    "fish": "Pește",
+    "shellfish": "Fructe de mare",
+    "meat": "Carne",
+    "poultry": "Carne de pasăre",
+    "offal": "Organe",
+    "processed_meat": "Mezeluri",
+    "eggs": "Ouă",
+    "dairy": "Lactate",
+    "cheese": "Brânzeturi",
+    "plant_milks": "Băuturi vegetale",
+    "whole_grains": "Cereale integrale",
+    "refined_grains": "Cereale rafinate",
+    "bakery": "Produse de patiserie",
+    "sweets_snacks": "Dulciuri și gustări"
   }
 }

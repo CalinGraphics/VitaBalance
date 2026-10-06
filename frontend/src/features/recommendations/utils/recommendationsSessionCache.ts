@@ -1,11 +1,11 @@
 import type { Recommendation } from '../types'
-import { currentLanguage } from '../../../shared/i18n'
 
-// Textele recomandărilor (explicații, nume alimente) depind de limbă, deci și cache-ul este per limbă.
-const PREFIX = 'vb-recs-v2-'
+// Recomandările sunt independente de limbă (fapte + nume RO/EN), deci un singur cache pentru ambele limbi.
+// v3: formatul cu `facts`; intrările v2 (text randat pe server) sunt ignorate.
+const PREFIX = 'vb-recs-v3-'
 
 function cacheKey(userId: number): string {
-  return `${PREFIX}${currentLanguage()}-${userId}`
+  return `${PREFIX}${userId}`
 }
 
 export function readRecommendationsSessionCache(userId: number): Recommendation[] | null {

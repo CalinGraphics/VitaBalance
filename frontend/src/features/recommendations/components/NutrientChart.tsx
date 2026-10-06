@@ -1,5 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useTranslation } from 'react-i18next'
+import { foodName } from '../explanations/buildExplanation'
+import type { Recommendation } from '../types'
 
 // Culori de grafic: o singură culoare de accent, text/grilă neutre (aliniate cu tokenii din tailwind.config.js)
 const ACCENT = '#2dd4bf'
@@ -20,23 +22,23 @@ function YAxisLabel(props: { viewBox?: { x?: number; y?: number; width?: number;
 }
 
 interface NutrientChartProps {
-  recommendations: Array<{
-    food: { name: string }
-    explanation: { portion: number }
-    coverage: number
-  }>
+  recommendations: Recommendation[]
 }
 
 const NutrientChart = ({ recommendations }: NutrientChartProps) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const lang = i18n.language === 'en' ? 'en' : 'ro'
   const seriesName = t('recommendations.chart.series')
 
   // Primele 5 din lista primită (ordinea backend-ului = ordinea cardurilor); `coverage` e același procent ca pe card.
-  const chartData = recommendations.slice(0, 5).map((rec) => ({
-    name: rec.food.name.length > 18 ? rec.food.name.substring(0, 18) + '…' : rec.food.name,
-    fullName: rec.food.name,
-    coverage: Math.round(rec.coverage),
-  }))
+  const chartData = recommendations.slice(0, 5).map((rec) => {
+    const name = foodName(rec, lang)
+    return {
+      name: name.length > 18 ? name.substring(0, 18) + '…' : name,
+      fullName: name,
+      coverage: Math.round(rec.coverage),
+    }
+  })
 
   if (chartData.length === 0) return null
 

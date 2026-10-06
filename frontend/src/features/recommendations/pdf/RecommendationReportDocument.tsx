@@ -39,20 +39,15 @@ function normalizeSentenceEnd(s: string): string {
   return /[.!?]$/.test(t) ? t : `${t}.`
 }
 
+/** O recomandare deja tradusă (vezi exportRecommendationPdf.ts, care folosește aceeași logică ca pe card). */
 export interface RecommendationForPdf {
-  food_id: number
-  food: { id: number; name: string; category: string }
-  score: number
-  coverage: number
-  explanation: {
-    text: string
-    portion: number
-    portion_unit?: 'g' | 'ml' | string
-    reasons: string[]
-    tips?: string[]
-    alternatives?: string[]
-  }
   recommendation_id: number
+  name: string
+  category: string
+  portion: string
+  coverage: number
+  description: string[]
+  motivation: string[]
 }
 
 export interface UserForPdf {
@@ -176,8 +171,6 @@ interface RecommendationReportDocumentProps {
   recommendations: RecommendationForPdf[]
   generatedAt: string
   labels: PdfLabels
-  /** Categoria alimentului, deja tradusă. */
-  formatCategory: (category: string) => string
 }
 
 export const RecommendationReportDocument: React.FC<RecommendationReportDocumentProps> = ({
@@ -185,7 +178,6 @@ export const RecommendationReportDocument: React.FC<RecommendationReportDocument
   recommendations,
   generatedAt,
   labels,
-  formatCategory,
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
@@ -207,24 +199,19 @@ export const RecommendationReportDocument: React.FC<RecommendationReportDocument
       <Text style={styles.sectionTitle}>{faraDiacritice(labels.section)}</Text>
 
       {recommendations.map((rec, index) => {
-        const descriere = faraDiacritice(
-          faraPrefixContext(rec.explanation.text.replace(/\n\n---\n\n/g, '\n\n'))
-        )
-        const motive = (rec.explanation.reasons || [])
+        const descriere = faraDiacritice(faraPrefixContext(rec.description.join(' ')))
+        const motive = rec.motivation
           .map((r) => normalizeSentenceEnd(faraDiacritice(faraPrefixContext(r))))
           .filter(Boolean)
         return (
           <View key={rec.recommendation_id} style={styles.recommendationBlock} wrap={false}>
             <Text style={styles.foodName}>
-              {index + 1}. {faraDiacritice(rec.food.name)}
+              {index + 1}. {faraDiacritice(rec.name)}
             </Text>
             <View style={styles.meta}>
-              <Text style={styles.metaItem}>{labels.category}: {faraDiacritice(formatCategory(rec.food.category))}</Text>
+              <Text style={styles.metaItem}>{labels.category}: {faraDiacritice(rec.category)}</Text>
               <Text style={styles.metaItem}>
-                {labels.portion}:{' '}
-                {rec.explanation.portion_unit === 'ml'
-                  ? `${rec.explanation.portion} ml`
-                  : `${rec.explanation.portion} g`}
+                {labels.portion}: {rec.portion}
               </Text>
               <Text style={styles.metaItem}>{labels.coverage}: {rec.coverage.toFixed(1)}%</Text>
             </View>
