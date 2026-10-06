@@ -39,6 +39,9 @@ MIN_KCAL_FOR_DENSITY = 10.0  # sub 10 kcal/100 g densitatea „la 100 kcal” ex
 # - zahăr adăugat: WHO, „Guideline: Sugars intake for adults and children” (2015);
 # - sare: UK FSA/DH 2016, „high” > 600 mg sodiu/100 g.
 QUALITY_PENALTIES = {
+    # crude de origine animală: FDA, „Food safety for older adults and people with weakened immune systems” (2020) —
+    # risc microbiologic (Vibrio, Listeria); pentru grupele cu risc ridicat sunt excluse în rules/contraindications.py.
+    "raw_animal": 0.7,
     "ultra_processed": 0.5,
     "refined_grain": 0.7,
     "added_sugar": 0.6,
@@ -52,6 +55,9 @@ HIGH_SODIUM_PER_100G = 600.0
 OXALATE_BIOAVAILABILITY = {"iron": 0.5, "calcium": 0.5}
 
 MAX_PER_CATEGORY = 3          # diversitate: maximum 3 alimente din aceeași categorie
+# Categorii de consumat rar: cel mult un aliment pe listă. Ficat: NHS, „Vitamin A” (2023) — cel mult o dată pe
+# săptămână; mezeluri, dulciuri, patiserie: aceleași motive ca penalizările de calitate de mai sus.
+CATEGORY_CAPS = {"offal": 1, "processed_meat": 1, "sweets_snacks": 1, "bakery": 1}
 MAX_RECOMMENDATIONS = 20
 MIN_RECOMMENDATIONS = 10
 MAX_ALTERNATIVES = 3
@@ -139,7 +145,7 @@ def _component(food: FoodItem, nutrient: str, daily_ref: float, weight: float) -
 
 
 def quality_penalties(food: FoodItem) -> List[Tuple[str, float]]:
-    out = [(flag, QUALITY_PENALTIES[flag]) for flag in ("ultra_processed", "refined_grain", "added_sugar")
+    out = [(flag, QUALITY_PENALTIES[flag]) for flag in ("raw_animal", "ultra_processed", "refined_grain", "added_sugar")
            if food.has_flag(flag)]
     if (food.sodium or 0) > HIGH_SODIUM_PER_100G:
         out.append(("high_sodium", QUALITY_PENALTIES["high_sodium"]))
@@ -252,7 +258,7 @@ def _diversify(ordered: List[ScoredFood]) -> List[ScoredFood]:
     per_cat: Dict[str, int] = {}
     for s in ordered:
         cat = s.food.category_key or "other"
-        if per_cat.get(cat, 0) >= MAX_PER_CATEGORY:
+        if per_cat.get(cat, 0) >= CATEGORY_CAPS.get(cat, MAX_PER_CATEGORY):
             continue
         out.append(s)
         per_cat[cat] = per_cat.get(cat, 0) + 1

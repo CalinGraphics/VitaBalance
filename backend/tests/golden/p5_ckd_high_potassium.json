@@ -1,0 +1,13 @@
+{
+  "id": "p5_ckd_high_potassium",
+  "description": "Bărbat, 55 ani, boală cronică de rinichi, potasiu 5,8 mmol/L",
+  "user": {"id": 5, "email": "p5@golden.test", "name": "P5", "age": 55, "sex": "M", "weight": 80, "height": 178,
+           "activity_level": "sedentary", "diet_type": "omnivore", "allergies": "", "medical_conditions": "insuficienta_renala"},
+  "labs": {"potassium": 5.8},
+  "expect": {
+    "needs": {},
+    "max_per_portion": {"potassium": 200},
+    "must_not_include": ["potato", "sweet_potato", "banana", "avocado", "spinach_raw", "spinach_cooked", "white_beans", "salmon_farmed", "dried_apricots"],
+    "top3_categories_subset_of": null
+  }
+}

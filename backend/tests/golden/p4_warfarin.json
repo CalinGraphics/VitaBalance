@@ -1,0 +1,14 @@
+{
+  "id": "p4_warfarin",
+  "description": "Bărbat, 60 ani, pe warfarină, vitamina D 15 ng/mL, magneziu 1,5 mg/dL",
+  "user": {"id": 4, "email": "p4@golden.test", "name": "P4", "age": 60, "sex": "M", "weight": 85, "height": 175,
+           "activity_level": "sedentary", "diet_type": "omnivore", "allergies": "", "medical_conditions": "anticoagulante"},
+  "labs": {"vitamin_d": 15, "magnesium": 1.5},
+  "expect": {
+    "needs": {"vitamin_d": "moderate", "magnesium": "moderate"},
+    "max_per_portion": {"vitamin_k": 60},
+    "must_include_any": [["salmon_farmed", "trout", "mushrooms_uv", "herring"]],
+    "must_not_include": ["spinach_raw", "spinach_cooked", "kale", "swiss_chard", "collards", "beet_greens", "broccoli_cooked", "brussels_sprouts"],
+    "top3_categories_subset_of": ["vegetables", "fish", "plant_milks", "seeds"]
+  }
+}

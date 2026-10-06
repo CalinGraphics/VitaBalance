@@ -1,0 +1,13 @@
+{
+  "id": "p6_athlete_low_goal",
+  "description": "Sportiv, 25 ani, foarte activ, obiectiv caloric 1800 kcal (mult sub consumul total)",
+  "user": {"id": 6, "email": "p6@golden.test", "name": "P6", "age": 25, "sex": "M", "weight": 75, "height": 180,
+           "activity_level": "very_active", "diet_type": "omnivore", "allergies": "", "medical_conditions": "",
+           "caloric_goal": 1800},
+  "labs": null,
+  "expect": {
+    "needs": {},
+    "caloric_warning": "far_from_tdee",
+    "top3_categories_subset_of": null
+  }
+}

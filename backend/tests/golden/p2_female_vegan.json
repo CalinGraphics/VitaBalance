@@ -1,0 +1,13 @@
+{
+  "id": "p2_female_vegan",
+  "description": "Femeie, 28 ani, vegană, feritină 9 ng/mL, B12 150 pg/mL",
+  "user": {"id": 2, "email": "p2@golden.test", "name": "P2", "age": 28, "sex": "F", "weight": 60, "height": 165,
+           "activity_level": "moderate", "diet_type": "vegan", "allergies": "", "medical_conditions": ""},
+  "labs": {"ferritin": 9, "vitamin_b12": 150},
+  "expect": {
+    "needs": {"iron": "severe", "vitamin_b12": "severe"},
+    "must_include_any": [["soy_milk_fortified"], ["lentils", "white_beans", "kidney_beans", "chickpeas", "tofu"]],
+    "must_not_include_categories": ["fish", "shellfish", "meat", "poultry", "offal", "processed_meat", "eggs", "dairy", "cheese"],
+    "top3_categories_subset_of": ["plant_milks", "leafy_greens", "legumes", "seeds"]
+  }
+}

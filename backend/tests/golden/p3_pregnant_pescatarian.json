@@ -1,0 +1,14 @@
+{
+  "id": "p3_pregnant_pescatarian",
+  "description": "Femeie însărcinată, 31 ani, pescetariană, vitamina D 15 ng/mL",
+  "user": {"id": 3, "email": "p3@golden.test", "name": "P3", "age": 31, "sex": "F", "weight": 65, "height": 168,
+           "activity_level": "moderate", "diet_type": "pescatarian", "allergies": "", "medical_conditions": "sarcina"},
+  "labs": {"vitamin_d": 15},
+  "expect": {
+    "needs": {"vitamin_d": "moderate"},
+    "must_include_any": [["salmon_farmed", "trout", "herring", "sardines"]],
+    "must_not_include": ["salmon_sashimi", "oysters_raw", "swordfish", "king_mackerel", "tilefish", "beef_liver", "chicken_liver", "brie", "camembert"],
+    "must_not_include_categories": ["meat", "poultry", "offal", "processed_meat"],
+    "top3_categories_subset_of": ["vegetables", "fish", "plant_milks"]
+  }
+}

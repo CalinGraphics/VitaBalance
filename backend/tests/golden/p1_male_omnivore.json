@@ -1,0 +1,13 @@
+{
+  "id": "p1_male_omnivore",
+  "description": "Bărbat, 34 ani, omnivor, activitate moderată, vitamina D 18 ng/mL, magneziu 1,6 mg/dL",
+  "user": {"id": 1, "email": "p1@golden.test", "name": "P1", "age": 34, "sex": "M", "weight": 79, "height": 182,
+           "activity_level": "moderate", "diet_type": "omnivore", "allergies": "", "medical_conditions": ""},
+  "labs": {"vitamin_d": 18, "magnesium": 1.6},
+  "expect": {
+    "needs": {"vitamin_d": "moderate", "magnesium": "mild"},
+    "must_include_any": [["salmon_farmed", "trout", "mushrooms_uv", "herring"], ["pumpkin_seeds", "hemp_seeds", "spinach_cooked", "spinach_raw", "swiss_chard", "almonds"]],
+    "must_not_include": ["bagel", "croutons", "pancakes", "blueberry_muffin", "white_bread", "chocolate_chip_cookies", "milk_chocolate", "potato_chips"],
+    "top3_categories_subset_of": ["vegetables", "fish", "leafy_greens", "plant_milks"]
+  }
+}
