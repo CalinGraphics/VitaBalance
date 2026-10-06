@@ -86,6 +86,21 @@ app.add_middleware(
     trusted_proxy_hops=settings.rate_limit_trusted_proxy_hops,
 )
 
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    """Headere de securitate pe toate răspunsurile API (inclusiv erori și preflight CORS)."""
+    response = await call_next(request)
+    for key, value in _SECURITY_HEADERS.items():
+        response.headers.setdefault(key, value)
+    return response
+
 
 def _profile_to_response(p: UserProfile) -> dict:
     return {
