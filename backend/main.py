@@ -1,5 +1,5 @@
 """API FastAPI VitaBalance."""
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Depends, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Depends, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
@@ -22,7 +22,7 @@ from schemas import (
 )
 from services.recommender import RecommenderService
 from services.deficit_calculator import DeficitCalculator
-from services.auth import authenticate_user, create_user
+from services.auth import AuthError, sign_in, sign_out, sign_up, refresh_session
 from domain.models import UserProfile
 from repositories import (
     UserRepository,
@@ -31,7 +31,8 @@ from repositories import (
     RecommendationRepository,
     FeedbackRepository,
 )
-from middleware.auth import get_current_user
+from middleware.auth import get_current_user, security
+from fastapi.security import HTTPAuthorizationCredentials
 from middleware.rate_limit import RateLimitMiddleware
 from services.recommendation_materialize import materialize_recommendations
 from services.explanation_i18n import normalize_lang
@@ -168,11 +169,29 @@ class RegisterRequest(BaseModel):
     fullName: str
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 class AuthResponse(BaseModel):
     email: str
     fullName: str
     access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    expires_in: Optional[int] = None
+    expires_at: Optional[int] = None
     token_type: str = "bearer"
+
+
+def _session_response(session: dict) -> AuthResponse:
+    return AuthResponse(
+        email=session["email"],
+        fullName=session.get("fullName") or "",
+        access_token=session.get("access_token"),
+        refresh_token=session.get("refresh_token"),
+        expires_in=session.get("expires_in"),
+        expires_at=session.get("expires_at"),
+    )
 
 
 class RecommendationAuditResponse(BaseModel):
@@ -222,61 +241,41 @@ async def get_profile_by_email(email: str, current_user: dict = Depends(get_curr
 
 
 @app.post("/api/auth/login", response_model=AuthResponse)
-async def login(credentials: LoginRequest):
-    user = authenticate_user(credentials.email, credentials.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Email sau parolă incorectă")
-    from services.auth import create_access_token
-    access_token = create_access_token({"sub": user["email"], "email": user["email"]})
-    return AuthResponse(
-        email=user["email"],
-        fullName=user["fullName"],
-        access_token=access_token,
-        token_type="bearer",
-    )
+def login(credentials: LoginRequest):
+    try:
+        return _session_response(sign_in(credentials.email, credentials.password))
+    except AuthError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 
 @app.post("/api/auth/register", response_model=AuthResponse)
-async def register(user_data: RegisterRequest):
-    if not user_data.email or not user_data.email.strip():
-        raise HTTPException(status_code=400, detail="Email-ul este obligatoriu")
-    if not user_data.fullName or not user_data.fullName.strip():
-        raise HTTPException(status_code=400, detail="Numele complet este obligatoriu")
-    if not user_data.password:
-        raise HTTPException(status_code=400, detail="Parola este obligatorie")
-    password_stripped = user_data.password.strip()
-    if len(password_stripped) == 0:
-        raise HTTPException(status_code=400, detail="Parola nu poate conține doar spații")
-    if len(password_stripped) < 6:
-        raise HTTPException(status_code=400, detail="Parola trebuie să aibă minim 6 caractere")
+def register(user_data: RegisterRequest):
     try:
-        new_user = create_user(
-            email=user_data.email.strip(),
-            password=user_data.password,
-            fullName=user_data.fullName.strip(),
-        )
-        from services.auth import create_access_token
-        access_token = create_access_token({"sub": new_user["email"], "email": new_user["email"]})
-        return AuthResponse(
-            email=new_user.get("email") or user_data.email,
-            fullName=new_user.get("fullName") or user_data.fullName,
-            access_token=access_token,
-            token_type="bearer",
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        err_msg = str(e)
-        raise HTTPException(status_code=500, detail=f"Eroare la crearea contului: {err_msg}")
+        return _session_response(sign_up(user_data.email, user_data.password, user_data.fullName))
+    except AuthError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+
+@app.post("/api/auth/refresh", response_model=AuthResponse)
+def refresh(body: RefreshRequest):
+    try:
+        return _session_response(refresh_session(body.refresh_token))
+    except AuthError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+
+@app.post("/api/auth/logout", status_code=204)
+def logout(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    if credentials:
+        sign_out(credentials.credentials)
+    return Response(status_code=204)
 
 
 @app.post("/api/profile", response_model=UserResponse)
 async def create_profile(user: UserCreate, current_user: dict = Depends(get_current_user)):
     if current_user.get("email", "").lower() != user.email.lower():
         raise HTTPException(status_code=403, detail="Poți actualiza doar propriul profil")
-    # Emailul canonic e cel din sesiune (JWT); cel din formular poate diferi doar prin majuscule.
+    # Emailul canonic e cel din sesiune (Supabase Auth); cel din formular poate diferi doar prin majuscule.
     profile_email = current_user["email"]
     try:
         repo = UserRepository()

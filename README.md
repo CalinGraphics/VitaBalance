@@ -8,7 +8,7 @@ VitaBalance este o aplicație web care oferă recomandări alimentare personaliz
 
 ## Funcționalități
 
-- **Autentificare** – cont cu email și parolă (JWT)
+- **Autentificare** – cont cu email și parolă, gestionat de **Supabase Auth**
 - **Profil utilizator** – gestionare date personale: vârstă, sex, greutate, înălțime, nivel de activitate fizică, tip de dietă (omnivor, vegetarian, vegan, pescatarian), alergii și condiții medicale, plus un **obiectiv caloric zilnic** opțional
 - **Analize medicale** – introducere manuală a rezultatelor analizelor de laborator sau încărcare raport PDF pentru extragere automată
 - **Recomandări personalizate** – generare de alimente recomandate pe baza deficitelor identificate, cu explicații contextuale și sugestii de porții
@@ -61,7 +61,6 @@ Interfața este disponibilă la **http://localhost:3000**.
 | `SUPABASE_URL` | Da | URL-ul proiectului Supabase |
 | `SUPABASE_KEY` | Da* | Secret API folosit de backend; trebuie să fie JWT **`service_role`**, nu `anon`. *Pe Render, dacă integrarea completează aici doar `anon`, variabila se păstrează și se adaugă `SUPABASE_SERVICE_ROLE_KEY`. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Nu | Opțional: același JWT **service_role** din Supabase. Dacă e setat, **îl preferă** în locul lui `SUPABASE_KEY` (util când Render suprascrie `SUPABASE_KEY` cu cheia publică). |
-| `JWT_SECRET` | Da (producție) | Secret pentru semnarea token-urilor JWT, minim 24 de caractere. Fără el, aplicația **refuză să pornească** dacă `DEBUG` nu e `true` (valoarea implicită din cod e publică). Generează unul cu `python -c "import secrets; print(secrets.token_urlsafe(48))"`. |
 | `CORS_ORIGINS` | Nu | Origini permise, separate prin virgulă (implicit localhost:3000 și :5173) |
 | `CORS_ALLOW_ALL` | Nu | Dacă `true`, permite orice origin (doar depanare; în producție lasă `false`) |
 | `RATE_LIMIT_ENABLED` | Nu | Implicit `true`; setează `false` doar în dev dacă testezi multe cereri |
@@ -81,8 +80,8 @@ Repo-ul funcționează și dacă serviciul rulează din rădăcină (Root Direct
 prin `.python-version`; altfel Render folosește ultima versiune, incompatibilă cu dependențele.
 
 Variabile obligatorii în **Environment**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (cheia service_role,
-nu anon), `JWT_SECRET`, plus `DEBUG=false` și `CORS_ORIGINS` cu adresa frontend-ului. **Fără `JWT_SECRET`
-serviciul pornește și se oprește imediat**, cu mesajul explicit în log.
+nu anon), plus `DEBUG=false` și `CORS_ORIGINS` cu adresa frontend-ului. `JWT_SECRET` nu mai e folosit
+(sesiunile sunt emise de Supabase Auth) și poate fi șters din Render.
 
 Există **două** servicii Render, cu același proiect Supabase:
 
@@ -92,7 +91,7 @@ Există **două** servicii Render, cu același proiect Supabase:
 | `VitaBalance-1` | `https://vitabalance-1.onrender.com` | `Update-Version-1.1` | preview (codul nou) |
 
 Codul care rulează pe un serviciu se verifică cu `curl <url>/openapi.json`. Versiunea actuală expune
-`/api/recommendations/{user_id}/{recommendation_id}/explanation` și **nu** mai are rutele `magic-link`.
+`/api/recommendations/{user_id}/{recommendation_id}/explanation` și `/api/auth/refresh`, și **nu** mai are rutele `magic-link`.
 
 `render.yaml` din rădăcină descrie un al treilea serviciu (`vitabalance-preview`), creat cu **New → Blueprint**.
 Nu e creat în acest moment: rolul de preview îl joacă `VitaBalance-1`. Fișierul e util doar pentru a
@@ -157,22 +156,34 @@ Aplicația folosește **Supabase** (PostgreSQL) ca unică sursă de date. Tabele
 | Migrare | Rol |
 |---------|-----|
 | `001_add_users_caloric_goal.sql` | coloana opțională `users.caloric_goal` |
-| `002_drop_magic_links.sql` | șterge tabelul vechi `magic_links` (se aplică după ce noua versiune a aplicației este în producție) |
 | `003_align_and_harden.sql` | comentarii, unicitate email case-insensitive, `search_path` pe funcții, drepturi retrase pentru `anon`/`authenticated` |
 | `004_integrity_and_cleanup.sql` | `CHECK`-uri pe profil, indexuri redundante eliminate, corecții de date |
 | `005_feedback_persist_by_food.sql` | feedback unic per (utilizator, aliment), care supraviețuiește regenerării recomandărilor. **Aplică-o înainte de a publica codul care o folosește.** |
 | `006_foods_name_en.sql` | `foods.name_en`: numele alimentelor în engleză (interfața și explicațiile EN) |
+| `007_supabase_auth.sql` | trecerea pe Supabase Auth: `users.auth_user_id`, triggerele `auth.users` → profil, conturile cu parolă mutate în `auth.users` (hash-ul bcrypt păstrat), politici RLS de citire a rândurilor proprii |
+| `008_drop_legacy_auth.sql` | șterge `users.password_hash` și `magic_links`. **Se aplică doar după merge în `main`** (producția veche le mai folosește) |
 
-### Conturi rămase fără parolă
+### Autentificare (Supabase Auth)
 
-Autentificarea prin magic link a fost scoasă, dar conturile create atunci au `password_hash` NULL: nu se pot
-loga (nu au parolă) și nici nu se pot înregistra (emailul e deja în tabel). Înregistrarea cu un astfel de
-email **setează parola pe rândul existent**, deci utilizatorul își recuperează profilul, analizele și
-recomandările. Conturile care au deja parolă sunt respinse ca înainte.
+Emailul și parola stau în `auth.users`, gestionate de Supabase (bcrypt). `public.users` e profilul aplicației,
+legat prin `auth_user_id`. Backend-ul nu semnează tokenuri proprii:
 
-Compromisul acceptat: aplicația nu verifică emailul la înregistrare, deci cine cunoaște una dintre acele
-adrese poate revendica acel cont. Lista scade pe măsură ce proprietarii își setează parola; conturile rămase se pot
-inventaria cu `select email from users where password_hash is null`.
+| Rută | Ce face |
+|------|---------|
+| `POST /api/auth/register` | creează contul în Supabase Auth (fără confirmare pe email) și întoarce sesiunea; triggerul `on_auth_user_created` creează profilul |
+| `POST /api/auth/login` | `grant_type=password` la Supabase Auth; întoarce `access_token` + `refresh_token` |
+| `POST /api/auth/refresh` | reînnoiește sesiunea (tokenul de acces expiră după o oră); frontend-ul o apelează singur la un 401 |
+| `POST /api/auth/logout` | revocă sesiunea în Supabase |
+| `GET /api/auth/me` | identitatea din token |
+
+Rutele protejate validează tokenul la Supabase (`GET /auth/v1/user`, rezultat ținut în memorie 60 s).
+
+**Conturi vechi.** Conturile cu parolă au fost mutate în `auth.users` de migrarea 007, cu hash-ul păstrat, deci
+parolele de dinainte merg. Profilele fără parolă (create pe vremea magic link) nu au cont: înregistrarea cu
+acel email creează contul și **adoptă profilul existent** (profil, analize, recomandări). Compromisul acceptat:
+emailul nu se verifică la înregistrare, deci cine cunoaște adresa poate revendica profilul. Lista lor:
+`select email from users where auth_user_id is null`. Un cont creat între timp de producția veche (`main`,
+parolă doar în `password_hash`) se mută în Supabase Auth la primul login reușit.
 
 ## Explicații RO/EN
 
@@ -194,7 +205,7 @@ VitaBalance/
 │   ├── domain/          # Modele de domeniu
 │   ├── repositories/    # Acces date (Supabase)
 │   ├── services/        # Logică (deficit, reguli, recomandări, explicații)
-│   ├── middleware/      # Autentificare JWT, rate limiting
+│   ├── middleware/      # Validare sesiune Supabase Auth, rate limiting
 │   ├── migrations/      # Scripturi SQL incrementale
 │   ├── tests/           # Suită de teste (unittest + pytest)
 │   ├── schema.sql       # Schema completă (starea țintă)
@@ -212,7 +223,7 @@ VitaBalance/
 
 ## Stack tehnologic
 
-- **Backend:** FastAPI, Supabase (PostgreSQL), JWT
+- **Backend:** FastAPI, Supabase (PostgreSQL + Supabase Auth)
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, @react-pdf/renderer, react-i18next
 
 ## Disclaimer

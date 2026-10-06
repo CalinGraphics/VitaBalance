@@ -22,7 +22,5 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY   # cheia service_role, nu anon
         sync: false
-      - key: JWT_SECRET                  # separat de producție, ca tokenurile să nu fie interschimbabile
-        generateValue: true
       - key: CORS_ORIGINS                # adresa de preview de pe Vercel
         sync: false

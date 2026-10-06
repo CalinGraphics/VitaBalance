@@ -1,9 +1,9 @@
-import axios, { isAxiosError } from 'axios'
+import axios, { isAxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
 import type { User } from '../shared/types'
 import { extractErrorMessage } from '../shared/utils/apiErrors'
 import { currentLanguage } from '../shared/i18n'
 import type { LabExtractFromApi, LabKey } from '../features/medical/utils/labLocalExtract'
-import { getToken, clearToken } from './authStorage'
+import { getToken, getRefreshToken, setSession, clearToken } from './authStorage'
 
 function normalizeApiBaseUrl(raw: string | undefined): string {
   const fallback = '/api'
@@ -56,26 +56,73 @@ const PROTECTED_ROUTE_MARKERS = [
   '/foods',
 ]
 
-/** Handler comun de erori pentru toate instanțele axios: invalidează sesiunea la 401 și normalizează mesajul. */
-function handleResponseError(error: unknown): Promise<never> {
-  const status = isAxiosError(error) ? error.response?.status : undefined
-  const url = isAxiosError(error) ? error.config?.url || '' : ''
-  const isProtectedRoute = PROTECTED_ROUTE_MARKERS.some((marker) => url.includes(marker))
+export type AuthSessionResponse = {
+  email: string
+  fullName: string
+  access_token: string
+  refresh_token?: string | null
+  expires_in?: number | null
+  expires_at?: number | null
+  token_type: string
+}
 
-  // Login/register întorc 401/400 pentru credențiale greșite: nu sunt sesiuni expirate.
-  if (status === 401 && Boolean(getToken()) && isProtectedRoute) {
-    clearToken()
+/**
+ * Tokenul Supabase expiră (implicit după o oră): îl reînnoim o singură dată, cu refresh token-ul,
+ * chiar dacă mai multe cereri primesc 401 în același timp.
+ */
+let refreshInFlight: Promise<string | null> | null = null
+
+function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return Promise.resolve(null)
+  if (!refreshInFlight) {
+    refreshInFlight = axios
+      .post<AuthSessionResponse>(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken }, { timeout: 15_000 })
+      .then((res) => {
+        setSession(res.data)
+        return res.data.access_token
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshInFlight = null
+      })
   }
-  const message = extractErrorMessage(error)
-  if (error instanceof Error) {
-    error.message = message
+  return refreshInFlight
+}
+
+type RetriableConfig = InternalAxiosRequestConfig & { _authRetried?: boolean }
+
+/** Handler comun de erori: la 401 încearcă refresh + reluarea cererii, apoi invalidează sesiunea. */
+function createResponseErrorHandler(instance: AxiosInstance) {
+  return async function handleResponseError(error: unknown): Promise<unknown> {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    const config = (isAxiosError(error) ? error.config : undefined) as RetriableConfig | undefined
+    const url = config?.url || ''
+    const isProtectedRoute = PROTECTED_ROUTE_MARKERS.some((marker) => url.includes(marker))
+
+    // Login/register întorc 401/400 pentru credențiale greșite: nu sunt sesiuni expirate.
+    if (status === 401 && Boolean(getToken()) && isProtectedRoute && config) {
+      if (!config._authRetried) {
+        config._authRetried = true
+        const fresh = await refreshAccessToken()
+        if (fresh) {
+          config.headers.Authorization = `Bearer ${fresh}`
+          return instance.request(config)
+        }
+      }
+      clearToken()
+    }
+    const message = extractErrorMessage(error)
+    if (error instanceof Error) {
+      error.message = message
+    }
+    return Promise.reject(error)
   }
-  return Promise.reject(error)
 }
 
 api.interceptors.response.use(
   (response) => response,
-  handleResponseError
+  createResponseErrorHandler(api)
 )
 
 /** Feedback: timeout dedicat, fără extensia de 120s de la /recommendations. */
@@ -96,20 +143,13 @@ feedbackHttp.interceptors.request.use((config) => {
 })
 feedbackHttp.interceptors.response.use(
   (response) => response,
-  handleResponseError
+  createResponseErrorHandler(feedbackHttp)
 )
 
 export type LabResultsCreatePayload = {
   user_id: number
   notes?: string | null
 } & Partial<Record<LabKey, number | null>>
-
-export type AuthSessionResponse = {
-  email: string
-  fullName: string
-  access_token: string
-  token_type: string
-}
 
 export const authService = {
   login: async (email: string, password: string): Promise<AuthSessionResponse> => {
@@ -131,6 +171,13 @@ export const authService = {
   me: async () => {
     const response = await api.get('/auth/me')
     return response.data
+  },
+  logout: async (): Promise<void> => {
+    try {
+      await api.post('/auth/logout', null, { timeout: 8_000 })
+    } catch {
+      // deconectarea locală are loc oricum
+    }
   },
 }
 

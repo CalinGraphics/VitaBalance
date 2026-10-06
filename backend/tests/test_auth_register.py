@@ -1,141 +1,169 @@
-"""Înregistrare: cont nou, email deja folosit și adoptarea conturilor vechi fără `password_hash`."""
+"""Autentificare prin Supabase Auth: înregistrare, login, conturi vechi și validarea tokenului."""
 import unittest
 from unittest.mock import patch
+
+import bcrypt
+import httpx
 
 from services import auth as auth_module
 
 
-class FakeQuery:
-    """Imită lanțul postgrest folosit de `create_user` (select/insert/update + eq/is_)."""
+class FakeSupabaseAuth:
+    """Imită API-ul GoTrue (`/auth/v1/...`) și triggerul care leagă profilul din public.users."""
 
-    def __init__(self, table: "FakeTable", op: str, payload=None):
-        self._table = table
-        self._op = op
-        self._payload = payload
-        self._eq = {}
-        self._is_null = set()
+    def __init__(self, profiles):
+        self.profiles = profiles  # email -> rând public.users
+        self.accounts = {}  # email -> {"id", "password", "full_name"}
+        self.tokens = {}  # access_token -> email
+        self._seq = 0
 
-    def select(self, _columns):
-        return self
+    def _json(self, status, body):
+        return httpx.Response(status, json=body, request=httpx.Request("POST", "http://test"))
 
-    def eq(self, column, value):
-        self._eq[column] = value
-        return self
-
-    def is_(self, column, value):
-        assert value == "null"
-        self._is_null.add(column)
-        return self
-
-    def _matches(self, row):
-        for column, value in self._eq.items():
-            if row.get(column) != value:
-                return False
-        return all(row.get(column) is None for column in self._is_null)
-
-    def execute(self):
-        if self._op == "select":
-            return type("Resp", (), {"data": [dict(r) for r in self._table.rows if self._matches(r)]})()
-        if self._op == "insert":
-            row = dict(self._payload)
-            row.setdefault("id", self._table.next_id())
-            self._table.rows.append(row)
-            return type("Resp", (), {"data": [dict(row)]})()
-        # update
-        updated = []
-        for row in self._table.rows:
-            if self._matches(row):
-                row.update(self._payload)
-                updated.append(dict(row))
-        return type("Resp", (), {"data": updated})()
-
-
-class FakeTable:
-    def __init__(self, rows):
-        self.rows = rows
-        self._seq = max([r.get("id", 0) for r in rows] or [0])
-
-    def next_id(self):
+    def _session(self, email):
         self._seq += 1
-        return self._seq
+        token = f"access-{self._seq}"
+        self.tokens[token] = email
+        acc = self.accounts[email]
+        return {
+            "access_token": token,
+            "refresh_token": f"refresh-{email}",
+            "expires_in": 3600,
+            "expires_at": 1_900_000_000,
+            "user": {"id": acc["id"], "email": email, "user_metadata": {"full_name": acc["full_name"]}},
+        }
 
-    def select(self, columns):
-        return FakeQuery(self, "select").select(columns)
+    def request(self, method, path, *, json=None, headers=None):
+        if path == "/token?grant_type=password":
+            acc = self.accounts.get(json["email"])
+            if not acc or acc["password"] != json["password"]:
+                return self._json(400, {"error_code": "invalid_credentials", "msg": "Invalid login credentials"})
+            return self._json(200, self._session(json["email"]))
+        if path == "/token?grant_type=refresh_token":
+            email = json["refresh_token"].removeprefix("refresh-")
+            if email not in self.accounts:
+                return self._json(400, {"error_code": "refresh_token_not_found"})
+            return self._json(200, self._session(email))
+        if path == "/admin/users":
+            email = json["email"]
+            if email in self.accounts:
+                return self._json(422, {"error_code": "email_exists", "msg": "A user with this email address has already been registered"})
+            self.accounts[email] = {
+                "id": f"uuid-{email}",
+                "password": json["password"],
+                "full_name": json["user_metadata"]["full_name"],
+            }
+            # Triggerul on_auth_user_created: adoptă profilul nelegat sau creează unul nou.
+            row = self.profiles.get(email)
+            if row is None:
+                self.profiles[email] = {"id": len(self.profiles) + 1, "name": json["user_metadata"]["full_name"], "auth_user_id": f"uuid-{email}"}
+            else:
+                row["auth_user_id"] = f"uuid-{email}"
+                row["name"] = row.get("name") or json["user_metadata"]["full_name"]
+            return self._json(200, {"id": f"uuid-{email}", "email": email})
+        if path == "/user":
+            token = headers["Authorization"].removeprefix("Bearer ")
+            email = self.tokens.get(token)
+            if not email:
+                return self._json(401, {"msg": "invalid JWT"})
+            return self._json(200, {"id": self.accounts[email]["id"], "email": email})
+        if path == "/logout":
+            self.tokens.pop(headers["Authorization"].removeprefix("Bearer "), None)
+            return self._json(204, {})
+        raise AssertionError(f"rută neașteptată: {method} {path}")
 
-    def insert(self, payload):
-        return FakeQuery(self, "insert", payload)
 
-    def update(self, payload):
-        return FakeQuery(self, "update", payload)
+class AuthTests(unittest.TestCase):
+    def setUp(self):
+        legacy_hash = bcrypt.hashpw(b"parola-veche", bcrypt.gensalt()).decode()
+        self.fake = FakeSupabaseAuth(
+            {
+                # profil vechi fără parolă (fost magic link): se poate adopta la înregistrare
+                "vechi@example.com": {"id": 7, "name": "Vechi", "auth_user_id": None, "password_hash": None},
+                # cont creat de versiunea veche (main) după migrare: parolă bcrypt, fără cont Supabase Auth
+                "main@example.com": {"id": 8, "name": "Din Main", "auth_user_id": None, "password_hash": legacy_hash},
+            }
+        )
+        auth_module._user_cache.clear()
+        patches = [
+            patch.object(auth_module, "_request", side_effect=self.fake.request),
+            patch.object(auth_module, "_profile_row", side_effect=lambda email: self.fake.profiles.get(email)),
+            patch.object(auth_module, "_service_key", return_value="service-key"),
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
 
+    def test_register_new_account_returns_session(self):
+        session = auth_module.sign_up("Nou@Example.COM", "parola-mea", "Ion Popescu")
+        self.assertEqual(session["email"], "nou@example.com")
+        self.assertEqual(session["fullName"], "Ion Popescu")
+        self.assertTrue(session["access_token"])
+        self.assertTrue(session["refresh_token"])
+        self.assertIn("nou@example.com", self.fake.profiles)
 
-class FakeClient:
-    def __init__(self, rows):
-        self.users = FakeTable(rows)
+    def test_register_existing_account_is_rejected(self):
+        auth_module.sign_up("a@example.com", "prima-parola", "Primul")
+        with self.assertRaises(auth_module.AuthError) as ctx:
+            auth_module.sign_up("a@example.com", "a-doua-parola", "Al Doilea")
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertEqual(ctx.exception.detail, "Acest email este deja înregistrat")
 
-    def table(self, name):
-        assert name == "users"
-        return self.users
+    def test_register_adopts_passwordless_profile(self):
+        session = auth_module.sign_up("vechi@example.com", "parola-noua", "Nume Nou")
+        self.assertEqual(self.fake.profiles["vechi@example.com"]["id"], 7)
+        self.assertEqual(self.fake.profiles["vechi@example.com"]["auth_user_id"], "uuid-vechi@example.com")
+        # numele existent al profilului are prioritate
+        self.assertEqual(session["fullName"], "Vechi")
 
+    def test_register_rejects_profile_that_has_a_legacy_password(self):
+        with self.assertRaises(auth_module.AuthError) as ctx:
+            auth_module.sign_up("main@example.com", "alta-parola", "Intrus")
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertNotIn("main@example.com", self.fake.accounts)
 
-class RegisterTests(unittest.TestCase):
-    def _client(self, rows):
-        client = FakeClient(rows)
-        patcher = patch.object(auth_module, "get_supabase_client", return_value=client)
-        patcher.start()
-        self.addCleanup(patcher.stop)
-        return client
+    def test_register_validates_input(self):
+        for args in [("", "parola-mea", "Nume"), ("x@example.com", "12345", "Nume"), ("x@example.com", "parola", " ")]:
+            with self.assertRaises(auth_module.AuthError) as ctx:
+                auth_module.sign_up(*args)
+            self.assertEqual(ctx.exception.status_code, 400)
 
-    def test_creates_new_account(self):
-        client = self._client([])
-        result = auth_module.create_user("Nou@Example.COM", "parola-mea", "Ion Popescu")
-        self.assertEqual(result["email"], "nou@example.com")
-        self.assertEqual(result["fullName"], "Ion Popescu")
-        row = client.users.rows[0]
-        self.assertEqual(row["email"], "nou@example.com")
-        self.assertTrue(auth_module.verify_password("parola-mea", row["password_hash"]))
+    def test_login_with_correct_and_wrong_password(self):
+        auth_module.sign_up("b@example.com", "parola-buna", "B")
+        session = auth_module.sign_in("B@example.com ", "parola-buna")
+        self.assertEqual(session["email"], "b@example.com")
+        with self.assertRaises(auth_module.AuthError) as ctx:
+            auth_module.sign_in("b@example.com", "gresita")
+        self.assertEqual(ctx.exception.status_code, 401)
 
-    def test_rejects_email_with_existing_password(self):
-        self._client([
-            {"id": 7, "email": "vechi@example.com", "name": "Vechi", "password_hash": auth_module.get_password_hash("alta")}
-        ])
-        with self.assertRaises(ValueError) as ctx:
-            auth_module.create_user("vechi@example.com", "parola-mea", "Altcineva")
-        self.assertIn("deja înregistrat", str(ctx.exception))
+    def test_login_migrates_legacy_bcrypt_account(self):
+        with self.assertRaises(auth_module.AuthError):
+            auth_module.sign_in("main@example.com", "gresita")
+        self.assertNotIn("main@example.com", self.fake.accounts)
 
-    def test_sets_password_on_legacy_account_without_hash(self):
-        """Conturile din era magic link (`password_hash` NULL) își păstrează id-ul și datele."""
-        client = self._client([
-            {"id": 32, "email": "vechi@example.com", "name": "Nume Vechi", "password_hash": None, "age": 30}
-        ])
-        result = auth_module.create_user("Vechi@example.com", "parola-noua", "Nume Nou")
+        session = auth_module.sign_in("main@example.com", "parola-veche")
+        self.assertEqual(session["fullName"], "Din Main")
+        self.assertIn("main@example.com", self.fake.accounts)
 
-        self.assertEqual(result["email"], "vechi@example.com")
-        self.assertEqual(result["fullName"], "Nume Nou")
-        self.assertEqual(len(client.users.rows), 1, "nu trebuie creat un rând nou")
-        row = client.users.rows[0]
-        self.assertEqual(row["id"], 32, "id-ul vechi se păstrează (analizele/recomandările rămân legate)")
-        self.assertEqual(row["age"], 30, "restul profilului rămâne neatins")
-        self.assertTrue(auth_module.verify_password("parola-noua", row["password_hash"]))
+    def test_passwordless_profile_cannot_login(self):
+        with self.assertRaises(auth_module.AuthError) as ctx:
+            auth_module.sign_in("vechi@example.com", "orice")
+        self.assertEqual(ctx.exception.status_code, 401)
 
-    def test_legacy_account_can_log_in_after_adoption(self):
-        client = self._client([{"id": 32, "email": "vechi@example.com", "name": "Nume Vechi", "password_hash": None}])
-        self.assertIsNone(auth_module.authenticate_user("vechi@example.com", "parola-noua"))
+    def test_verify_token_refresh_and_logout(self):
+        session = auth_module.sign_up("c@example.com", "parola-c", "C")
+        identity = auth_module.verify_access_token(session["access_token"])
+        self.assertEqual(identity["email"], "c@example.com")
+        self.assertEqual(identity["sub"], "uuid-c@example.com")
+        self.assertIsNone(auth_module.verify_access_token("token-inventat"))
 
-        auth_module.create_user("vechi@example.com", "parola-noua", "Nume Nou")
+        refreshed = auth_module.refresh_session(session["refresh_token"])
+        self.assertNotEqual(refreshed["access_token"], session["access_token"])
+        with self.assertRaises(auth_module.AuthError):
+            auth_module.refresh_session("refresh-nimeni@example.com")
 
-        session = auth_module.authenticate_user("vechi@example.com", "parola-noua")
-        self.assertIsNotNone(session)
-        self.assertEqual(session["email"], "vechi@example.com")
-        self.assertIsNone(auth_module.authenticate_user("vechi@example.com", "gresita"))
-
-    def test_second_adoption_is_rejected(self):
-        """A doua înregistrare pe același email vechi nu mai poate schimba parola."""
-        self._client([{"id": 32, "email": "vechi@example.com", "name": "Nume Vechi", "password_hash": None}])
-        auth_module.create_user("vechi@example.com", "prima-parola", "Primul")
-        with self.assertRaises(ValueError) as ctx:
-            auth_module.create_user("vechi@example.com", "a-doua-parola", "Al Doilea")
-        self.assertIn("deja înregistrat", str(ctx.exception))
+        auth_module.sign_out(refreshed["access_token"])
+        self.assertIsNone(auth_module.verify_access_token(refreshed["access_token"]))
 
 
 if __name__ == "__main__":

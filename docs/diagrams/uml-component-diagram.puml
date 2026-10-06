@@ -25,13 +25,13 @@ package "VitaBalance (sistem software)" #F5F5F5 {
 
   package "Client — SPA React" as SPA #E3F2FD {
     [UI: profil, analize,\nrecomandări, export PDF] as UI
-    [Client API\naxios + JWT] as CLAPI
+    [Client API\naxios + token Supabase\n(refresh automat)] as CLAPI
     UI ..> CLAPI
   }
 
   package "Server — API FastAPI" as SRV #E8F5E9 {
     [Rute REST\nmain.py] as RT
-    [Autentificare\nJWT + magic link] as AUTH
+    [Autentificare\nSupabase Auth] as AUTH
     [Logică recomandări\n+ deficite nutritionale] as CORE
     [Acces date\n(repositories)] as DAL
     RT ..> AUTH
@@ -41,16 +41,14 @@ package "VitaBalance (sistem software)" #F5F5F5 {
 
   package "Serviciu extern — Supabase" as EXTDB #FFF8E1 {
     database "PostgreSQL\n(tabele aplicaţie)" as PG
-  }
-
-  package "Serviciu extern — Resend" as EXTMAIL #FFF8E1 {
-    [API trimitere email] as MAIL
+    [Supabase Auth\n(auth.users)] as GOTRUE
   }
 }
 
 SPA -right-> SRV : "HTTPS / JSON + Bearer\n(/api/*)"
 DAL -right-> PG  : "client Supabase\n(service_role)"
-AUTH ..> MAIL    : "magic link\n(autentificare)"
+AUTH ..> GOTRUE  : "login, refresh,\nvalidare token"
+GOTRUE ..> PG    : "trigger: profil\nîn public.users"
 
 note bottom of SRV
   Rate limiting şi middleware CORS

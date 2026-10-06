@@ -1,21 +1,20 @@
 """
-Auth middleware: validare JWT pe rutele protejate. User atașat în request context.
+Auth middleware: validează tokenul Supabase Auth pe rutele protejate.
 """
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from services.auth import verify_access_token
+from services.auth import AuthError, verify_access_token
 
 security = HTTPBearer(auto_error=False)
-optional_bearer = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> dict:
     """
-    Dependency: cere Bearer JWT, verifică tokenul, returnează payload (email, sub).
+    Dependency: cere Bearer token emis de Supabase Auth și returnează identitatea (email, sub).
     Ridică 401 dacă lipsește sau e invalid.
     """
     if not credentials:
@@ -24,7 +23,10 @@ def get_current_user(
             detail="Lipsește tokenul de autentificare",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    payload = verify_access_token(credentials.credentials)
+    try:
+        payload = verify_access_token(credentials.credentials)
+    except AuthError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -32,12 +34,3 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return payload
-
-
-def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_bearer),
-) -> Optional[dict]:
-    """Dependency: returnează user din JWT dacă există, altfel None. Nu ridică 401."""
-    if not credentials:
-        return None
-    return verify_access_token(credentials.credentials)

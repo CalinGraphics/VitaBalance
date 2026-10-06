@@ -29,15 +29,11 @@ rectangle "  <b>VitaBalance</b>\n<size:10>[Sistem Software]</size>\n\nInterfaţ�
 }
 
 ' ===== EXTERNAL SYSTEMS =====
-rectangle "  <b>Supabase</b>\n<size:10>[Sistem Extern]</size>\n\nPostgreSQL gestionat:\nstochează utilizatori, alimente,\nanalize, recomandǎri,\nfeedback, magic_links." as SUPA #E3E3E3 {
-}
-
-rectangle "  <b>Resend</b>\n<size:10>[Sistem Extern]</size>\n\nFurnizor email tranzacţional;\ntrimite magic link\npentru autentificare." as RESEND #E3E3E3 {
+rectangle "  <b>Supabase</b>\n<size:10>[Sistem Extern]</size>\n\nPostgreSQL gestionat + Supabase Auth:\nconturi (email + parolǎ), profiluri,\nalimente, analize, recomandǎri,\nfeedback." as SUPA #E3E3E3 {
 }
 
 USER -down-> VB : "<b>Foloseşte aplicaţia</b>\n[Browser / HTTPS]"
-VB -down-> SUPA : "<b>Citeşte şi scrie date</b>\n[HTTPS, SDK Supabase,\ncheie service_role]"
-VB -right-> RESEND : "<b>Trimite magic link</b>\n[HTTPS / API Resend]"
+VB -down-> SUPA : "<b>Autentificare şi date</b>\n[HTTPS: Supabase Auth,\nSDK Supabase, cheie service_role]"
 
 note bottom of VB
   **Legendă**

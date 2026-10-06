@@ -1,11 +1,13 @@
 -- =============================================================================
 -- VitaBalance — schema completă (PostgreSQL / Supabase, schema `public`)
 -- =============================================================================
--- Starea țintă după migrările 001–006 + 002 (magic_links eliminat). Pentru o bază NOUĂ rulează doar acest fișier;
+-- Starea țintă după migrările 001–008 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
 -- pentru baza existentă aplică migrările din backend/migrations/ în ordine. Actualizează fișierul la fiecare migrare.
 --
--- Acces: backend-ul folosește exclusiv cheia service_role (ocolește RLS). RLS e activ FĂRĂ politici, iar rolurile
--- anon/authenticated nu au drepturi pe tabele: frontend-ul nu accesează Supabase direct.
+-- Autentificare: Supabase Auth. Emailul și parola (bcrypt) stau în auth.users; public.users e profilul aplicației,
+-- legat prin auth_user_id și creat/adoptat automat de triggerul on_auth_user_created (migrarea 007).
+-- Acces: backend-ul folosește cheia service_role (ocolește RLS) și vorbește cu Supabase Auth pentru login/sesiune.
+-- Rolul authenticated poate doar CITI rândurile proprii (politici *_select_own); anon nu are drepturi.
 -- Date de referință (catalogul `foods` și conturile de test) trăiesc doar în baza de date, nu în repo.
 -- =============================================================================
 
@@ -13,7 +15,7 @@
 create table public.users (
   id                 serial primary key,
   email              varchar(255) not null unique,            -- litere mici; vezi și users_email_lower_key
-  password_hash      text,                                    -- bcrypt; NULL = cont vechi (magic link) fără parolă
+  auth_user_id       uuid unique references auth.users (id) on delete set null, -- contul Supabase Auth; NULL = profil vechi fără parolă
   name               varchar(255),
   age                integer,
   sex                varchar(10),
@@ -41,9 +43,9 @@ create table public.users (
 );
 create unique index users_email_lower_key on public.users (lower(email));
 
-comment on table  public.users is 'Profil utilizator: identitate (email, name), antropometrie, dietă, alergii; autentificare cu email + parolă (bcrypt).';
-comment on column public.users.email is 'Email unic (litere mici); identifică utilizatorul la login și în claim-ul email din JWT.';
-comment on column public.users.password_hash is 'Hash bcrypt al parolei, necesar la login. NULL = cont creat înainte de trecerea la parolă, fără parolă setată.';
+comment on table  public.users is 'Profil utilizator (antropometrie, dietă, alergii). Credențialele (email + parolă) sunt în auth.users, legat prin auth_user_id.';
+comment on column public.users.email is 'Email unic (litere mici), sincronizat din auth.users.email.';
+comment on column public.users.auth_user_id is 'FK auth.users.id: contul Supabase Auth (email + parolă) al acestui profil. NULL = profil vechi fără parolă, se leagă la înregistrare.';
 comment on column public.users.caloric_goal is 'Obiectiv caloric zilnic (kcal), opțional; informativ, nu influențează recomandările.';
 
 -- ---------- foods (catalog; valori per 100 g) ----------
@@ -185,6 +187,42 @@ create trigger trg_lab_results_set_user_email   before insert or update on publi
 create trigger trg_lab_results_touch_updated_at before update on public.lab_results
   for each row execute function public.lab_results_touch_updated_at();
 
+-- ---------- Supabase Auth -> profil ----------
+create or replace function public.handle_auth_user_created()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  v_email text := lower(trim(new.email));
+  v_name  text := nullif(trim(coalesce(new.raw_user_meta_data ->> 'full_name', '')), '');
+begin
+  if v_email is null or v_email = '' then
+    return new;
+  end if;
+  update public.users
+     set auth_user_id = new.id,
+         name = coalesce(nullif(trim(name), ''), v_name, '')
+   where lower(email) = v_email and auth_user_id is null;
+  if not found then
+    insert into public.users (email, name, auth_user_id) values (v_email, coalesce(v_name, ''), new.id);
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.handle_auth_user_email_changed()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.email is distinct from old.email and new.email is not null then
+    update public.users set email = lower(trim(new.email)) where auth_user_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created       after insert on auth.users
+  for each row execute function public.handle_auth_user_created();
+create trigger on_auth_user_email_changed after update of email on auth.users
+  for each row execute function public.handle_auth_user_email_changed();
+
 -- ---------- securitate ----------
 alter table public.users           enable row level security;
 alter table public.foods           enable row level security;
@@ -198,3 +236,21 @@ revoke all on all functions in schema public from anon, authenticated;
 alter default privileges in schema public revoke all on tables    from anon, authenticated;
 alter default privileges in schema public revoke all on sequences from anon, authenticated;
 alter default privileges in schema public revoke all on functions from anon, authenticated;
+
+-- Citire directă (rolul authenticated, cu tokenul Supabase al utilizatorului): doar rândurile proprii.
+grant usage on schema public to authenticated;
+grant select (id, email, name, age, sex, weight, height, activity_level, diet_type, allergies,
+              medical_conditions, caloric_goal, created_at, updated_at, auth_user_id)
+  on public.users to authenticated;
+grant select on public.foods, public.lab_results, public.recommendations, public.feedback to authenticated;
+
+create policy users_select_own on public.users for select to authenticated
+  using (auth_user_id = (select auth.uid()));
+create policy foods_select_all on public.foods for select to authenticated
+  using (true);
+create policy lab_results_select_own on public.lab_results for select to authenticated
+  using (user_id in (select u.id from public.users u where u.auth_user_id = (select auth.uid())));
+create policy recommendations_select_own on public.recommendations for select to authenticated
+  using (user_id in (select u.id from public.users u where u.auth_user_id = (select auth.uid())));
+create policy feedback_select_own on public.feedback for select to authenticated
+  using (user_id in (select u.id from public.users u where u.auth_user_id = (select auth.uid())));

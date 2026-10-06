@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import type { Route, AuthUser, User } from '../types'
 import { isAxiosError } from 'axios'
 import { profileService, authService } from '../../services/api'
-import { getToken, setToken, clearToken } from '../../services/authStorage'
+import { getToken, setSession, clearToken, type StoredSession } from '../../services/authStorage'
 
 // Un profil medical este considerat "complet" doar dacă are valorile de bază setate.
 // Un cont proaspăt înregistrat are câmpurile numerice 0 / implicite,
@@ -27,8 +27,8 @@ export const useAppNavigation = () => {
     setRoute(newRoute)
   }, [])
 
-  const handleLogin = useCallback(async (loggedUser: AuthUser, accessToken?: string) => {
-    if (accessToken) setToken(accessToken)
+  const handleLogin = useCallback(async (loggedUser: AuthUser, session?: StoredSession) => {
+    if (session?.access_token) setSession(session)
     setIsLoading(true)
     setAuthUser(loggedUser)
     
@@ -67,8 +67,8 @@ export const useAppNavigation = () => {
     }
   }, [])
 
-  const handleRegister = useCallback((newUser: AuthUser, accessToken?: string) => {
-    if (accessToken) setToken(accessToken)
+  const handleRegister = useCallback((newUser: AuthUser, session?: StoredSession) => {
+    if (session?.access_token) setSession(session)
     setAuthUser(newUser)
     setRoute('medical-profile')
   }, [])
@@ -89,7 +89,8 @@ export const useAppNavigation = () => {
   }, [])
 
   const handleLogout = useCallback(() => {
-    clearToken()
+    if (getToken()) void authService.logout().finally(clearToken)
+    else clearToken()
     setAuthUser(null)
     setMedicalUser(null)
     setRoute('login')

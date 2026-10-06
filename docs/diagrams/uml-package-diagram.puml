@@ -20,7 +20,7 @@ package "frontend\n(Vite + React + TypeScript)" as FE #EBF5FB {
   package "src/features/auth" as FEAUTH #BBDEFB {
     note as N1
       Pagini & logică
-      autentificare magic link
+      autentificare email + parolǎ
     end note
   }
 
@@ -47,7 +47,7 @@ package "frontend\n(Vite + React + TypeScript)" as FE #EBF5FB {
   package "src/services" as FEAPI #D1ECF1 {
     note as N5
       Clienti HTTP (axios),
-      interceptori JWT
+      interceptori token + refresh
     end note
   }
 
@@ -70,7 +70,7 @@ package "backend\n(FastAPI + Python)" as BE #EAF4EA {
   package "middleware" as MW #C8E6C9 {
     note as N7
       CORS, rate limiting,
-      JWT validation
+      validare token Supabase Auth
     end note
   }
 

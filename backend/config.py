@@ -34,8 +34,6 @@ def _supabase_key_role(supabase_key: str) -> Optional[str]:
 
 load_dotenv()
 
-DEFAULT_JWT_SECRET = "change-me-in-production-use-long-random-string"
-
 
 class Settings(BaseSettings):
     app_name: str = os.getenv("APP_NAME", "VitaBalance API")
@@ -44,11 +42,6 @@ class Settings(BaseSettings):
     supabase_url: Optional[str] = os.getenv("SUPABASE_URL")
     supabase_key: Optional[str] = os.getenv("SUPABASE_KEY")
     supabase_service_role_key: Optional[str] = None
-
-    jwt_secret: str = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
-    jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
-    jwt_expire_minutes: int = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
-
 
     cors_origins: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
     cors_allow_all: bool = os.getenv("CORS_ALLOW_ALL", "false").lower() in ("1", "true", "yes")
@@ -87,29 +80,13 @@ class Settings(BaseSettings):
         return normalize_supabase_api_key(self.supabase_key)
 
     def validate_runtime(self) -> None:
-        if not self.jwt_secret or not self.jwt_secret.strip():
-            raise ValueError("JWT_SECRET este obligatoriu.")
-        if len(self.jwt_secret.strip()) < 24:
-            raise ValueError("JWT_SECRET este prea scurt. Folosește un secret lung (minim 24 caractere).")
-        if self.jwt_expire_minutes <= 0:
-            raise ValueError("JWT_EXPIRE_MINUTES trebuie să fie > 0.")
-
-        if self.jwt_secret == DEFAULT_JWT_SECRET:
-            # Valoarea implicită e publică (în repo): oricine ar putea semna tokenuri valide.
-            if not self.debug:
-                raise ValueError(
-                    "JWT_SECRET nu este setat (se folosește valoarea implicită publică). "
-                    "Setează JWT_SECRET la un șir lung aleatoriu (ex.: python -c \"import secrets; print(secrets.token_urlsafe(48))\")."
-                )
-            print("[Config] JWT_SECRET e încă valoarea implicită (permis doar cu DEBUG=true).")
-
         if self.supabase_url:
             secret = self.effective_supabase_secret_key()
             if secret:
                 role = _supabase_key_role(secret)
                 if role == "anon":
-                    # Migrarea 003 a retras toate drepturile rolurilor anon/authenticated, deci cu cheia
-                    # anon *fiecare* interogare pică: înregistrarea, loginul și profilul ar răspunde 500
+                    # Rolul anon nu are drepturi pe tabele, iar crearea conturilor (Supabase Auth admin)
+                    # cere service_role: cu cheia anon înregistrarea, loginul și profilul ar răspunde 500
                     # fără nicio indicație despre cauză. Mai bine oprim pornirea cu mesajul corect.
                     raise ValueError(
                         "Cheia Supabase este `anon`, dar backend-ul are nevoie de `service_role` "

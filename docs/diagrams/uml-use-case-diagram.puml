@@ -22,7 +22,7 @@ actor "Utilizator\nautentificat" as U #DDE8F0
 
 rectangle "VitaBalance" #F9FBF9 {
 
-  usecase "UC1\nAutentificare\n(magic link / sesiune JWT)" as UC1
+  usecase "UC1\nAutentificare\n(email + parolǎ, Supabase Auth)" as UC1
   usecase "UC2\nGestionare profil\nnutriţional & medical" as UC2
   usecase "UC3\nIntroducere / extragere\nanalize de laborator" as UC3
   usecase "UC4\nVizualizare recomandări\n(stocate în BD)" as UC4

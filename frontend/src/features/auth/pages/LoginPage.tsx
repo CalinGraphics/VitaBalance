@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import type { AuthUser, Route } from '../../../shared/types';
 import { authService } from '../../../services/api';
+import type { StoredSession } from '../../../services/authStorage';
 import { extractErrorMessage } from '../../../shared/utils/apiErrors';
 
 interface LoginPageProps {
   onNavigate: (route: Route) => void;
-  onLogin: (user: AuthUser, accessToken?: string) => void;
+  onLogin: (user: AuthUser, session?: StoredSession) => void;
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -38,7 +39,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
       const session = await authService.login(email, password);
       onLogin(
         { email: session.email, fullName: session.fullName, avatarUrl: null },
-        session.access_token
+        session
       );
     } catch (err: unknown) {
       setFormError(extractErrorMessage(err));

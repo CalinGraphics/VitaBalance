@@ -28,7 +28,7 @@ start
 :GET /api/recommendations/stored/{user_id}\n<i>(afișare rapidă din BD)</i>;
 
 |#FFF8E1| Backend |
-if (JWT valid şi\nuser_id = profilul propriu?) then (NU)
+if (token Supabase valid şi\nuser_id = profilul propriu?) then (NU)
   :Returnează **401 / 403**\nAcces interzis;
   stop
 else (DA)

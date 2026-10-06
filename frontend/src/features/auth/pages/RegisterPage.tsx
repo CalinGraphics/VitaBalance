@@ -5,11 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
 import type { AuthUser, Route } from '../../../shared/types';
 import { authService } from '../../../services/api';
+import type { StoredSession } from '../../../services/authStorage';
 import { extractErrorCode, extractErrorMessage } from '../../../shared/utils/apiErrors';
 
 interface RegisterPageProps {
   onNavigate: (route: Route) => void;
-  onRegister: (user: AuthUser, accessToken?: string) => void;
+  onRegister: (user: AuthUser, session?: StoredSession) => void;
 }
 
 type FieldErrors = {
@@ -82,7 +83,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
       const session = await authService.register(form.email, form.password, form.fullName);
       onRegister(
         { email: session.email, fullName: session.fullName, avatarUrl: null },
-        session.access_token
+        session
       );
     } catch (err: unknown) {
       const message = extractErrorMessage(err);

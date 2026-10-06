@@ -21,21 +21,18 @@ rectangle "  <b>Utilizator</b>\n<size:10>[Persoană]</size>\n\nUtilizator final\
 ' ===== SYSTEM BOUNDARY =====
 package "VitaBalance (System Boundary)" as SYS #F1F8E9 {
 
-  rectangle "  <b>SPA — Frontend</b>\n<size:10>[Container: React 18, TypeScript, Vite, Tailwind CSS]</size>\n\nPagini: autentificare (magic link), profil medical,\nintroducere analize, recomandǎri,\nfeedback şi export PDF." as SPA #C8E6C9
+  rectangle "  <b>SPA — Frontend</b>\n<size:10>[Container: React 18, TypeScript, Vite, Tailwind CSS]</size>\n\nPagini: autentificare (email + parolǎ), profil medical,\nintroducere analize, recomandǎri,\nfeedback şi export PDF." as SPA #C8E6C9
 
-  rectangle "  <b>Backend — API</b>\n<size:10>[Container: Python, FastAPI, Uvicorn]</size>\n\nExpune REST sub /api; autentificare JWT;\ncalcule deficite; motor de reguli;\npersistǎ rezultate; trimite email." as API #C8E6C9
+  rectangle "  <b>Backend — API</b>\n<size:10>[Container: Python, FastAPI, Uvicorn]</size>\n\nExpune REST sub /api; login şi sesiune\nprin Supabase Auth; calcule deficite;\nmotor de reguli; persistǎ rezultate." as API #C8E6C9
 
 }
 
 ' ===== EXTERNAL =====
-rectangle "  <b>Supabase</b>\n<size:10>[Sistem Extern]</size>\n\nPostgreSQL: tabele users, foods,\nlab_results, recommendations,\nfeedback, magic_links." as SUPA #E3E3E3
-
-rectangle "  <b>Resend</b>\n<size:10>[Sistem Extern]</size>\n\nFurnizor email\ntranzacţional." as RESEND #E3E3E3
+rectangle "  <b>Supabase</b>\n<size:10>[Sistem Extern]</size>\n\nSupabase Auth: auth.users\n(email + parolǎ, sesiuni).\nPostgreSQL: users (profil), foods,\nlab_results, recommendations,\nfeedback." as SUPA #E3E3E3
 
 USER -down-> SPA : "<b>Foloseşte</b>\n[HTTPS]"
 SPA -down-> API : "<b>Apelează API</b>\n[HTTPS, JSON,\nAuthorization: Bearer]"
-API -down-> SUPA : "<b>Acces date</b>\n[SDK Supabase,\noperaţii CRUD]"
-API -right-> RESEND : "<b>Trimite magic link</b>\n[HTTPS]"
+API -down-> SUPA : "<b>Login / sesiune + acces date</b>\n[Supabase Auth /auth/v1,\nSDK Supabase, operaţii CRUD]"
 
 note bottom
   **Legendă**
