@@ -74,6 +74,10 @@ export async function downloadRecommendationPdf(
   link.href = url
   const safeName = (params.user.name || i18n.t('pdf.defaultUser')).replace(/[^a-zA-Z0-9]/g, '_')
   link.download = filename || `VitaBalance_${i18n.t('pdf.fileName')}_${safeName}_${Date.now()}.pdf`
+  // Firefox ignoră click-ul pe un link care nu e în document.
+  document.body.appendChild(link)
   link.click()
-  URL.revokeObjectURL(url)
+  link.remove()
+  // Revocat imediat, URL-ul dispare înainte ca browserul să citească fișierul și descărcarea e anulată.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
