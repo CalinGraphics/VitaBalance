@@ -47,13 +47,16 @@ class FakeSupabaseAuth:
             email = json["email"]
             if email in self.accounts:
                 return self._json(422, {"error_code": "email_exists", "msg": "A user with this email address has already been registered"})
+            # Triggerul on_auth_user_created (migrarea 009): creează profilul sau preia unul vechi aprobat;
+            # un profil vechi neaprobat face să eșueze crearea contului.
+            row = self.profiles.get(email)
+            if row is not None and not row.get("legacy_adoption_approved_at"):
+                return self._json(500, {"error_code": "unexpected_failure", "msg": "Database error creating new user"})
             self.accounts[email] = {
                 "id": f"uuid-{email}",
                 "password": json["password"],
                 "full_name": json["user_metadata"]["full_name"],
             }
-            # Triggerul on_auth_user_created: adoptă profilul nelegat sau creează unul nou.
-            row = self.profiles.get(email)
             if row is None:
                 self.profiles[email] = {"id": len(self.profiles) + 1, "name": json["user_metadata"]["full_name"], "auth_user_id": f"uuid-{email}"}
             else:
@@ -76,8 +79,14 @@ class AuthTests(unittest.TestCase):
     def setUp(self):
         self.fake = FakeSupabaseAuth(
             {
-                # profil vechi fără cont (fost magic link): se poate adopta la înregistrare
-                "vechi@example.com": {"id": 7, "name": "Vechi", "auth_user_id": None},
+                # profile vechi fără cont (fost magic link): blocat, respectiv aprobat de admin
+                "vechi@example.com": {"id": 7, "name": "Vechi", "auth_user_id": None, "legacy_adoption_approved_at": None},
+                "aprobat@example.com": {
+                    "id": 9,
+                    "name": "Aprobat",
+                    "auth_user_id": None,
+                    "legacy_adoption_approved_at": "2026-10-06T00:00:00Z",
+                },
             }
         )
         auth_module._user_cache.clear()
@@ -105,12 +114,20 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 400)
         self.assertEqual(ctx.exception.detail, "Acest email este deja înregistrat")
 
-    def test_register_adopts_passwordless_profile(self):
-        session = auth_module.sign_up("vechi@example.com", "parola-noua", "Nume Nou")
-        self.assertEqual(self.fake.profiles["vechi@example.com"]["id"], 7)
-        self.assertEqual(self.fake.profiles["vechi@example.com"]["auth_user_id"], "uuid-vechi@example.com")
+    def test_register_on_unapproved_legacy_profile_is_blocked(self):
+        with self.assertRaises(auth_module.AuthError) as ctx:
+            auth_module.sign_up("vechi@example.com", "parola-noua", "Intrus")
+        self.assertEqual(ctx.exception.status_code, 403)
+        self.assertIn("profil vechi", ctx.exception.detail)
+        self.assertIsNone(self.fake.profiles["vechi@example.com"]["auth_user_id"])
+        self.assertNotIn("vechi@example.com", self.fake.accounts)
+
+    def test_register_adopts_approved_legacy_profile(self):
+        session = auth_module.sign_up("aprobat@example.com", "parola-noua", "Nume Nou")
+        self.assertEqual(self.fake.profiles["aprobat@example.com"]["id"], 9)
+        self.assertEqual(self.fake.profiles["aprobat@example.com"]["auth_user_id"], "uuid-aprobat@example.com")
         # numele existent al profilului are prioritate
-        self.assertEqual(session["fullName"], "Vechi")
+        self.assertEqual(session["fullName"], "Aprobat")
 
     def test_register_validates_input(self):
         for args in [("", "parola-mea", "Nume"), ("x@example.com", "12345", "Nume"), ("x@example.com", "parola", " ")]:

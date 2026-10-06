@@ -190,6 +190,7 @@
     "invalidCredentials": "Incorrect email or password.",
     "rateLimited": "Too many attempts in one minute. Wait a moment and try again.",
     "emailTaken": "This email is already registered.",
+    "legacyProfileLocked": "This email belongs to an older profile created before password accounts. Contact the administrator to recover it.",
     "emailRequired": "Enter your email address.",
     "invalidEmail": "The email address is not valid.",
     "fullNameRequired": "Enter your full name.",

@@ -25,6 +25,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Erori cunoscute de la backend care aparțin unui câmp anume. */
 const ERROR_CODE_FIELD: Record<string, keyof FieldErrors> = {
   emailTaken: 'email',
+  legacyProfileLocked: 'email',
   emailRequired: 'email',
   invalidEmail: 'email',
   fullNameRequired: 'fullName',

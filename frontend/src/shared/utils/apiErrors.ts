@@ -39,6 +39,7 @@ const KNOWN_API_ERRORS: Array<{ code: string; match: RegExp }> = [
   { code: 'invalidCredentials', match: /email sau parol[aă] incorect/i },
   { code: 'rateLimited', match: /prea multe cereri/i },
   { code: 'emailTaken', match: /deja [iî]nregistrat/i },
+  { code: 'legacyProfileLocked', match: /profil vechi/i },
   { code: 'emailRequired', match: /^email-ul este obligatoriu/i },
   { code: 'invalidEmail', match: /not a valid email|valid email address|adresa de email nu este valid/i },
   { code: 'fullNameRequired', match: /numele complet este obligatoriu/i },

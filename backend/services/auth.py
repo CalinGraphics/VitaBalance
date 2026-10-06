@@ -25,6 +25,10 @@ _USER_CACHE_MAX = 2048
 
 _ALREADY_REGISTERED = "Acest email este deja înregistrat"
 _INVALID_CREDENTIALS = "Email sau parolă incorectă"
+_LEGACY_PROFILE_LOCKED = (
+    "Pe acest email există un profil vechi, creat înainte de conturile cu parolă. "
+    "Contactează administratorul ca să-l recuperezi."
+)
 
 
 class AuthError(Exception):
@@ -141,7 +145,7 @@ def _profile_row(email: str) -> Optional[Dict[str, Any]]:
     resp = (
         get_supabase_client()
         .table("users")
-        .select("id, name, auth_user_id")
+        .select("id, name, auth_user_id, legacy_adoption_approved_at")
         .eq("email", email)
         .limit(1)
         .execute()
@@ -178,8 +182,10 @@ def sign_up(email: str, password: str, full_name: str) -> Dict[str, Any]:
     """
     Creează contul în Supabase Auth și deschide sesiunea.
 
-    Profilele vechi fără parolă (fost magic link) sunt adoptate de trigger: utilizatorul își păstrează
-    profilul, analizele și recomandările. Un profil care are deja cont e respins.
+    Un profil vechi fără cont (fost magic link) e preluat doar dacă un admin a aprobat adopția
+    (`legacy_adoption_approved_at`, migrarea 009): emailul nu se verifică la înregistrare, deci fără
+    aprobare oricine i-ar ști adresa ar vedea datele medicale ale proprietarului. Triggerul din baza de
+    date impune aceeași regulă; verificarea de aici doar dă un mesaj clar.
     """
     email = _normalize_email(email)
     full_name = (full_name or "").strip()
@@ -197,6 +203,8 @@ def sign_up(email: str, password: str, full_name: str) -> Dict[str, Any]:
     existing = _profile_row(email)
     if existing and existing.get("auth_user_id"):
         raise AuthError(400, _ALREADY_REGISTERED)
+    if existing and not existing.get("legacy_adoption_approved_at"):
+        raise AuthError(403, _LEGACY_PROFILE_LOCKED)
 
     _admin_create_user(email, password, full_name)
     session = _password_grant(email, password)

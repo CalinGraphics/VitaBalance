@@ -192,6 +192,7 @@
     "invalidCredentials": "Email sau parolă incorectă.",
     "rateLimited": "Prea multe încercări într-un minut. Așteaptă puțin și reîncearcă.",
     "emailTaken": "Acest email este deja înregistrat.",
+    "legacyProfileLocked": "Pe acest email există un profil vechi, creat înainte de conturile cu parolă. Contactează administratorul ca să-l recuperezi.",
     "emailRequired": "Introdu adresa de email.",
     "invalidEmail": "Adresa de email nu este validă.",
     "fullNameRequired": "Completează numele complet.",

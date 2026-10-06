@@ -139,6 +139,7 @@ Aplicația folosește **Supabase** (PostgreSQL) ca unică sursă de date. Tabele
 | `006_foods_name_en.sql` | `foods.name_en`: numele alimentelor în engleză (interfața și explicațiile EN) |
 | `007_supabase_auth.sql` | trecerea pe Supabase Auth: `users.auth_user_id`, triggerele `auth.users` → profil, conturile cu parolă mutate în `auth.users` (hash-ul bcrypt păstrat), politici RLS de citire a rândurilor proprii |
 | `008_drop_legacy_auth.sql` | șterge `users.password_hash` și tabela `magic_links` (autentificarea veche) |
+| `009_security_hardening.sql` | după auditul de securitate: profilul se creează doar pentru conturi confirmate, profilele vechi se preiau doar cu aprobarea unui admin, `authenticated` fără drepturi directe pe tabele, funcțiile-trigger neexecutabile prin API |
 
 ### Autentificare (Supabase Auth)
 
@@ -156,10 +157,23 @@ legat prin `auth_user_id`. Backend-ul nu semnează tokenuri proprii:
 Rutele protejate validează tokenul la Supabase (`GET /auth/v1/user`, rezultat ținut în memorie 60 s).
 
 **Conturi vechi.** Conturile cu parolă au fost mutate în `auth.users` de migrarea 007, cu hash-ul păstrat, deci
-parolele de dinainte merg. Profilele fără parolă (create pe vremea magic link) nu au cont: înregistrarea cu
-acel email creează contul și **adoptă profilul existent** (profil, analize, recomandări). Compromisul acceptat:
-emailul nu se verifică la înregistrare, deci cine cunoaște adresa poate revendica profilul. Lista lor:
-`select email from users where auth_user_id is null`.
+parolele de dinainte merg. Profilele fără parolă (create pe vremea magic link) nu au cont, iar înregistrarea cu
+emailul lor e **respinsă**: emailul nu se verifică la înregistrare, deci altfel oricine ar ști adresa ar vedea
+datele medicale ale proprietarului. Ca să recuperezi un astfel de profil după ce ai verificat identitatea
+persoanei, rulezi în SQL Editor:
+
+```sql
+update public.users set legacy_adoption_approved_at = now()
+ where email = 'adresa@exemplu.ro' and auth_user_id is null;
+```
+
+La următoarea înregistrare cu acel email, contul nou preia profilul, analizele și recomandările. Lista profilelor
+vechi: `select id, email from users where auth_user_id is null`.
+
+**Setări în Dashboard** (nu se pot face prin SQL): în *Authentication → Sign In / Providers* trebuie
+dezactivat „Allow new users to sign up”, pentru că aplicația creează conturile prin API-ul de admin, iar
+înregistrarea publică ar ocoli backend-ul. Opțional, în *Authentication → Password security*: protecția
+împotriva parolelor compromise (planul Pro) și lungimea minimă a parolei.
 
 ## Explicații RO/EN
 
