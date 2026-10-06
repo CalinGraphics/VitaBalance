@@ -7,10 +7,12 @@ import type { AuthUser, Route } from '../../../shared/types';
 import { authService } from '../../../services/api';
 import type { StoredSession } from '../../../services/authStorage';
 import { extractErrorCode, extractErrorMessage } from '../../../shared/utils/apiErrors';
+import { ImageResizeError, resizeImageToDataUrl } from '../../../shared/utils/resizeImage';
 
 interface RegisterPageProps {
   onNavigate: (route: Route) => void;
-  onRegister: (user: AuthUser, session?: StoredSession) => void;
+  /** `avatar`: poza aleasă, deja micșorată (data URL); se urcă după crearea contului. */
+  onRegister: (user: AuthUser, session?: StoredSession, avatar?: string | null) => void;
 }
 
 type FieldErrors = {
@@ -44,6 +46,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
     avatarPreview: null as string | null,
   });
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,15 +56,19 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  // Previzualizare locală; imaginea nu este trimisă către server.
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Poza e micșorată aici (256 px) și trimisă la server după crearea contului (useAppNavigation).
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setForm((prev) => ({ ...prev, avatarPreview: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    setAvatarError(null);
+    try {
+      const avatarPreview = await resizeImageToDataUrl(file);
+      setForm((prev) => ({ ...prev, avatarPreview }));
+    } catch (err) {
+      const reason = err instanceof ImageResizeError ? err.reason : 'read';
+      setAvatarError(t(reason === 'type' ? 'profile.avatar.errors.type' : 'profile.avatar.errors.read'));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,7 +91,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
       const session = await authService.register(form.email, form.password, form.fullName);
       onRegister(
         { email: session.email, fullName: session.fullName, avatarUrl: null },
-        session
+        session,
+        form.avatarPreview
       );
     } catch (err: unknown) {
       const message = extractErrorMessage(err);
@@ -168,15 +176,29 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegister }) =
                 <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} />
               </label>
               {form.avatarPreview && (
-                <motion.img
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  src={form.avatarPreview}
-                  alt={t('auth.register.avatarAlt')}
-                  className="h-12 w-12 rounded-full border border-line-strong object-cover"
-                />
+                <>
+                  <motion.img
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    src={form.avatarPreview}
+                    alt={t('auth.register.avatarAlt')}
+                    className="h-12 w-12 rounded-full border border-line-strong object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, avatarPreview: null }))}
+                    className="min-h-[44px] cursor-pointer px-1 text-sm text-zinc-400 transition-colors hover:text-red-300 touch-manipulation"
+                  >
+                    {t('auth.register.avatarRemove')}
+                  </button>
+                </>
               )}
             </div>
+            {avatarError ? (
+              <p role="alert" className="mt-1.5 text-xs text-red-400">{avatarError}</p>
+            ) : (
+              <p className="mt-1.5 text-xs text-zinc-500">{t('auth.register.avatarHint')}</p>
+            )}
           </div>
 
           {formError && (

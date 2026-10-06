@@ -198,6 +198,14 @@ export const profileService = {
     const response = await api.post('/profile', { ...data, id: userId })
     return response.data
   },
+  /** `image` e un data URL deja micșorat în browser (vezi resizeImage). */
+  uploadAvatar: async (image: string): Promise<string | null> => {
+    const response = await api.post<{ avatar_url: string | null }>('/profile/avatar', { image })
+    return response.data.avatar_url
+  },
+  deleteAvatar: async (): Promise<void> => {
+    await api.delete('/profile/avatar')
+  },
 }
 
 export const labResultsService = {

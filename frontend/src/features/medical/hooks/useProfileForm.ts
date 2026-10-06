@@ -22,13 +22,14 @@ const toText = (n: number | null | undefined): string => (n != null && n > 0 ? S
  * Starea formularului de profil, partajată între crearea și editarea profilului:
  * câmpuri text pentru valorile numerice + validare la trimitere.
  */
-export function useProfileForm(initial: { user?: User; email?: string }) {
+export function useProfileForm(initial: { user?: User; email?: string; name?: string }) {
   const { t } = useTranslation()
   const { user } = initial
 
   const [formData, setFormData] = useState<ProfileFormData>({
     email: user?.email ?? initial.email ?? '',
-    name: user?.name ?? '',
+    // La crearea profilului, numele vine de la înregistrare (precompletat, editabil).
+    name: user?.name ?? initial.name ?? '',
     sex: user?.sex ?? 'F',
     activity_level: user?.activity_level ?? 'moderate',
     diet_type: user?.diet_type ?? 'omnivore',

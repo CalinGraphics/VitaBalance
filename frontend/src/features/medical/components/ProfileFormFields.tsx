@@ -26,8 +26,9 @@ const ProfileFormFields = ({ form }: { form: ProfileForm }) => {
           label={t('profile.fields.email')}
           type="email"
           value={formData.email}
-          onChange={(e) => update({ email: e.target.value })}
-          placeholder={t('profile.fields.emailPlaceholder')}
+          onChange={() => {}}
+          readOnly
+          hint={t('profile.fields.emailLocked')}
           autoComplete="email"
         />
         <InputField

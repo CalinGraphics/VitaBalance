@@ -22,6 +22,8 @@ export const useAppNavigation = () => {
   const [medicalUser, setMedicalUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [recommendationsRefreshKey, setRecommendationsRefreshKey] = useState(0)
+  /** Mesaj (cheie i18n) afișat o dată deasupra paginii, ex. poza nu a putut fi urcată după înregistrare. */
+  const [notice, setNotice] = useState<string | null>(null)
 
   const navigate = useCallback((newRoute: Route) => {
     setRoute(newRoute)
@@ -36,6 +38,7 @@ export const useAppNavigation = () => {
       // Verifică dacă utilizatorul are deja profil medical
       try {
         const existingProfile = await profileService.getByEmail(loggedUser.email)
+        setAuthUser({ ...loggedUser, avatarUrl: existingProfile?.avatar_url ?? null })
         
         if (hasCompleteMedicalProfile(existingProfile)) {
           // Are deja profil complet, merge direct la recomandări
@@ -67,11 +70,23 @@ export const useAppNavigation = () => {
     }
   }, [])
 
-  const handleRegister = useCallback((newUser: AuthUser, session?: StoredSession) => {
-    if (session?.access_token) setSession(session)
-    setAuthUser(newUser)
-    setRoute('medical-profile')
-  }, [])
+  const handleRegister = useCallback(
+    async (newUser: AuthUser, session?: StoredSession, avatar?: string | null) => {
+      if (session?.access_token) setSession(session)
+      setAuthUser(newUser)
+      setRoute('medical-profile')
+      if (!avatar) return
+      // Poza se urcă abia acum: endpoint-ul cere sesiunea contului tocmai creat.
+      try {
+        const avatarUrl = await profileService.uploadAvatar(avatar)
+        setAuthUser((prev) => (prev ? { ...prev, avatarUrl } : prev))
+      } catch (err) {
+        console.error('Poza de profil nu a putut fi urcată după înregistrare:', err)
+        setNotice('profile.avatar.errors.uploadAfterSignup')
+      }
+    },
+    []
+  )
 
   const handleMedicalProfileComplete = useCallback((user: User) => {
     setMedicalUser(user)
@@ -85,7 +100,14 @@ export const useAppNavigation = () => {
 
   const handleProfileUpdate = useCallback((updatedUser: User) => {
     setMedicalUser(updatedUser)
+    setAuthUser((prev) => (prev ? { ...prev, fullName: updatedUser.name || prev.fullName } : prev))
     setRecommendationsRefreshKey((k) => k + 1)
+  }, [])
+
+  /** Schimbarea pozei nu atinge datele medicale, deci nu reîmprospătează recomandările. */
+  const handleAvatarChange = useCallback((avatarUrl: string | null) => {
+    setAuthUser((prev) => (prev ? { ...prev, avatarUrl } : prev))
+    setMedicalUser((prev) => (prev ? { ...prev, avatar_url: avatarUrl } : prev))
   }, [])
 
   const handleLogout = useCallback(() => {
@@ -93,6 +115,7 @@ export const useAppNavigation = () => {
     else clearToken()
     setAuthUser(null)
     setMedicalUser(null)
+    setNotice(null)
     setRoute('login')
   }, [])
 
@@ -104,11 +127,11 @@ export const useAppNavigation = () => {
     }
     authService
       .me()
-      .then((me: { email: string; fullName: string }) => {
+      .then((me: { email: string; fullName: string; avatarUrl?: string | null }) => {
         setAuthUser({
           email: me.email,
           fullName: me.fullName,
-          avatarUrl: null,
+          avatarUrl: me.avatarUrl ?? null,
         })
         return profileService.getByEmail(me.email)
       })
@@ -141,7 +164,10 @@ export const useAppNavigation = () => {
     handleMedicalProfileComplete,
     handleLabResultsComplete,
     handleProfileUpdate,
+    handleAvatarChange,
     handleLogout,
+    notice,
+    dismissNotice: () => setNotice(null),
   }
 }
 

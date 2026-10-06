@@ -14,7 +14,7 @@ interface MedicalProfilePageProps {
 
 const MedicalProfilePage = ({ authUser, onComplete }: MedicalProfilePageProps) => {
   const { t } = useTranslation()
-  const form = useProfileForm({ email: authUser.email })
+  const form = useProfileForm({ email: authUser.email, name: authUser.fullName })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

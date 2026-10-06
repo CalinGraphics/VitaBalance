@@ -41,6 +41,10 @@ class UserRepository:
         }
         self._client.table(self.TABLE).update(row).eq("id", user_id).execute()
 
+    def set_avatar_path(self, user_id: int, path: Optional[str]) -> None:
+        # Fără updated_at: poza nu face parte din datele care declanșează regenerarea recomandărilor.
+        self._client.table(self.TABLE).update({"avatar_path": path}).eq("id", user_id).execute()
+
     def upsert(
         self,
         email: str,

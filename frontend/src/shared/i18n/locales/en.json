@@ -31,7 +31,8 @@
     "profile": "Profile",
     "logout": "Log out",
     "logoAlt": "VitaBalance logo",
-    "footer": "© {{year}} VitaBalance"
+    "footer": "© {{year}} VitaBalance",
+    "account": "Your account: {{name}}"
   },
   "lang": {
     "label": "Language",
@@ -242,7 +243,9 @@
       "submit": "Sign up",
       "submitting": "Creating account...",
       "haveAccount": "Already have an account?",
-      "backToLogin": "Back to sign in"
+      "backToLogin": "Back to sign in",
+      "avatarHint": "Optional. You can add or change it anytime from your profile.",
+      "avatarRemove": "Remove"
     }
   },
   "profile": {
@@ -277,7 +280,8 @@
       "caloricGoal": "Daily calorie goal (kcal)",
       "caloricGoalHint": "Informational only: we compare it with the recommended calories on the dashboard; it does not change the recommendations. Between {{min}} and {{max}} kcal.",
       "allergies": "Allergies",
-      "conditions": "Medical conditions"
+      "conditions": "Medical conditions",
+      "emailLocked": "The account email can't be changed here."
     },
     "options": {
       "sex": {
@@ -318,6 +322,22 @@
       "diet": "Diet type",
       "caloricGoal": "Calorie goal",
       "na": "N/A"
+    },
+    "avatar": {
+      "title": "Profile picture",
+      "alt": "Profile picture of {{name}}",
+      "change": "Change picture",
+      "add": "Add a picture",
+      "remove": "Remove picture",
+      "saving": "Saving...",
+      "saved": "Your profile picture was updated.",
+      "removed": "Your profile picture was removed.",
+      "errors": {
+        "type": "Choose an image (JPG, PNG or WebP).",
+        "read": "The image couldn't be read. Try another file.",
+        "failed": "The picture couldn't be saved. Please try again.",
+        "uploadAfterSignup": "Your account was created, but the picture couldn't be saved. You can add it from your profile."
+      }
     }
   },
   "labs": {

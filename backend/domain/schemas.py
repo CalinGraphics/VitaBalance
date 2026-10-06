@@ -30,6 +30,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    avatar_url: Optional[str] = None  # link semnat, temporar, către poza din Storage
     created_at: datetime
     updated_at: Optional[datetime] = None
 

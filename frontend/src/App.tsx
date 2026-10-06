@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Layout, Disclaimer } from './shared'
+import { Layout, Disclaimer, Alert } from './shared'
 import { LoginPage, RegisterPage } from './features/auth/pages'
 import { MedicalProfilePage, MedicalLabResultsPage, EditProfilePage } from './features/medical/pages'
 import { Recommendations } from './features/recommendations/components'
@@ -54,14 +54,33 @@ function App() {
     handleMedicalProfileComplete,
     handleLabResultsComplete,
     handleProfileUpdate,
+    handleAvatarChange,
     handleLogout,
+    notice,
+    dismissNotice,
   } = useAppNavigation()
 
   const showNav =
     (route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser
 
   return (
-    <Layout route={route} showNav={showNav} onNavigate={navigate} onLogout={handleLogout}>
+    <Layout route={route} showNav={showNav} onNavigate={navigate} onLogout={handleLogout} user={authUser}>
+      {notice && (
+        <div className="fixed inset-x-0 top-20 z-40 mx-auto w-full max-w-xl px-4">
+          <Alert variant="warning">
+            <div className="flex items-start justify-between gap-3">
+              <span>{t(notice)}</span>
+              <button
+                type="button"
+                onClick={dismissNotice}
+                className="cursor-pointer font-semibold underline-offset-2 hover:underline"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </Alert>
+        </div>
+      )}
       {isLoading ? (
         <div className="w-full max-w-md py-16 text-center" role="status" aria-live="polite">
           <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-accent" />
@@ -112,6 +131,7 @@ function App() {
             <EditProfilePage
               user={medicalUser}
               onUpdate={handleProfileUpdate}
+              onAvatarChange={handleAvatarChange}
               onNavigateBack={() => navigate('recommendations')}
               onNavigateToLabResults={() => navigate('lab-results')}
             />

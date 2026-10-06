@@ -7,15 +7,24 @@ import { regenerateRecommendationsAfterSave } from '../../recommendations/utils/
 import type { User } from '../../../shared/types'
 import { useProfileForm } from '../hooks/useProfileForm'
 import ProfileFormFields from '../components/ProfileFormFields'
+import ProfileAvatarEditor from '../components/ProfileAvatarEditor'
 
 interface EditProfilePageProps {
   user: User
   onUpdate: (user: User) => void
+  /** Poza se salvează separat și nu reîmprospătează recomandările. */
+  onAvatarChange: (avatarUrl: string | null) => void
   onNavigateBack: () => void
   onNavigateToLabResults?: () => void
 }
 
-const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResults }: EditProfilePageProps) => {
+const EditProfilePage = ({
+  user,
+  onUpdate,
+  onAvatarChange,
+  onNavigateBack,
+  onNavigateToLabResults,
+}: EditProfilePageProps) => {
   const { t } = useTranslation()
   const form = useProfileForm({ user })
   const [loading, setLoading] = useState(false)
@@ -84,6 +93,8 @@ const EditProfilePage = ({ user, onUpdate, onNavigateBack, onNavigateToLabResult
 
         {error && <Alert variant="error" className="mb-5">{error}</Alert>}
         {success && <Alert variant="success" className="mb-5">{t('profile.edit.success')}</Alert>}
+
+        <ProfileAvatarEditor name={user.name || user.email} url={user.avatar_url} onChange={onAvatarChange} />
 
         <form onSubmit={handleSubmit} noValidate>
           <ProfileFormFields form={form} />

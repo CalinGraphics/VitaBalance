@@ -20,6 +20,8 @@ interface InputFieldProps {
   pattern?: string;
   autoComplete?: string;
   required?: boolean;
+  /** Valoare afișată, dar needitabilă (ex. emailul contului). */
+  readOnly?: boolean;
   /** Când true și value e gol, câmpul arată mai estompat (pentru câmpuri opționale) */
   transparentWhenEmpty?: boolean;
 }
@@ -41,6 +43,7 @@ const InputField: React.FC<InputFieldProps> = ({
   pattern,
   autoComplete,
   required = false,
+  readOnly = false,
   transparentWhenEmpty = false,
 }) => {
   const id = useId();
@@ -50,7 +53,8 @@ const InputField: React.FC<InputFieldProps> = ({
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   const isEmpty = !value || value.trim() === '';
   const ghost = transparentWhenEmpty && isEmpty ? 'opacity-80' : '';
-  const className = `field ${error ? 'field-error' : ''} ${ghost}`;
+  const locked = readOnly ? 'cursor-default text-zinc-400' : '';
+  const className = `field ${error ? 'field-error' : ''} ${ghost} ${locked}`;
 
   return (
     <div className="mb-4">
@@ -83,6 +87,7 @@ const InputField: React.FC<InputFieldProps> = ({
             inputMode={inputMode}
             pattern={pattern}
             required={required}
+            readOnly={readOnly}
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             className={`${className} ${isPassword ? 'pr-11' : ''}`}

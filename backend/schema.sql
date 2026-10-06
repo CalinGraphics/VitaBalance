@@ -1,7 +1,7 @@
 -- =============================================================================
 -- VitaBalance — schema completă (PostgreSQL / Supabase, schema `public`)
 -- =============================================================================
--- Starea țintă după migrările 001–009 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
+-- Starea țintă după migrările 001–010 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
 -- pentru baza existentă aplică migrările din backend/migrations/ în ordine. Actualizează fișierul la fiecare migrare.
 --
 -- Autentificare: Supabase Auth. Emailul și parola (bcrypt) stau în auth.users; public.users e profilul aplicației,
@@ -31,6 +31,7 @@ create table public.users (
   rec_refresh_error  text,
   rec_refresh_at     timestamptz,
   legacy_adoption_approved_at timestamptz,                    -- aprobarea adminului pentru preluarea unui profil vechi
+  avatar_path        text,                                    -- poza de profil în bucket-ul privat `avatars`
   created_at         timestamptz default now(),
   updated_at         timestamptz default now(),
   constraint users_sex_check            check (sex is null or sex in ('F', 'M', 'other')),
@@ -143,10 +144,16 @@ comment on table public.feedback is 'Apreciere (rating) a utilizatorului pentru 
 comment on column public.feedback.recommendation_id is 'Recomandarea curentă asociată (opțional); devine NULL când recomandarea este ștearsă, feedback-ul rămâne.';
 
 -- ---------- funcții și trigger-e ----------
-create or replace function public.update_updated_at_column() returns trigger
-language plpgsql set search_path = public, pg_temp as $$
+-- updated_at decide când sunt regenerate recomandările; schimbarea pozei nu trebuie să le invalideze.
+create or replace function public.users_touch_updated_at() returns trigger
+language plpgsql set search_path = '' as $$
 begin
-  new.updated_at = now();
+  if new.avatar_path is distinct from old.avatar_path
+     and (to_jsonb(new) - 'avatar_path' - 'updated_at') = (to_jsonb(old) - 'avatar_path' - 'updated_at') then
+    new.updated_at := old.updated_at;
+  else
+    new.updated_at := now();
+  end if;
   return new;
 end;
 $$;
@@ -181,7 +188,7 @@ end;
 $$;
 
 create trigger update_users_updated_at          before update on public.users
-  for each row execute function public.update_updated_at_column();
+  for each row execute function public.users_touch_updated_at();
 create trigger trg_users_email_lab_results      after update of email on public.users
   for each row execute function public.users_propagate_email_to_lab_results();
 create trigger trg_lab_results_set_user_email   before insert or update on public.lab_results
@@ -265,3 +272,10 @@ create policy recommendations_select_own on public.recommendations for select to
   using (user_id in (select u.id from public.users u where u.auth_user_id = (select auth.uid())));
 create policy feedback_select_own on public.feedback for select to authenticated
   using (user_id in (select u.id from public.users u where u.auth_user_id = (select auth.uid())));
+
+-- ---------- Storage: poze de profil ----------
+-- Bucket privat; doar backend-ul (service_role) scrie și citește. storage.objects are RLS activ, fără politici
+-- pentru anon/authenticated, iar clientul primește linkuri semnate, temporare.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', false, 2097152, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;

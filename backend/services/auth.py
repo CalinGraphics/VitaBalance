@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional
 import httpx
 
 from config import get_settings
-from repositories.supabase_client import get_supabase_client
+from repositories.supabase_client import get_supabase_client, service_role_headers
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +56,7 @@ def _service_key() -> str:
 
 
 def _service_headers() -> Dict[str, str]:
-    key = _service_key()
-    headers = {"apikey": key}
-    # Cheile vechi (JWT service_role) merg și în Authorization; cele noi `sb_secret_...` doar în apikey.
-    if key.count(".") == 2:
-        headers["Authorization"] = f"Bearer {key}"
-    return headers
+    return service_role_headers(_service_key())
 
 
 def _request(method: str, path: str, *, json: Optional[dict] = None, headers: Optional[dict] = None) -> httpx.Response:

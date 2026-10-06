@@ -1,7 +1,8 @@
 import React, { ReactNode } from 'react';
 import { FlaskConical, LayoutDashboard, LogOut, User, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Route } from '../../types';
+import type { AuthUser, Route } from '../../types';
+import Avatar from '../ui/Avatar';
 import LanguageSwitcher from './LanguageSwitcher';
 
 interface LayoutProps {
@@ -12,6 +13,8 @@ interface LayoutProps {
   showNav?: boolean;
   onNavigate?: (route: Route) => void;
   onLogout?: () => void;
+  /** Utilizatorul autentificat: numele și poza apar în antet. */
+  user?: AuthUser | null;
 }
 
 interface NavItem {
@@ -26,7 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { route: 'edit-profile', labelKey: 'nav.profile', Icon: User },
 ];
 
-const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNavigate, onLogout }) => {
+const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNavigate, onLogout, user }) => {
   const { t } = useTranslation();
   const navigable = showNav && !!onNavigate;
 
@@ -72,6 +75,25 @@ const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNav
 
           <div className="ml-auto flex items-center gap-2">
             <LanguageSwitcher />
+            {user &&
+              (navigable ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.('edit-profile')}
+                  aria-label={t('nav.account', { name: user.fullName || user.email })}
+                  title={user.fullName || user.email}
+                  className="flex min-h-[40px] min-w-[40px] cursor-pointer items-center justify-center rounded-full transition-opacity hover:opacity-85 touch-manipulation"
+                >
+                  <Avatar name={user.fullName || user.email} url={user.avatarUrl} size={34} alt="" />
+                </button>
+              ) : (
+                <Avatar
+                  name={user.fullName || user.email}
+                  url={user.avatarUrl}
+                  size={34}
+                  alt={t('nav.account', { name: user.fullName || user.email })}
+                />
+              ))}
             {navigable && onLogout && (
               <button
                 type="button"

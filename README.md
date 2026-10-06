@@ -57,6 +57,7 @@ a hardened database and a full test suite.
 | 📊 **Charts & PDF export** | Deficit-coverage chart for the top recommendations, optional daily calorie goal tracker, and a one-click PDF report. |
 | 🌍 **Bilingual UI** | Full Romanian / English interface, switchable at any time. |
 | 🔐 **Accounts** | Email + password authentication with Supabase Auth, automatic session refresh, per-user data isolation. |
+| 🖼️ **Profile picture** | Optional photo at sign-up or later; resized to 256 px in the browser and stored in a private Supabase Storage bucket, served through short-lived signed URLs. |
 
 ## 🖼️ Screenshots
 
@@ -129,7 +130,7 @@ flowchart LR
 |---|---|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, react-i18next, pdf.js, @react-pdf/renderer, Axios |
 | **Backend** | Python 3.11, FastAPI, Pydantic v2, httpx, supabase-py |
-| **Data & auth** | Supabase (PostgreSQL 17, Row Level Security, Supabase Auth) |
+| **Data & auth** | Supabase (PostgreSQL 17, Row Level Security, Supabase Auth, Storage) |
 | **Infrastructure** | Vercel (frontend, rewrites, security headers, firewall), Render (API) |
 | **Quality** | pytest / unittest (144 tests), ESLint, TypeScript strict build |
 
@@ -246,6 +247,7 @@ Interactive documentation is available at `/docs` when running locally.
 | `POST` | `/auth/refresh` · `/auth/logout` | Renew or revoke the session |
 | `GET` | `/auth/me` | Current user |
 | `POST` · `GET` | `/profile` · `/profile/by-email/{email}` | Save / read the medical profile |
+| `POST` · `DELETE` | `/profile/avatar` | Upload / remove the profile picture (JPEG, PNG or WebP, max 2 MB) |
 | `POST` · `GET` | `/lab-results` · `/lab-results/{user_id}` | Save / read lab values |
 | `POST` | `/lab-results/extract-from-text` | Parse lab values from report text |
 | `POST` | `/recommendations?lang=en` | Generate (or replace) recommendations |
@@ -260,6 +262,8 @@ Interactive documentation is available at `/docs` when running locally.
 - **Least privilege:** only the backend accesses the database (`service_role`); the `anon` and `authenticated` roles have
   no table grants. Row Level Security is enabled on every table, with owner-only policies kept as defence in depth.
 - **Data isolation:** every protected route checks that the requested resource belongs to the signed-in user.
+- **Private files:** profile pictures live in a private bucket that only the API can access; uploads are
+  validated by their actual content (not the declared type) and the browser only ever gets signed, expiring links.
 - **Legacy profiles** created before password accounts can only be claimed after an administrator approves it, so
   nobody can take over someone else's health data by registering with their email.
 - **Hardening:** rate limiting on authentication and recommendation routes, Vercel Firewall, and security headers

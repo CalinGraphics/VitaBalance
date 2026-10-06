@@ -23,6 +23,9 @@ from domain.schemas import (
 from services.recommendations.recommender import RecommenderService
 from services.nutrition.deficit_calculator import DeficitCalculator
 from services.auth import AuthError, sign_in, sign_out, sign_up, refresh_session
+from services.profile_avatar import AvatarError, remove_avatar, set_avatar
+from repositories import avatar_storage
+from repositories.avatar_storage import AvatarStorageError
 from domain.models import UserProfile
 from repositories import (
     UserRepository,
@@ -116,6 +119,7 @@ def _profile_to_response(p: UserProfile) -> dict:
         "allergies": p.allergies,
         "medical_conditions": p.medical_conditions,
         "caloric_goal": p.caloric_goal,
+        "avatar_url": avatar_storage.signed_url(p.avatar_path),
         "created_at": p.created_at or None,
         "updated_at": getattr(p, "updated_at", None),
     }
@@ -190,6 +194,7 @@ class RefreshRequest(BaseModel):
 class AuthResponse(BaseModel):
     email: str
     fullName: str
+    avatarUrl: Optional[str] = None
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     expires_in: Optional[int] = None
@@ -229,6 +234,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     return AuthResponse(
         email=current_user["email"],
         fullName=full_name,
+        avatarUrl=avatar_storage.signed_url(profile.avatar_path) if profile else None,
     )
 
 
@@ -294,6 +300,8 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
     try:
         repo = UserRepository()
         existing = repo.get_by_email(profile_email)
+        # Numele vine deja de la înregistrare: un câmp lăsat gol nu trebuie să-l șteargă.
+        profile_name = (user.name or "").strip() or (existing.name if existing else "")
         allergies_val = user.allergies or ""
         medical_val = user.medical_conditions or ""
         # Obiectivul caloric e informativ: nu intră în snapshot-ul care declanșează regenerarea.
@@ -322,7 +330,7 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
             snapshot_changed = old_snapshot != new_snapshot
             updated = repo.upsert(
                 profile_email,
-                name=user.name,
+                name=profile_name,
                 age=user.age,
                 sex=user.sex,
                 weight=user.weight,
@@ -339,7 +347,7 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
         else:
             updated = repo.upsert(
                 profile_email,
-                name=user.name,
+                name=profile_name,
                 age=user.age,
                 sex=user.sex,
                 weight=user.weight,
@@ -359,6 +367,35 @@ async def create_profile(user: UserCreate, current_user: dict = Depends(get_curr
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Eroare la salvarea profilului: {str(e)}")
+
+
+class AvatarUpload(BaseModel):
+    image: str  # data URL (imaginea e micșorată în browser înainte de trimitere)
+
+
+def _own_profile(current_user: dict) -> UserProfile:
+    profile = UserRepository().get_by_email(current_user["email"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profilul nu a fost găsit")
+    return profile
+
+
+@app.post("/api/profile/avatar")
+def upload_avatar(body: AvatarUpload, current_user: dict = Depends(get_current_user)):
+    profile = _own_profile(current_user)
+    try:
+        url = set_avatar(profile, body.image)
+    except AvatarError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except AvatarStorageError:
+        raise HTTPException(status_code=502, detail="Poza nu a putut fi salvată. Încearcă din nou.")
+    return {"avatar_url": url}
+
+
+@app.delete("/api/profile/avatar", status_code=204)
+def delete_avatar(current_user: dict = Depends(get_current_user)):
+    remove_avatar(_own_profile(current_user))
+    return Response(status_code=204)
 
 
 @app.get("/api/profile/{user_id}", response_model=UserResponse)

@@ -27,6 +27,8 @@ class UserProfile:
     updated_at: Optional[datetime] = None
     # Obiectiv caloric zilnic (kcal), opțional. Strict informativ: NU este citit de recommender/rule_engine.
     caloric_goal: Optional[float] = None
+    # Calea pozei de profil în bucket-ul privat `avatars` (migrarea 010); None = fără poză.
+    avatar_path: Optional[str] = None
 
 
 @dataclass
@@ -146,6 +148,7 @@ def row_to_user(row: dict) -> UserProfile:
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),
         caloric_goal=_num(row.get("caloric_goal"), 0) or None,
+        avatar_path=row.get("avatar_path") or None,
     )
 
 
