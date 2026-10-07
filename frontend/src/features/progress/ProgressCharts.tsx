@@ -36,7 +36,7 @@ function MiniChart({ title, points, low, unit, lang, minLabel }: {
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="day" stroke={GRID} tick={{ fill: AXIS_TEXT, fontSize: 11 }} />
             <YAxis domain={[Math.max(0, min - pad), max + pad]} stroke={GRID} tick={{ fill: AXIS_TEXT, fontSize: 11 }}
-              width={44} tickFormatter={(v: number) => String(Math.round(v * 10) / 10)} />
+              width={44} tickFormatter={(v: number) => new Intl.NumberFormat(lang === 'en' ? 'en-GB' : 'ro-RO', { maximumFractionDigits: 1 }).format(v)} />
             <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: ACCENT }}
               formatter={(v: number) => [`${v} ${unit ?? ''}`.trim(), title]} />
             {low != null && <ReferenceLine y={low} stroke={WARN} strokeDasharray="4 4" />}
