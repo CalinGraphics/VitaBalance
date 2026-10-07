@@ -118,6 +118,11 @@ RULES: Tuple[Rule, ...] = (
     Rule("gout_limit_purines", _has("gout"), "ACR 2020 gout guideline",
          excludes=lambda f: f.category_key in ("offal", "shellfish"),
          penalty=lambda f: 0.6 if f.category_key == "meat" else 1.0),
+    # --- Afecțiuni tiroidiene ---
+    # NIH ODS, „Iodine – Health Professional Fact Sheet” (2024): la persoanele cu boli tiroidiene (ex. tiroidită
+    # autoimună) excesul de iod poate produce disfuncție tiroidiană. Nu creștem activ iodul; decizia e a medicului.
+    Rule("thyroid_no_iodine_boost", _has("thyroid"), "NIH ODS 2024 Iodine fact sheet",
+         no_target=frozenset({"iodine"})),
     # --- Colesterol ridicat / boli cardiovasculare ---
     # ESC Guidelines on cardiovascular disease prevention, Eur Heart J 2021;42:3227: limitarea cărnii procesate.
     Rule("cardiovascular_no_processed_meat", _has("cardiovascular"), "ESC 2021 CVD prevention guideline",

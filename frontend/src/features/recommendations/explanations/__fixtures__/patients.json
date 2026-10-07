@@ -55,7 +55,8 @@
     },
     "safety_rules": [],
     "flags": [],
-    "alternatives": []
+    "alternatives": [],
+    "inputs_hash": "a903e87c09265d79dd264a3d"
    },
    "alternatives": [],
    "legacy": null,
@@ -141,7 +142,8 @@
      1078,
      1068,
      1073
-    ]
+    ],
+    "inputs_hash": "a903e87c09265d79dd264a3d"
    },
    "alternatives": [
     {
@@ -245,7 +247,8 @@
      1071,
      1068,
      1073
-    ]
+    ],
+    "inputs_hash": "a903e87c09265d79dd264a3d"
    },
    "alternatives": [
     {
@@ -347,7 +350,8 @@
      1071,
      1078,
      1073
-    ]
+    ],
+    "inputs_hash": "a903e87c09265d79dd264a3d"
    },
    "alternatives": [
     {
@@ -434,7 +438,8 @@
      1029,
      1026,
      1032
-    ]
+    ],
+    "inputs_hash": "a903e87c09265d79dd264a3d"
    },
    "alternatives": [
     {
@@ -517,7 +522,8 @@
     },
     "safety_rules": [],
     "flags": [],
-    "alternatives": []
+    "alternatives": [],
+    "inputs_hash": "88975509a0c49b38e621ef61"
    },
    "alternatives": [],
    "legacy": null,
@@ -587,7 +593,8 @@
     "alternatives": [
      1026,
      1029
-    ]
+    ],
+    "inputs_hash": "88975509a0c49b38e621ef61"
    },
    "alternatives": [
     {
@@ -668,7 +675,8 @@
     "alternatives": [
      1027,
      1029
-    ]
+    ],
+    "inputs_hash": "88975509a0c49b38e621ef61"
    },
    "alternatives": [
     {
@@ -749,7 +757,8 @@
     "alternatives": [
      1027,
      1026
-    ]
+    ],
+    "inputs_hash": "88975509a0c49b38e621ef61"
    },
    "alternatives": [
     {
@@ -829,7 +838,8 @@
      1017,
      1022,
      1021
-    ]
+    ],
+    "inputs_hash": "88975509a0c49b38e621ef61"
    },
    "alternatives": [
     {
@@ -919,7 +929,8 @@
      "pregnancy_immuno_no_soft_mould_cheese"
     ],
     "flags": [],
-    "alternatives": []
+    "alternatives": [],
+    "inputs_hash": "7b2c63e299afc075d687d5fb"
    },
    "alternatives": [],
    "legacy": null,
@@ -995,7 +1006,8 @@
      1068,
      1073,
      1072
-    ]
+    ],
+    "inputs_hash": "7b2c63e299afc075d687d5fb"
    },
    "alternatives": [
     {
@@ -1085,7 +1097,8 @@
     "flags": [],
     "alternatives": [
      1109
-    ]
+    ],
+    "inputs_hash": "7b2c63e299afc075d687d5fb"
    },
    "alternatives": [
     {
@@ -1167,7 +1180,8 @@
      1071,
      1073,
      1072
-    ]
+    ],
+    "inputs_hash": "7b2c63e299afc075d687d5fb"
    },
    "alternatives": [
     {
@@ -1257,7 +1271,8 @@
     "flags": [],
     "alternatives": [
      1110
-    ]
+    ],
+    "inputs_hash": "7b2c63e299afc075d687d5fb"
    },
    "alternatives": [
     {
@@ -1355,7 +1370,8 @@
      1078,
      1068,
      1073
-    ]
+    ],
+    "inputs_hash": "5c3529175aeb18017228d101"
    },
    "alternatives": [
     {
@@ -1440,7 +1456,8 @@
      "anticoagulant_steady_vitamin_k"
     ],
     "flags": [],
-    "alternatives": []
+    "alternatives": [],
+    "inputs_hash": "5c3529175aeb18017228d101"
    },
    "alternatives": [],
    "legacy": null,
@@ -1532,7 +1549,8 @@
      1071,
      1068,
      1073
-    ]
+    ],
+    "inputs_hash": "5c3529175aeb18017228d101"
    },
    "alternatives": [
     {
@@ -1638,7 +1656,8 @@
      1071,
      1078,
      1073
-    ]
+    ],
+    "inputs_hash": "5c3529175aeb18017228d101"
    },
    "alternatives": [
     {
@@ -1742,7 +1761,8 @@
     "flags": [],
     "alternatives": [
      1110
-    ]
+    ],
+    "inputs_hash": "5c3529175aeb18017228d101"
    },
    "alternatives": [
     {
@@ -1833,7 +1853,8 @@
      "ckd_limit_phosphorus"
     ],
     "flags": [],
-    "alternatives": []
+    "alternatives": [],
+    "inputs_hash": "33bfb055f6198466ff24efd4"
    },
    "alternatives": [],
    "legacy": null,
@@ -1918,7 +1939,8 @@
     "flags": [],
     "alternatives": [
      1031
-    ]
+    ],
+    "inputs_hash": "33bfb055f6198466ff24efd4"
    },
    "alternatives": [
     {
@@ -2009,7 +2031,8 @@
     "flags": [],
     "alternatives": [
      1040
-    ]
+    ],
+    "inputs_hash": "33bfb055f6198466ff24efd4"
    },
    "alternatives": [
     {
@@ -2100,7 +2123,8 @@
     "flags": [],
     "alternatives": [
      1038
-    ]
+    ],
+    "inputs_hash": "33bfb055f6198466ff24efd4"
    },
    "alternatives": [
     {
@@ -2182,7 +2206,8 @@
     "alternatives": [
      1038,
      1040
-    ]
+    ],
+    "inputs_hash": "33bfb055f6198466ff24efd4"
    },
    "alternatives": [
     {
@@ -2279,7 +2304,8 @@
      1027,
      1030,
      1028
-    ]
+    ],
+    "inputs_hash": "e98ccd2e24138242ccdcde22"
    },
    "alternatives": [
     {
@@ -2379,7 +2405,8 @@
      1026,
      1029,
      1030
-    ]
+    ],
+    "inputs_hash": "e98ccd2e24138242ccdcde22"
    },
    "alternatives": [
     {
@@ -2479,7 +2506,8 @@
      1026,
      1027,
      1030
-    ]
+    ],
+    "inputs_hash": "e98ccd2e24138242ccdcde22"
    },
    "alternatives": [
     {
@@ -2577,7 +2605,8 @@
     ],
     "alternatives": [
      1091
-    ]
+    ],
+    "inputs_hash": "e98ccd2e24138242ccdcde22"
    },
    "alternatives": [
     {
@@ -2665,7 +2694,8 @@
      1037,
      1034,
      1038
-    ]
+    ],
+    "inputs_hash": "e98ccd2e24138242ccdcde22"
    },
    "alternatives": [
     {
@@ -2682,6 +2712,426 @@
      "id": 1038,
      "name_ro": "Varză albă",
      "name_en": "White cabbage"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  }
+ ],
+ "p7_iodine_deficit": [
+  {
+   "food_id": 1075,
+   "recommendation_id": 1,
+   "food": {
+    "id": 1075,
+    "name_ro": "Cod gătit",
+    "name_en": "Cod, cooked",
+    "category": "Pește",
+    "category_key": "fish",
+    "calories": 105.0
+   },
+   "score": 1.0,
+   "coverage": 100.0,
+   "facts": {
+    "v": 4,
+    "food_id": 1075,
+    "food_key": "cod",
+    "category": "fish",
+    "animal": "fish",
+    "portion": {
+     "amount": 130,
+     "unit": "g",
+     "label_ro": "o bucată (130 g)",
+     "label_en": "a fillet (130 g)"
+    },
+    "kcal_portion": 136,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iodine",
+      "amount": 223.73,
+      "per100": 172.1,
+      "daily_reference": 150.0,
+      "pct": 100,
+      "need": {
+       "nutrient": "iodine",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 150.0,
+       "marker": "iodine",
+       "value": 60.0,
+       "threshold": 100.0,
+       "unit": "µg/L"
+      }
+     }
+    ],
+    "primary": "iodine",
+    "coverage_pct": 100.0,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1069,
+     1068
+    ],
+    "inputs_hash": "abe9589401cddad90aac532b"
+   },
+   "alternatives": [
+    {
+     "id": 1069,
+     "name_ro": "Somon sălbatic, gătit",
+     "name_en": "Wild salmon, cooked"
+    },
+    {
+     "id": 1068,
+     "name_ro": "Somon de crescătorie, gătit",
+     "name_en": "Farmed salmon, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1100,
+   "recommendation_id": 2,
+   "food": {
+    "id": 1100,
+    "name_ro": "Iaurt grecesc degresat",
+    "name_en": "Nonfat Greek yogurt",
+    "category": "Lactate",
+    "category_key": "dairy",
+    "calories": 59.0
+   },
+   "score": 0.578531,
+   "coverage": 51.2,
+   "facts": {
+    "v": 4,
+    "food_id": 1100,
+    "food_key": "yogurt_greek",
+    "category": "dairy",
+    "animal": "dairy",
+    "portion": {
+     "amount": 150,
+     "unit": "g",
+     "label_ro": "un pahar (150 g)",
+     "label_en": "a pot (150 g)"
+    },
+    "kcal_portion": 88,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iodine",
+      "amount": 76.8,
+      "per100": 51.2,
+      "daily_reference": 150.0,
+      "pct": 51,
+      "need": {
+       "nutrient": "iodine",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 150.0,
+       "marker": "iodine",
+       "value": 60.0,
+       "threshold": 100.0,
+       "unit": "µg/L"
+      }
+     }
+    ],
+    "primary": "iodine",
+    "coverage_pct": 51.2,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1098,
+     1097,
+     1099
+    ],
+    "inputs_hash": "abe9589401cddad90aac532b"
+   },
+   "alternatives": [
+    {
+     "id": 1098,
+     "name_ro": "Lapte 2% grăsime (nefortificat)",
+     "name_en": "2% milk (unfortified)"
+    },
+    {
+     "id": 1097,
+     "name_ro": "Lapte integral (nefortificat)",
+     "name_en": "Whole milk (unfortified)"
+    },
+    {
+     "id": 1099,
+     "name_ro": "Iaurt natural din lapte integral",
+     "name_en": "Plain whole-milk yogurt"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1098,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1098,
+    "name_ro": "Lapte 2% grăsime (nefortificat)",
+    "name_en": "2% milk (unfortified)",
+    "category": "Lactate",
+    "category_key": "dairy",
+    "calories": 50.0
+   },
+   "score": 0.477333,
+   "coverage": 59.7,
+   "facts": {
+    "v": 4,
+    "food_id": 1098,
+    "food_key": "milk_semi",
+    "category": "dairy",
+    "animal": "dairy",
+    "portion": {
+     "amount": 250,
+     "unit": "ml",
+     "label_ro": "un pahar (250 ml)",
+     "label_en": "a glass (250 ml)"
+    },
+    "kcal_portion": 125,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iodine",
+      "amount": 89.5,
+      "per100": 35.8,
+      "daily_reference": 150.0,
+      "pct": 60,
+      "need": {
+       "nutrient": "iodine",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 150.0,
+       "marker": "iodine",
+       "value": 60.0,
+       "threshold": 100.0,
+       "unit": "µg/L"
+      }
+     }
+    ],
+    "primary": "iodine",
+    "coverage_pct": 59.7,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1100,
+     1097,
+     1099
+    ],
+    "inputs_hash": "abe9589401cddad90aac532b"
+   },
+   "alternatives": [
+    {
+     "id": 1100,
+     "name_ro": "Iaurt grecesc degresat",
+     "name_en": "Nonfat Greek yogurt"
+    },
+    {
+     "id": 1097,
+     "name_ro": "Lapte integral (nefortificat)",
+     "name_en": "Whole milk (unfortified)"
+    },
+    {
+     "id": 1099,
+     "name_ro": "Iaurt natural din lapte integral",
+     "name_en": "Plain whole-milk yogurt"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1097,
+   "recommendation_id": 4,
+   "food": {
+    "id": 1097,
+    "name_ro": "Lapte integral (nefortificat)",
+    "name_en": "Whole milk (unfortified)",
+    "category": "Lactate",
+    "category_key": "dairy",
+    "calories": 61.0
+   },
+   "score": 0.36612,
+   "coverage": 55.8,
+   "facts": {
+    "v": 4,
+    "food_id": 1097,
+    "food_key": "milk_whole",
+    "category": "dairy",
+    "animal": "dairy",
+    "portion": {
+     "amount": 250,
+     "unit": "ml",
+     "label_ro": "un pahar (250 ml)",
+     "label_en": "a glass (250 ml)"
+    },
+    "kcal_portion": 152,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iodine",
+      "amount": 83.75,
+      "per100": 33.5,
+      "daily_reference": 150.0,
+      "pct": 56,
+      "need": {
+       "nutrient": "iodine",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 150.0,
+       "marker": "iodine",
+       "value": 60.0,
+       "threshold": 100.0,
+       "unit": "µg/L"
+      }
+     }
+    ],
+    "primary": "iodine",
+    "coverage_pct": 55.8,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1100,
+     1098,
+     1099
+    ],
+    "inputs_hash": "abe9589401cddad90aac532b"
+   },
+   "alternatives": [
+    {
+     "id": 1100,
+     "name_ro": "Iaurt grecesc degresat",
+     "name_en": "Nonfat Greek yogurt"
+    },
+    {
+     "id": 1098,
+     "name_ro": "Lapte 2% grăsime (nefortificat)",
+     "name_en": "2% milk (unfortified)"
+    },
+    {
+     "id": 1099,
+     "name_ro": "Iaurt natural din lapte integral",
+     "name_en": "Plain whole-milk yogurt"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1102,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1102,
+    "name_ro": "Ricotta semidegresată",
+    "name_en": "Part-skim ricotta",
+    "category": "Brânzeturi",
+    "category_key": "cheese",
+    "calories": 138.0
+   },
+   "score": 0.318841,
+   "coverage": 26.4,
+   "facts": {
+    "v": 4,
+    "food_id": 1102,
+    "food_key": "ricotta",
+    "category": "cheese",
+    "animal": "dairy",
+    "portion": {
+     "amount": 60,
+     "unit": "g",
+     "label_ro": "o porție (60 g)",
+     "label_en": "a serving (60 g)"
+    },
+    "kcal_portion": 83,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iodine",
+      "amount": 39.6,
+      "per100": 66.0,
+      "daily_reference": 150.0,
+      "pct": 26,
+      "need": {
+       "nutrient": "iodine",
+       "source": "lab",
+       "severity": "mild",
+       "daily_reference": 150.0,
+       "marker": "iodine",
+       "value": 60.0,
+       "threshold": 100.0,
+       "unit": "µg/L"
+      }
+     }
+    ],
+    "primary": "iodine",
+    "coverage_pct": 26.4,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "flags": [],
+    "alternatives": [
+     1101,
+     1104
+    ],
+    "inputs_hash": "abe9589401cddad90aac532b"
+   },
+   "alternatives": [
+    {
+     "id": 1101,
+     "name_ro": "Brânză de vaci 2%",
+     "name_en": "Cottage cheese 2%"
+    },
+    {
+     "id": 1104,
+     "name_ro": "Mozzarella semidegresată",
+     "name_en": "Part-skim mozzarella"
     }
    ],
    "legacy": null,

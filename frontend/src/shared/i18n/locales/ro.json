@@ -643,7 +643,8 @@
       "vitamin_k_anticoagulant": "Dacă iei warfarină sau acenocumarol, mănâncă aproximativ aceeași cantitate de verdețuri în fiecare zi.",
       "zinc": "Înmoaie leguminoasele câteva ore înainte de fiert: zincul se absoarbe mai bine.",
       "folate": "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
-      "vitamin_c": "Vitamina C se pierde la căldură: crud sau gătit scurt e cel mai bine."
+      "vitamin_c": "Vitamina C se pierde la căldură: crud sau gătit scurt e cel mai bine.",
+      "iodine": "Când gătești, folosește sare iodată, dar puțină: chiar și o cantitate mică aduce iod."
     },
     "warning": {
       "pregnancy_cooked": "Dacă ești însărcinată, mănâncă-l doar bine gătit.",
@@ -700,6 +701,10 @@
       "cardiovascular": {
         "label": "colesterolul ridicat",
         "restriction": "fără mezeluri"
+      },
+      "thyroid": {
+        "label": "afecțiunea tiroidiană",
+        "restriction": "nu creștem singuri aportul de iod; asta se decide cu medicul"
       }
     },
     "sources": "Surse: {list}"

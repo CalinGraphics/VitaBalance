@@ -638,7 +638,8 @@
       "vitamin_k_anticoagulant": "If you take warfarin or acenocoumarol, eat about the same amount of leafy greens every day.",
       "zinc": "Soak legumes for a few hours before cooking: zinc is absorbed better.",
       "folate": "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
-      "vitamin_c": "Vitamin C is lost with heat: raw or briefly cooked is best."
+      "vitamin_c": "Vitamin C is lost with heat: raw or briefly cooked is best.",
+      "iodine": "When you cook, use iodised salt, but only a little: even a small amount provides iodine."
     },
     "warning": {
       "pregnancy_cooked": "If you are pregnant, eat it only when well cooked.",
@@ -695,6 +696,10 @@
       "cardiovascular": {
         "label": "high cholesterol",
         "restriction": "no processed meat"
+      },
+      "thyroid": {
+        "label": "your thyroid condition",
+        "restriction": "we do not raise iodine on our own; that is for your doctor to decide"
       }
     },
     "sources": "Sources: {list}"

@@ -33,7 +33,14 @@ def test_atwater_formula_and_tolerance():
 
 def test_missing_values_stay_null_never_zero():
     raw = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
-    assert all(e["per100g"]["iodine"] is None for e in raw)  # SR Legacy nu are iod
+    # SR Legacy nu are iod: valorile vin doar din baza de iod USDA/FDA/NIH (data/iodine_values.py), cu sursa notată
+    from data.iodine_values import IODINE_PER_100G
+    for e in raw:
+        if e["key"] in IODINE_PER_100G:
+            assert e["per100g"]["iodine"] == IODINE_PER_100G[e["key"]][2]
+            assert any(n.startswith("iodine: usda_fda_ods_iodine_r4_2024") for n in e["notes"])
+        else:
+            assert e["per100g"]["iodine"] is None, e["key"]
     assert food("salmon_wild").vitamin_d is None             # lipsă în USDA -> null, nu 0
     # Fortificarea obligatorie din SUA nu se aplică în România: fier/folat omise
     assert food("bagel").iron is None and food("bagel").folate is None

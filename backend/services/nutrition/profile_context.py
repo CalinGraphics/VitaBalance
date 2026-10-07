@@ -29,6 +29,7 @@ CONDITION_CODES = {
     "celiachie": "celiac",
     "gout": "gout",
     "colesterol_ridicat": "cardiovascular",
+    "tiroida": "thyroid",
     "boli_cardiovasculare": "cardiovascular",
 }
 
@@ -45,6 +46,7 @@ TEXT_PATTERNS = {
     "celiac": r"\b(celiachie|boala celiaca|celiac)\b",
     "gout": r"\b(guta|gout|hiperuricemi\w*)\b",
     "cardiovascular": r"\b(colesterol (ridicat|mare|marit)|hipercolesterolemi\w*|dislipidemi\w*|boli cardiovasculare)\b",
+    "thyroid": r"\b(tiroid\w*|hipotiroid\w*|hipertiroid\w*|hashimoto|graves|thyroid\w*)\b",
 }
 
 

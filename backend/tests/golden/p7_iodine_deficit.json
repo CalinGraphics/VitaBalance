@@ -1,0 +1,13 @@
+{
+  "id": "p7_iodine_deficit",
+  "description": "Femeie, 30 ani, omnivoră, iod urinar 60 µg/L",
+  "user": {"id": 7, "email": "p7@golden.test", "name": "P7", "age": 30, "sex": "F", "weight": 62, "height": 166,
+           "activity_level": "moderate", "diet_type": "omnivore", "allergies": "", "medical_conditions": ""},
+  "labs": {"iodine": 60},
+  "expect": {
+    "needs": {"iodine": "mild"},
+    "must_include_any": [["cod"], ["yogurt_greek", "yogurt_plain", "milk_whole", "milk_semi", "cottage_cheese"], ["egg_boiled"]],
+    "must_not_include": ["bagel", "croutons", "white_bread"],
+    "top3_categories_subset_of": ["fish", "dairy", "eggs", "cheese", "shellfish"]
+  }
+}

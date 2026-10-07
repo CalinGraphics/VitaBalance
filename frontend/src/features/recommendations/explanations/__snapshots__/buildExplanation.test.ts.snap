@@ -1667,3 +1667,274 @@ exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-ti
   },
 ]
 `;
+
+exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-tip > p7_iodine_deficit 1`] = `
+[
+  {
+    "en": {
+      "alternatives": [
+        "Wild salmon, cooked",
+        "Farmed salmon, cooked",
+      ],
+      "nutrients": [
+        "A fillet (130 g) covers all of your daily iodine needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Cod, cooked: helps you cover your iodine needs.",
+        "Your urinary iodine is 60 µg/L, below the minimum of 100 µg/L. That is slightly below the limit.",
+      ],
+      "tips": [
+        "When you cook, use iodised salt, but only a little: even a small amount provides iodine.",
+        "Baked or grilled, with vegetables on the side.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodine helps your thyroid make hormones normally.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Somon sălbatic, gătit",
+        "Somon de crescătorie, gătit",
+      ],
+      "nutrients": [
+        "O bucată (130 g) acoperă tot necesarul tău zilnic de iod.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Cod gătit: te ajută să-ți acoperi necesarul de iod.",
+        "Iodul din urină îți e 60 µg/L, sub minimul de 100 µg/L. E puțin sub limită.",
+      ],
+      "tips": [
+        "Când gătești, folosește sare iodată, dar puțină: chiar și o cantitate mică aduce iod.",
+        "La cuptor sau la grătar, cu legume alături.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodul ajută la producția normală de hormoni tiroidieni.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "2% milk (unfortified)",
+        "Whole milk (unfortified)",
+        "Plain whole-milk yogurt",
+      ],
+      "nutrients": [
+        "A pot (150 g) covers about 51% of your daily iodine needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Nonfat Greek yogurt: helps you cover your iodine needs.",
+        "Your urinary iodine is 60 µg/L, below the minimum of 100 µg/L. That is slightly below the limit.",
+      ],
+      "tips": [
+        "When you cook, use iodised salt, but only a little: even a small amount provides iodine.",
+        "At breakfast or as a snack.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodine helps your thyroid make hormones normally.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Lapte 2% grăsime (nefortificat)",
+        "Lapte integral (nefortificat)",
+        "Iaurt natural din lapte integral",
+      ],
+      "nutrients": [
+        "Un pahar (150 g) acoperă aproximativ 51% din necesarul tău zilnic de iod.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Iaurt grecesc degresat: te ajută să-ți acoperi necesarul de iod.",
+        "Iodul din urină îți e 60 µg/L, sub minimul de 100 µg/L. E puțin sub limită.",
+      ],
+      "tips": [
+        "Când gătești, folosește sare iodată, dar puțină: chiar și o cantitate mică aduce iod.",
+        "La micul dejun sau ca gustare.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodul ajută la producția normală de hormoni tiroidieni.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Nonfat Greek yogurt",
+        "Whole milk (unfortified)",
+        "Plain whole-milk yogurt",
+      ],
+      "nutrients": [
+        "A glass (250 ml) covers about 60% of your daily iodine needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "2% milk (unfortified): helps you cover your iodine needs.",
+        "Your urinary iodine is 60 µg/L, below the minimum of 100 µg/L. That is slightly below the limit.",
+      ],
+      "tips": [
+        "When you cook, use iodised salt, but only a little: even a small amount provides iodine.",
+        "At breakfast or as a snack.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodine helps your thyroid make hormones normally.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Iaurt grecesc degresat",
+        "Lapte integral (nefortificat)",
+        "Iaurt natural din lapte integral",
+      ],
+      "nutrients": [
+        "Un pahar (250 ml) acoperă aproximativ 60% din necesarul tău zilnic de iod.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Lapte 2% grăsime (nefortificat): te ajută să-ți acoperi necesarul de iod.",
+        "Iodul din urină îți e 60 µg/L, sub minimul de 100 µg/L. E puțin sub limită.",
+      ],
+      "tips": [
+        "Când gătești, folosește sare iodată, dar puțină: chiar și o cantitate mică aduce iod.",
+        "La micul dejun sau ca gustare.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodul ajută la producția normală de hormoni tiroidieni.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Nonfat Greek yogurt",
+        "2% milk (unfortified)",
+        "Plain whole-milk yogurt",
+      ],
+      "nutrients": [
+        "A glass (250 ml) covers about 56% of your daily iodine needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Whole milk (unfortified): helps you cover your iodine needs.",
+        "Your urinary iodine is 60 µg/L, below the minimum of 100 µg/L. That is slightly below the limit.",
+      ],
+      "tips": [
+        "When you cook, use iodised salt, but only a little: even a small amount provides iodine.",
+        "At breakfast or as a snack.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodine helps your thyroid make hormones normally.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Iaurt grecesc degresat",
+        "Lapte 2% grăsime (nefortificat)",
+        "Iaurt natural din lapte integral",
+      ],
+      "nutrients": [
+        "Un pahar (250 ml) acoperă aproximativ 56% din necesarul tău zilnic de iod.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Lapte integral (nefortificat): te ajută să-ți acoperi necesarul de iod.",
+        "Iodul din urină îți e 60 µg/L, sub minimul de 100 µg/L. E puțin sub limită.",
+      ],
+      "tips": [
+        "Când gătești, folosește sare iodată, dar puțină: chiar și o cantitate mică aduce iod.",
+        "La micul dejun sau ca gustare.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodul ajută la producția normală de hormoni tiroidieni.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Cottage cheese 2%",
+        "Part-skim mozzarella",
+      ],
+      "nutrients": [
+        "A serving (60 g) covers about 26% of your daily iodine needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Part-skim ricotta: helps you cover your iodine needs.",
+        "Your urinary iodine is 60 µg/L, below the minimum of 100 µg/L. That is slightly below the limit.",
+      ],
+      "tips": [
+        "When you cook, use iodised salt, but only a little: even a small amount provides iodine.",
+        "A small portion on a slice of wholegrain bread or in a salad.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodine helps your thyroid make hormones normally.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Brânză de vaci 2%",
+        "Mozzarella semidegresată",
+      ],
+      "nutrients": [
+        "O porție (60 g) acoperă aproximativ 26% din necesarul tău zilnic de iod.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "WHO 2014, Salt reduction and iodine fortification strategies in public health",
+      ],
+      "summary": [
+        "Ricotta semidegresată: te ajută să-ți acoperi necesarul de iod.",
+        "Iodul din urină îți e 60 µg/L, sub minimul de 100 µg/L. E puțin sub limită.",
+      ],
+      "tips": [
+        "Când gătești, folosește sare iodată, dar puțină: chiar și o cantitate mică aduce iod.",
+        "O porție mică pe o felie de pâine integrală sau într-o salată.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iodul ajută la producția normală de hormoni tiroidieni.",
+      ],
+    },
+  },
+]
+`;

@@ -19,10 +19,12 @@ BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
 from data.food_catalog_spec import CATEGORIES, FOODS  # noqa: E402
+from data.iodine_values import IODINE_PER_100G, IODINE_SOURCE  # noqa: E402
 from services.nutrition.food_validation import validate_per_100g  # noqa: E402
 
 CATALOG_PATH = BACKEND / "data" / "foods_catalog.json"
 SQL_PATH = BACKEND / "migrations" / "012_seed_validated_foods.sql"
+IODINE_SQL_PATH = BACKEND / "migrations" / "014_iodine_values.sql"
 
 # id nutrient USDA -> coloană în `foods` (unitatea USDA = unitatea coloanei)
 USDA_NUTRIENTS = {
@@ -90,6 +92,10 @@ def build(sr_dir: Path) -> list[dict]:
             for col in US_ENRICHMENT_NUTRIENTS:
                 per100[col] = None
             notes.append("iron/folate omise: fortificare obligatorie SUA")
+        if spec.key in IODINE_PER_100G:
+            db_id, description, value, n = IODINE_PER_100G[spec.key]
+            per100["iodine"] = value
+            notes.append(f"iodine: {IODINE_SOURCE} DB_ID {db_id} ({description}, n={n})")
         check = validate_per_100g(per100)
         catalog.append({
             "key": spec.key,
@@ -148,10 +154,25 @@ def to_sql(catalog: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def iodine_sql() -> str:
+    """Migrarea 014: doar valorile de iod (catalogul 012 era deja aplicat). Idempotentă."""
+    lines = [
+        "-- 014: iodul din alimentele catalogului validat (generat de scripts/build_food_catalog.py --sql-iodine).",
+        "-- Sursa: USDA, FDA and ODS-NIH Database for the Iodine Content of Common Foods, Release 4.0 (2024),",
+        "-- µg / 100 g; maparea și motivele sunt în data/iodine_values.py. Alimentele nemapate rămân cu iod NULL.",
+        "begin;",
+    ]
+    for key, (db_id, description, value, n) in IODINE_PER_100G.items():
+        lines.append(f"update public.foods set iodine = {value!r} where food_key = '{key}';  -- DB_ID {db_id}, n={n}")
+    lines.append("commit;")
+    return "\n".join(lines) + "\n"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sr", type=Path, help="directorul SR Legacy dezarhivat")
     ap.add_argument("--sql", action="store_true", help="scrie și migrarea de seed din catalogul JSON existent")
+    ap.add_argument("--sql-iodine", action="store_true", help="scrie migrarea 014 cu valorile de iod")
     args = ap.parse_args()
     if args.sr:
         catalog = build(args.sr)
@@ -164,6 +185,9 @@ def main() -> None:
         catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
         SQL_PATH.write_text(to_sql(catalog), encoding="utf-8")
         print(f"scris {SQL_PATH}")
+    if args.sql_iodine:
+        IODINE_SQL_PATH.write_text(iodine_sql(), encoding="utf-8")
+        print(f"scris {IODINE_SQL_PATH}")
 
 
 if __name__ == "__main__":

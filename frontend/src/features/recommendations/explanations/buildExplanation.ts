@@ -40,6 +40,7 @@ export const TIP_SOURCES: Record<string, string> = {
   zinc: 'Gibson 2010, Food Nutr Bull 31:S134',
   folate: 'McKillop 2002, Br J Nutr 88:681',
   vitamin_c: 'Lee & Kader 2000, Postharvest Biol Technol 20:207',
+  iodine: 'WHO 2014, Salt reduction and iodine fortification strategies in public health',
 }
 export const WARNING_SOURCES: Record<string, string> = {
   pregnancy_cooked: 'NHS 2023, Foods to avoid in pregnancy',

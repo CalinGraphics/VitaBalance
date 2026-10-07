@@ -30,7 +30,7 @@
    "potassium": 733.0,
    "sodium": 1.0,
    "zinc": 3.12,
-   "iodine": null,
+   "iodine": 0.0,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -43,7 +43,9 @@
    "issues": [],
    "atwater_kcal": 595.2
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 227 (Almonds, shelled, n=3)"
+  ]
  },
  {
   "key": "walnuts",
@@ -799,7 +801,7 @@
    "potassium": 561.0,
    "sodium": 6.0,
    "zinc": 1.38,
-   "iodine": null,
+   "iodine": 0.1,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -812,7 +814,9 @@
    "issues": [],
    "atwater_kcal": 129.8
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 323 (Beans, white, from dry, boiled, n=7)"
+  ]
  },
  {
   "key": "kidney_beans",
@@ -1023,7 +1027,7 @@
    "potassium": 148.0,
    "sodium": 12.0,
    "zinc": 0.83,
-   "iodine": null,
+   "iodine": 0.0,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.2,
@@ -1036,7 +1040,9 @@
    "issues": [],
    "atwater_kcal": 83.3
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 458 (Tofu, firm, plain, drained solids, n=1)"
+  ]
  },
  {
   "key": "tempeh",
@@ -1205,7 +1211,7 @@
    "potassium": 558.0,
    "sodium": 79.0,
    "zinc": 0.53,
-   "iodine": null,
+   "iodine": 6.7,
    "vitamin_a": 469.0,
    "vitamin_d": 0.0,
    "vitamin_c": 28.1,
@@ -1218,7 +1224,9 @@
    "issues": [],
    "atwater_kcal": 25.1
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 206 (Spinach, raw, n=27)"
+  ]
  },
  {
   "key": "spinach_cooked",
@@ -1251,7 +1259,7 @@
    "potassium": 466.0,
    "sodium": 70.0,
    "zinc": 0.76,
-   "iodine": null,
+   "iodine": 3.9,
    "vitamin_a": 524.0,
    "vitamin_d": 0.0,
    "vitamin_c": 9.8,
@@ -1264,7 +1272,9 @@
    "issues": [],
    "atwater_kcal": 24.4
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 1 (Spinach, fresh/frozen, boiled, n=8)"
+  ]
  },
  {
   "key": "kale",
@@ -2311,7 +2321,7 @@
    "potassium": 535.0,
    "sodium": 10.0,
    "zinc": 0.36,
-   "iodine": null,
+   "iodine": 0.5,
    "vitamin_a": 1.0,
    "vitamin_d": 0.0,
    "vitamin_c": 9.6,
@@ -2324,7 +2334,9 @@
    "issues": [],
    "atwater_kcal": 91.4
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 84 (Potato, with peel, baked, n=35)"
+  ]
  },
  {
   "key": "avocado",
@@ -3061,7 +3073,7 @@
    "potassium": 384.0,
    "sodium": 61.0,
    "zinc": 0.43,
-   "iodine": null,
+   "iodine": 12.8,
    "vitamin_a": 69.0,
    "vitamin_d": 13.1,
    "vitamin_c": 3.7,
@@ -3074,7 +3086,9 @@
    "issues": [],
    "atwater_kcal": 199.6
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 158 (Fish, salmon, steaks/fillets, baked, n=35)"
+  ]
  },
  {
   "key": "salmon_wild",
@@ -3107,7 +3121,7 @@
    "potassium": 628.0,
    "sodium": 56.0,
    "zinc": 0.82,
-   "iodine": null,
+   "iodine": 12.8,
    "vitamin_a": 13.0,
    "vitamin_d": null,
    "vitamin_c": 0.0,
@@ -3120,7 +3134,9 @@
    "issues": [],
    "atwater_kcal": 174.9
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 158 (Fish, salmon, steaks/fillets, baked, n=35)"
+  ]
  },
  {
   "key": "salmon_sashimi",
@@ -3155,7 +3171,7 @@
    "potassium": 363.0,
    "sodium": 59.0,
    "zinc": 0.36,
-   "iodine": null,
+   "iodine": 3.2,
    "vitamin_a": 58.0,
    "vitamin_d": 11.0,
    "vitamin_c": 3.9,
@@ -3168,7 +3184,9 @@
    "issues": [],
    "atwater_kcal": 202.5
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 496 (Fish, salmon, Atlantic, farmed, raw, n=8)"
+  ]
  },
  {
   "key": "trout",
@@ -3385,7 +3403,7 @@
    "potassium": 244.0,
    "sodium": 78.0,
    "zinc": 0.58,
-   "iodine": null,
+   "iodine": 172.1,
    "vitamin_a": 14.0,
    "vitamin_d": 1.2,
    "vitamin_c": 1.0,
@@ -3398,7 +3416,9 @@
    "issues": [],
    "atwater_kcal": 99.1
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 186 (Fish, cod, baked, n=28)"
+  ]
  },
  {
   "key": "carp",
@@ -3477,7 +3497,7 @@
    "potassium": 179.0,
    "sodium": 247.0,
    "zinc": 0.69,
-   "iodine": null,
+   "iodine": 8.7,
    "vitamin_a": 17.0,
    "vitamin_d": 1.2,
    "vitamin_c": 0.0,
@@ -3490,7 +3510,9 @@
    "issues": [],
    "atwater_kcal": 86.4
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 166 (Fish, tuna, canned in water, drained, n=15)"
+  ]
  },
  {
   "key": "swordfish",
@@ -3764,7 +3786,7 @@
    "potassium": 628.0,
    "sodium": 1202.0,
    "zinc": 2.73,
-   "iodine": null,
+   "iodine": 66.5,
    "vitamin_a": 171.0,
    "vitamin_d": null,
    "vitamin_c": 22.1,
@@ -3777,7 +3799,9 @@
    "issues": [],
    "atwater_kcal": 140.3
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 392 (Mollusks, clam, mixed species, canned, drained solids, n=4)"
+  ]
  },
  {
   "key": "shrimp",
@@ -3810,7 +3834,7 @@
    "potassium": 259.0,
    "sodium": 111.0,
    "zinc": 1.64,
-   "iodine": null,
+   "iodine": 15.2,
    "vitamin_a": null,
    "vitamin_d": null,
    "vitamin_c": null,
@@ -3823,7 +3847,9 @@
    "issues": [],
    "atwater_kcal": 99.2
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 132 (Crustaceans, shrimp, precooked, shell removed, no tail, n=39)"
+  ]
  },
  {
   "key": "beef_lean",
@@ -3854,7 +3880,7 @@
    "potassium": 369.0,
    "sodium": 61.0,
    "zinc": 5.58,
-   "iodine": null,
+   "iodine": 4.7,
    "vitamin_a": 0.0,
    "vitamin_d": 0.1,
    "vitamin_c": 0.0,
@@ -3867,7 +3893,9 @@
    "issues": [],
    "atwater_kcal": 178.5
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 260 (Beef steak, loin/sirloin, broiled, n=34)"
+  ]
  },
  {
   "key": "beef_ground",
@@ -3898,7 +3926,7 @@
    "potassium": 333.0,
    "sodium": 68.0,
    "zinc": 6.37,
-   "iodine": null,
+   "iodine": 7.5,
    "vitamin_a": 3.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -3911,7 +3939,9 @@
    "issues": [],
    "atwater_kcal": 210.2
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 251 (Beef, ground, pan-cooked, n=35)"
+  ]
  },
  {
   "key": "pork_tenderloin",
@@ -3942,7 +3972,7 @@
    "potassium": 421.0,
    "sodium": 57.0,
    "zinc": 2.42,
-   "iodine": null,
+   "iodine": 0.4,
    "vitamin_a": 0.0,
    "vitamin_d": 0.2,
    "vitamin_c": 0.0,
@@ -3955,7 +3985,9 @@
    "issues": [],
    "atwater_kcal": 136.3
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 333 (Pork roast, loin, oven-roasted, n=7)"
+  ]
  },
  {
   "key": "chicken_breast",
@@ -3986,7 +4018,7 @@
    "potassium": 256.0,
    "sodium": 74.0,
    "zinc": 1.0,
-   "iodine": null,
+   "iodine": 1.2,
    "vitamin_a": 6.0,
    "vitamin_d": 0.1,
    "vitamin_c": 0.0,
@@ -3999,7 +4031,9 @@
    "issues": [],
    "atwater_kcal": 156.2
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 130 (Chicken breast, oven-roasted (skin removed), n=35)"
+  ]
  },
  {
   "key": "chicken_thigh",
@@ -4030,7 +4064,7 @@
    "potassium": 269.0,
    "sodium": 106.0,
    "zinc": 1.92,
-   "iodine": null,
+   "iodine": 0.9,
    "vitamin_a": 8.0,
    "vitamin_d": 0.2,
    "vitamin_c": 0.0,
@@ -4043,7 +4077,9 @@
    "issues": [],
    "atwater_kcal": 172.4
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 163 (Chicken thigh, oven-roasted (skin removed), n=35)"
+  ]
  },
  {
   "key": "turkey_breast",
@@ -4074,7 +4110,7 @@
    "potassium": 249.0,
    "sodium": 99.0,
    "zinc": 1.72,
-   "iodine": null,
+   "iodine": 4.8,
    "vitamin_a": 3.0,
    "vitamin_d": 0.3,
    "vitamin_c": 0.0,
@@ -4087,7 +4123,9 @@
    "issues": [],
    "atwater_kcal": 139.2
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 30 (Turkey breast, oven-roasted, n=35)"
+  ]
  },
  {
   "key": "beef_liver",
@@ -4120,7 +4158,7 @@
    "potassium": 351.0,
    "sodium": 77.0,
    "zinc": 5.23,
-   "iodine": null,
+   "iodine": 16.4,
    "vitamin_a": 7744.0,
    "vitamin_d": 1.2,
    "vitamin_c": 0.7,
@@ -4133,7 +4171,9 @@
    "issues": [],
    "atwater_kcal": 168.8
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 335 (Beef/calf, liver, pan-cooked with oil, n=7)"
+  ]
  },
  {
   "key": "chicken_liver",
@@ -4350,7 +4390,7 @@
    "potassium": 126.0,
    "sodium": 124.0,
    "zinc": 1.05,
-   "iodine": null,
+   "iodine": 61.0,
    "vitamin_a": 149.0,
    "vitamin_d": 2.2,
    "vitamin_c": 0.0,
@@ -4363,7 +4403,9 @@
    "issues": [],
    "atwater_kcal": 150.3
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 34 (Eggs, hard-boiled, n=35)"
+  ]
  },
  {
   "key": "milk_whole",
@@ -4396,7 +4438,7 @@
    "potassium": 132.0,
    "sodium": 43.0,
    "zinc": 0.37,
-   "iodine": null,
+   "iodine": 33.5,
    "vitamin_a": 46.0,
    "vitamin_d": 0.1,
    "vitamin_c": 0.0,
@@ -4409,7 +4451,9 @@
    "issues": [],
    "atwater_kcal": 61.1
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 20 (Milk, whole, fluid, n=59)"
+  ]
  },
  {
   "key": "milk_semi",
@@ -4442,7 +4486,7 @@
    "potassium": 140.0,
    "sodium": 47.0,
    "zinc": 0.48,
-   "iodine": null,
+   "iodine": 35.8,
    "vitamin_a": 28.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.2,
@@ -4455,7 +4499,9 @@
    "issues": [],
    "atwater_kcal": 50.2
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 21 (Milk, reduced fat (2%), fluid, n=59)"
+  ]
  },
  {
   "key": "yogurt_plain",
@@ -4488,7 +4534,7 @@
    "potassium": 155.0,
    "sodium": 46.0,
    "zinc": 0.59,
-   "iodine": null,
+   "iodine": 32.3,
    "vitamin_a": 27.0,
    "vitamin_d": 0.1,
    "vitamin_c": 0.5,
@@ -4501,7 +4547,9 @@
    "issues": [],
    "atwater_kcal": 61.8
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 448 (Yogurt, whole milk, plain, n=8)"
+  ]
  },
  {
   "key": "yogurt_greek",
@@ -4534,7 +4582,7 @@
    "potassium": 141.0,
    "sodium": 36.0,
    "zinc": 0.52,
-   "iodine": null,
+   "iodine": 51.2,
    "vitamin_a": 1.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -4547,7 +4595,9 @@
    "issues": [],
    "atwater_kcal": 58.7
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 361 (Yogurt, Greek, plain, nonfat, n=6)"
+  ]
  },
  {
   "key": "cottage_cheese",
@@ -4580,7 +4630,7 @@
    "potassium": 125.0,
    "sodium": 308.0,
    "zinc": 0.51,
-   "iodine": null,
+   "iodine": 36.6,
    "vitamin_a": 68.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -4593,7 +4643,9 @@
    "issues": [],
    "atwater_kcal": 81.3
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 161 (Cottage cheese, creamed, reduced fat, n=11)"
+  ]
  },
  {
   "key": "ricotta",
@@ -4626,7 +4678,7 @@
    "potassium": 125.0,
    "sodium": 99.0,
    "zinc": 1.34,
-   "iodine": null,
+   "iodine": 66.0,
    "vitamin_a": 107.0,
    "vitamin_d": 0.1,
    "vitamin_c": 0.0,
@@ -4639,7 +4691,9 @@
    "issues": [],
    "atwater_kcal": 137.3
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 350 (Cheese, ricotta, whole milk, n=1)"
+  ]
  },
  {
   "key": "cheddar",
@@ -4672,7 +4726,7 @@
    "potassium": 76.0,
    "sodium": 653.0,
    "zinc": 3.64,
-   "iodine": null,
+   "iodine": 45.9,
    "vitamin_a": 337.0,
    "vitamin_d": 0.6,
    "vitamin_c": 0.0,
@@ -4685,7 +4739,9 @@
    "issues": [],
    "atwater_kcal": 404.8
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 25 (Cheese, cheddar (sharp/mild), n=38)"
+  ]
  },
  {
   "key": "mozzarella",
@@ -4718,7 +4774,7 @@
    "potassium": 84.0,
    "sodium": 619.0,
    "zinc": 2.76,
-   "iodine": null,
+   "iodine": 51.0,
    "vitamin_a": 127.0,
    "vitamin_d": 0.3,
    "vitamin_c": 0.0,
@@ -4731,7 +4787,9 @@
    "issues": [],
    "atwater_kcal": 251.4
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 191 (Cheese, mozzarella, n=30)"
+  ]
  },
  {
   "key": "feta",
@@ -4764,7 +4822,7 @@
    "potassium": 62.0,
    "sodium": 1139.0,
    "zinc": 2.88,
-   "iodine": null,
+   "iodine": 48.4,
    "vitamin_a": 125.0,
    "vitamin_d": 0.4,
    "vitamin_c": 0.0,
@@ -4777,7 +4835,9 @@
    "issues": [],
    "atwater_kcal": 265.8
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 450 (Cheese, feta, whole milk, crumbled, n=8)"
+  ]
  },
  {
   "key": "parmesan",
@@ -4810,7 +4870,7 @@
    "potassium": 92.0,
    "sodium": 1175.0,
    "zinc": 2.75,
-   "iodine": null,
+   "iodine": 82.4,
    "vitamin_a": 207.0,
    "vitamin_d": 0.5,
    "vitamin_c": 0.0,
@@ -4823,7 +4883,9 @@
    "issues": [],
    "atwater_kcal": 380.9
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 349 (Cheese, parmesan, grated, n=9)"
+  ]
  },
  {
   "key": "brie",
@@ -4952,7 +5014,7 @@
    "potassium": 120.0,
    "sodium": 37.0,
    "zinc": null,
-   "iodine": null,
+   "iodine": 1.3,
    "vitamin_a": null,
    "vitamin_d": 1.2,
    "vitamin_c": 0.0,
@@ -4965,7 +5027,9 @@
    "issues": [],
    "atwater_kcal": 31.9
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 213 (Beverage, soy, shelf stable, n=6)"
+  ]
  },
  {
   "key": "almond_milk",
@@ -4998,7 +5062,7 @@
    "potassium": 67.0,
    "sodium": 72.0,
    "zinc": 0.06,
-   "iodine": null,
+   "iodine": 0.4,
    "vitamin_a": 0.0,
    "vitamin_d": 1.0,
    "vitamin_c": 0.0,
@@ -5011,7 +5075,9 @@
    "issues": [],
    "atwater_kcal": 15.1
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 210 (Beverage, almond, n=9)"
+  ]
  },
  {
   "key": "oats",
@@ -5088,7 +5154,7 @@
    "potassium": 172.0,
    "sodium": 7.0,
    "zinc": 1.09,
-   "iodine": null,
+   "iodine": 0.0,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -5101,7 +5167,9 @@
    "issues": [],
    "atwater_kcal": 114.5
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 223 (Quinoa, cooked, n=3)"
+  ]
  },
  {
   "key": "brown_rice",
@@ -5132,7 +5200,7 @@
    "potassium": 86.0,
    "sodium": 4.0,
    "zinc": 0.71,
-   "iodine": null,
+   "iodine": 0.0,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -5145,7 +5213,9 @@
    "issues": [],
    "atwater_kcal": 118.8
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 200 (Rice, brown, cooked, n=28)"
+  ]
  },
  {
   "key": "buckwheat",
@@ -5358,7 +5428,7 @@
    "potassium": 254.0,
    "sodium": 455.0,
    "zinc": 1.77,
-   "iodine": null,
+   "iodine": 1.9,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -5371,7 +5441,9 @@
    "issues": [],
    "atwater_kcal": 240.1
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 48 (Bread, whole-wheat, commercially prepared, n=21)"
+  ]
  },
  {
   "key": "rye_bread",
@@ -5404,7 +5476,7 @@
    "potassium": 166.0,
    "sodium": 603.0,
    "zinc": 1.14,
-   "iodine": null,
+   "iodine": 0.6,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.4,
@@ -5417,7 +5489,9 @@
    "issues": [],
    "atwater_kcal": 245.3
   },
-  "notes": []
+  "notes": [
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 337 (Bread, rye, n=7)"
+  ]
  },
  {
   "key": "white_rice",
@@ -5451,7 +5525,7 @@
    "potassium": 35.0,
    "sodium": 1.0,
    "zinc": 0.49,
-   "iodine": null,
+   "iodine": 0.2,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -5465,7 +5539,8 @@
    "atwater_kcal": 125.2
   },
   "notes": [
-   "iron/folate omise: fortificare obligatorie SUA"
+   "iron/folate omise: fortificare obligatorie SUA",
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 40 (Rice, white, enriched, cooked, n=34)"
   ]
  },
  {
@@ -5554,7 +5629,7 @@
    "potassium": 126.0,
    "sodium": 490.0,
    "zinc": 0.74,
-   "iodine": null,
+   "iodine": 1.8,
    "vitamin_a": 0.0,
    "vitamin_d": 0.0,
    "vitamin_c": 0.0,
@@ -5568,7 +5643,8 @@
    "atwater_kcal": 257.6
   },
   "notes": [
-   "iron/folate omise: fortificare obligatorie SUA"
+   "iron/folate omise: fortificare obligatorie SUA",
+   "iodine: usda_fda_ods_iodine_r4_2024 DB_ID 46 (Bread, white, enriched, pre-sliced, n=15)"
   ]
  },
  {
