@@ -1,7 +1,7 @@
 -- =============================================================================
 -- VitaBalance — schema completă (PostgreSQL / Supabase, schema `public`)
 -- =============================================================================
--- Starea țintă după migrările 001–013 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
+-- Starea țintă după migrările 001–015 (magic_links și users.password_hash eliminate). Pentru o bază NOUĂ rulează doar acest fișier;
 -- pentru baza existentă aplică migrările din backend/migrations/ în ordine. Actualizează fișierul la fiecare migrare.
 --
 -- Autentificare: Supabase Auth. Emailul și parola (bcrypt) stau în auth.users; public.users e profilul aplicației,
@@ -105,6 +105,32 @@ create index idx_foods_validated on public.foods (id) where validated;
 
 comment on table public.foods is
   'Catalog alimente. Rândurile cu validated = true au valori la 100 g din USDA FoodData Central (NULL = necunoscut).';
+
+-- ---------- wellbeing_checkins (jurnal zilnic de stare; un rând pe zi) ----------
+create table public.wellbeing_checkins (
+  id          bigserial primary key,
+  user_id     integer not null references public.users (id) on delete cascade,
+  checked_on  date not null default current_date,
+  symptoms    text[] not null default '{}',
+  severity    smallint,
+  energy      smallint,
+  weight      double precision,
+  notes       text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  constraint wellbeing_checkins_user_day_key unique (user_id, checked_on),
+  constraint wellbeing_checkins_symptoms_check check (symptoms <@ array[
+    'greata', 'varsaturi', 'ameteli', 'oboseala', 'dureri_cap', 'crampe_musculare',
+    'constipatie', 'diaree', 'balonare', 'arsuri', 'lipsa_poftei'
+  ]::text[]),
+  constraint wellbeing_checkins_severity_check check (severity is null or severity between 1 and 3),
+  constraint wellbeing_checkins_energy_check check (energy is null or energy between 1 and 5),
+  constraint wellbeing_checkins_weight_check check (weight is null or weight between 20 and 400),
+  constraint wellbeing_checkins_notes_length check (notes is null or char_length(notes) <= 1000)
+);
+
+create index idx_wellbeing_checkins_user_day on public.wellbeing_checkins (user_id, checked_on desc);
+
 
 -- ---------- lab_results (istoric analize; mai multe rânduri per utilizator) ----------
 create table public.lab_results (
@@ -271,6 +297,7 @@ create trigger on_auth_user_email_changed after update of email on auth.users
 -- ---------- securitate ----------
 alter table public.users           enable row level security;
 alter table public.foods           enable row level security;
+alter table public.wellbeing_checkins enable row level security;
 alter table public.lab_results     enable row level security;
 alter table public.recommendations enable row level security;
 alter table public.feedback        enable row level security;

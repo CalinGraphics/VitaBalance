@@ -18,6 +18,7 @@ from fastapi import HTTPException
 
 from domain.models import FoodItem, RecommendationItem, UserProfile
 from repositories import (
+    CheckinRepository,
     UserRepository,
     FoodRepository,
     LabResultRepository,
@@ -28,6 +29,7 @@ from services.explanations.facts import build_facts, has_facts
 from services.explanations.storage import explanation_to_db_fields, facts_from_row, legacy_explanation
 from services.recommendations.recommender import RecommenderService, recommendation_inputs_hash
 from services.recommendations.scoring import MAX_RECOMMENDATIONS, Ranking, ScoredFood
+from rules.symptoms import recent_checkins
 
 ACTIVE_REC_LIMIT = MAX_RECOMMENDATIONS
 LAB_KEYS = (
@@ -38,6 +40,11 @@ LAB_KEYS = (
 
 def _has_lab_data(lab_results) -> bool:
     return lab_results is not None and any(getattr(lab_results, k, None) is not None for k in LAB_KEYS)
+
+
+def recent_symptoms(checkins) -> frozenset:
+    """Simptomele raportate în ultimele 14 zile (rules/symptoms.py)."""
+    return frozenset(s for c in recent_checkins(checkins) for s in c.symptoms)
 
 
 def _rating_by_food(user_feedbacks) -> Dict[int, int]:
@@ -230,13 +237,15 @@ def materialize_recommendations(
         return []
     food_by_id = {f.id: f for f in foods}
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         fut_labs = pool.submit(LabResultRepository().get_latest_by_user_id, user_id)
         fut_feedbacks = pool.submit(feedback_repo.get_by_user_id, user_id)
         fut_recs = pool.submit(rec_repo.get_by_user_id, user_id, ACTIVE_REC_LIMIT)
+        fut_checkins = pool.submit(CheckinRepository().list_for_user, user_id, 30)
         lab_results = fut_labs.result()
         user_feedbacks = fut_feedbacks.result()
         existing = fut_recs.result()
+        symptoms = recent_symptoms(fut_checkins.result())
 
     has_lab_data = _has_lab_data(lab_results)
     recommender = RecommenderService()
@@ -247,15 +256,17 @@ def materialize_recommendations(
         # Înlocuire: următorul aliment din clasament care nu e deja în listă.
         remaining = [r for r in existing if r.id != to_replace.id]
         exclude |= {r.food_id for r in existing}
-        ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude)
+        ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude,
+                                   symptoms=symptoms)
         rec_repo.delete_by_id(to_replace.id)
         inserted = rec_repo.insert_many(_insert_rows(user, ranking, ranking.items[:1], has_lab_data)) \
             if ranking.items else []
         return _api_list(remaining + inserted, food_by_id, user_feedbacks)
 
-    current_hash = recommendation_inputs_hash(user, foods, lab_results)
+    current_hash = recommendation_inputs_hash(user, foods, lab_results, symptoms)
     if force_regenerate or exclude or _needs_regeneration(existing, user, lab_results, current_hash):
-        ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude)
+        ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude,
+                                   symptoms=symptoms)
         rows = _insert_rows(user, ranking, ranking.items, has_lab_data)
         if rows:
             if existing:

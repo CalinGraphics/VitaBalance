@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Literal, Optional, List
-from datetime import datetime
+from datetime import date, datetime
 
 # User Schemas
 class UserBase(BaseModel):
@@ -45,6 +45,17 @@ class UserResponse(UserBase):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+# Jurnal de stare (wellbeing_checkins)
+class CheckInCreate(BaseModel):
+    user_id: int
+    checked_on: Optional[date] = None  # implicit: azi
+    symptoms: List[str] = Field(default_factory=list, max_length=11)
+    severity: Optional[int] = Field(default=None, ge=1, le=3)
+    energy: Optional[int] = Field(default=None, ge=1, le=5)
+    weight: Optional[float] = Field(default=None, ge=20, le=400)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+
 
 # Lab Result Schemas
 class LabResultBase(BaseModel):

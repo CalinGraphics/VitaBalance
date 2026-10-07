@@ -140,6 +140,35 @@ class FeedbackItem:
     created_at: Optional[datetime] = None
 
 
+@dataclass
+class CheckIn:
+    """O zi din jurnalul de stare (wellbeing_checkins, migrarea 015)."""
+
+    id: int
+    user_id: int
+    checked_on: str  # ISO date (YYYY-MM-DD)
+    symptoms: Tuple[str, ...] = ()
+    severity: Optional[int] = None  # 1 ușor, 2 moderat, 3 puternic
+    energy: Optional[int] = None    # 1..5
+    weight: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+def row_to_checkin(row: dict) -> CheckIn:
+    return CheckIn(
+        id=int(row["id"]),
+        user_id=int(row["user_id"]),
+        checked_on=str(row.get("checked_on"))[:10],
+        symptoms=tuple(row.get("symptoms") or ()),
+        severity=row.get("severity"),
+        energy=row.get("energy"),
+        weight=row.get("weight"),
+        notes=row.get("notes"),
+        created_at=row.get("created_at"),
+    )
+
+
 def _num(val, default: float = 0) -> float:
     """Convert value to float, use default if None or invalid."""
     if val is None:

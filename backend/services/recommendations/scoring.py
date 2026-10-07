@@ -23,6 +23,7 @@ from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 from domain.models import FoodItem
 from rules.contraindications import active_rules, exclusion_reasons, no_target_nutrients, penalty_factors
+from rules.symptoms import symptom_factors
 from services.nutrition.needs import NUTRIENTS, Need, NeedsResult
 from services.recommendations.food_matrix import FoodMatrix, matrix_for, nutrient_scores
 from data.reference_values import reference_intake
@@ -162,6 +163,7 @@ class Ranking:
     allergies: FrozenSet[str] = frozenset()
     conditions: FrozenSet[str] = frozenset()
     inputs_hash: Optional[str] = None  # cheia cache-ului (services/recommendations/cache.py)
+    symptoms: FrozenSet[str] = frozenset()  # simptome raportate în ultimele 14 zile (rules/symptoms.py)
 
 
 def rank_foods(
@@ -171,6 +173,7 @@ def rank_foods(
     text_allows: Optional[Callable[[FoodItem], bool]] = None,
     feedback: Optional[Dict[int, str]] = None,
     exclude_food_ids: Iterable[int] = (),
+    symptoms: FrozenSet[str] = frozenset(),
 ) -> Ranking:
     ctx = needs_result.context
     rules = active_rules(ctx)
@@ -210,7 +213,8 @@ def rank_foods(
             comps = general_components(row)
         base = sum(c.contribution for c in comps)
         bonus = 1.0 + MULTI_DEFICIT_BONUS * (len(comps) - 1) if targeted and len(comps) > 1 else 1.0
-        penalties = quality_penalties(food) + penalty_factors(food, rules)
+        # Simptomele recente schimbă doar preferința (confort), niciodată nevoile: vezi rules/symptoms.py.
+        penalties = quality_penalties(food) + penalty_factors(food, rules) + symptom_factors(food, symptoms)
         factor = 1.0
         for _, f in penalties:
             factor *= f
@@ -244,7 +248,7 @@ def rank_foods(
         s.alternatives = _alternatives(s, scored)
     return Ranking(items=items, needs=needs_result.needs, targeted=targeted, rule_ids=[r.id for r in rules],
                    excluded=excluded, eligible=scored, diet=ctx.diet, allergies=ctx.allergies,
-                   conditions=ctx.conditions)
+                   conditions=ctx.conditions, symptoms=frozenset(symptoms))
 
 
 def _fill(s: ScoredFood, comps: List[Component], g: float) -> ScoredFood:

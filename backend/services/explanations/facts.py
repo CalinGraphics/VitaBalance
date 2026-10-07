@@ -15,6 +15,9 @@ from typing import Any, Dict, List, Optional
 from services.nutrition.needs import NUTRIENTS, Need
 from services.nutrition.food_validation import portion_kcal
 from services.recommendations.scoring import Ranking, ScoredFood
+from rules.symptoms import SYMPTOM_RULES
+
+SYMPTOM_RULE_IDS = {r.id for r in SYMPTOM_RULES}
 
 FACTS_VERSION = 4
 MAX_NUTRIENTS = 3
@@ -60,6 +63,9 @@ def build_facts(item: ScoredFood, ranking: Ranking, *, has_lab_data: bool) -> Di
                     "allergies": sorted(ranking.allergies),
                     "conditions": sorted(ranking.conditions)},
         "safety_rules": ranking.rule_ids,
+        # simptome recente și ajustările de confort aplicate acestui aliment (rules/symptoms.py)
+        "symptoms": sorted(ranking.symptoms),
+        "symptom_adjustments": [pid for pid, _ in item.penalties if pid in SYMPTOM_RULE_IDS],
         "flags": list(food.flags),
         "alternatives": list(item.alternatives),
         "trace": item.trace(ranking.rule_ids),

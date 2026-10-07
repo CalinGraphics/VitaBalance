@@ -6,6 +6,7 @@ from .food_repository import FoodRepository
 from .lab_result_repository import LabResultRepository
 from .recommendation_repository import RecommendationRepository
 from .feedback_repository import FeedbackRepository
+from .checkin_repository import CheckinRepository
 
 __all__ = [
     "UserRepository",
@@ -13,4 +14,5 @@ __all__ = [
     "LabResultRepository",
     "RecommendationRepository",
     "FeedbackRepository",
+    "CheckinRepository",
 ]

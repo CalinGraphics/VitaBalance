@@ -17,6 +17,7 @@ from domain.schemas import (
     LabResultExtractFromTextRequest,
     RecommendationRequest,
     FeedbackCreate,
+    CheckInCreate,
 )
 from services.recommendations.recommender import RecommenderService
 from services.nutrition.energy import caloric_goal_warning
@@ -26,6 +27,7 @@ from repositories import avatar_storage
 from repositories.avatar_storage import AvatarStorageError
 from domain.models import UserProfile
 from repositories import (
+    CheckinRepository,
     UserRepository,
     FoodRepository,
     LabResultRepository,
@@ -35,7 +37,10 @@ from repositories import (
 from middleware.auth import get_current_user, security
 from fastapi.security import HTTPAuthorizationCredentials
 from middleware.rate_limit import RateLimitMiddleware
-from services.recommendations.materialize import materialize_recommendations, stored_inputs_hashes
+from services.recommendations.materialize import materialize_recommendations, recent_symptoms, stored_inputs_hashes
+from services.progress import build_progress, checkin_payload
+from repositories.checkin_repository import CheckinStoreUnavailable
+from rules.symptoms import SYMPTOM_CODES
 from services.recommendations.recommender import recommendation_inputs_hash
 from services.explanations.facts import has_facts
 
@@ -543,19 +548,21 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
     u = _ensure_user_resource(current_user, user_id)
     rrepo = RecommendationRepository()
     lrepo = LabResultRepository()
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         fut_rec = pool.submit(rrepo.get_first_by_user_id, user_id)
         fut_labs = pool.submit(lrepo.get_latest_by_user_id, user_id)
         fut_all = pool.submit(rrepo.get_by_user_id, user_id, 20)
+        fut_checkins = pool.submit(CheckinRepository().list_for_user, user_id, 30)
         first = fut_rec.result()
         labs = fut_labs.result()
         stored = fut_all.result()
+        symptoms = recent_symptoms(fut_checkins.result())
     # Recomandări create înainte de explicațiile pe bază de fapte: clientul declanșează o regenerare (o singură dată).
     explanations_outdated = any(not has_facts(r.explanation_json) for r in stored)
     # La zi = calculate din exact profilul + analizele + catalogul de acum (cache pe hash, vezi recommender.py).
     hashes = stored_inputs_hashes(stored)
     up_to_date = bool(stored) and not explanations_outdated and None not in hashes and \
-        hashes == {recommendation_inputs_hash(u, FoodRepository().get_all(), labs)}
+        hashes == {recommendation_inputs_hash(u, FoodRepository().get_all(), labs, symptoms)}
 
     def iso(v):
         if v is None:
@@ -736,6 +743,60 @@ async def create_feedback(feedback: FeedbackCreate, current_user: dict = Depends
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"message": "Feedback salvat cu succes", "id": result.id}
+
+
+CHECKINS_UNAVAILABLE = "Jurnalul de stare nu e încă disponibil (migrarea 015 nu e aplicată)."
+
+
+@app.get("/api/progress/{user_id}")
+def get_progress(user_id: int, current_user: dict = Depends(get_current_user)):
+    """Evoluția analizelor, jurnalul de stare și ce înseamnă simptomele recente (fără text, independent de limbă)."""
+    user = _ensure_user_resource(current_user, user_id)
+    checkin_repo = CheckinRepository()
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        fut_checkins = pool.submit(checkin_repo.list_for_user, user_id, 120)
+        fut_history = pool.submit(LabResultRepository().get_all_by_user_id, user_id)
+        fut_available = pool.submit(checkin_repo.is_available)
+        checkins, history, available = fut_checkins.result(), fut_history.result(), fut_available.result()
+    return build_progress(user, checkins, history, storage_available=available)
+
+
+@app.post("/api/checkins")
+def save_checkin(body: CheckInCreate, current_user: dict = Depends(get_current_user)):
+    """O zi din jurnal (upsert pe dată). Simptomele recente schimbă recomandările prin hash-ul intrărilor."""
+    _ensure_user_resource(current_user, body.user_id)
+    unknown = [s for s in body.symptoms if s not in SYMPTOM_CODES]
+    if unknown:
+        raise HTTPException(status_code=400, detail=f"Simptome necunoscute: {', '.join(unknown)}")
+    if not (body.symptoms or body.energy or body.weight or (body.notes or "").strip()):
+        raise HTTPException(status_code=400, detail="Completează cel puțin un câmp.")
+    from datetime import date as _date
+
+    day = body.checked_on or _date.today()
+    if day > _date.today():
+        raise HTTPException(status_code=400, detail="Data nu poate fi în viitor.")
+    try:
+        saved = CheckinRepository().upsert_for_day(body.user_id, day, {
+            "symptoms": sorted(set(body.symptoms)),
+            "severity": body.severity if body.symptoms else None,
+            "energy": body.energy,
+            "weight": body.weight,
+            "notes": (body.notes or "").strip() or None,
+        })
+    except CheckinStoreUnavailable:
+        raise HTTPException(status_code=503, detail=CHECKINS_UNAVAILABLE)
+    return checkin_payload(saved)
+
+
+@app.delete("/api/checkins/{user_id}/{checkin_id}", status_code=204)
+def delete_checkin(user_id: int, checkin_id: int, current_user: dict = Depends(get_current_user)):
+    _ensure_user_resource(current_user, user_id)
+    try:
+        if not CheckinRepository().delete(user_id, checkin_id):
+            raise HTTPException(status_code=404, detail="Înregistrarea nu a fost găsită")
+    except CheckinStoreUnavailable:
+        raise HTTPException(status_code=503, detail=CHECKINS_UNAVAILABLE)
+    return Response(status_code=204)
 
 
 @app.get("/api/foods")

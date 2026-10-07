@@ -37,8 +37,11 @@ def feedback_map(user_feedbacks: Optional[Iterable[FeedbackItem]]) -> Dict[int, 
     return out
 
 
-def recommendation_inputs_hash(user: UserProfile, foods: List[FoodItem], lab_results: Optional[LabResultItem]) -> str:
-    return inputs_hash(user, lab_results, catalog_signature(foods), VERSIONS)
+def recommendation_inputs_hash(user: UserProfile, foods: List[FoodItem], lab_results: Optional[LabResultItem],
+                               symptoms: Iterable[str] = ()) -> str:
+    """hash(profil + analize + simptome recente + catalog + versiuni) — se schimbă la orice intrare relevantă."""
+    versions = VERSIONS + ("|sym:" + ",".join(sorted(set(symptoms))) if symptoms else "")
+    return inputs_hash(user, lab_results, catalog_signature(foods), versions)
 
 
 class RecommenderService:
@@ -50,10 +53,12 @@ class RecommenderService:
         user_feedbacks: Optional[List[FeedbackItem]] = None,
         exclude_food_ids: Iterable[int] = (),
         needs: Optional[NeedsResult] = None,
+        symptoms: Iterable[str] = (),
     ) -> Ranking:
         exclude = set(exclude_food_ids)
+        symptoms = frozenset(symptoms)
         feedback = feedback_map(user_feedbacks)
-        inputs = recommendation_inputs_hash(user, foods, lab_results)
+        inputs = recommendation_inputs_hash(user, foods, lab_results, symptoms)
         key = RANKING_CACHE.key(inputs, feedback, exclude)
         cached = None if needs is not None else RANKING_CACHE.get(key)
         if cached is not None:
@@ -64,6 +69,7 @@ class RecommenderService:
             text_allows=text_restriction_filter(user, lab_results),
             feedback=feedback,
             exclude_food_ids=exclude,
+            symptoms=symptoms,
         )
         ranking.inputs_hash = inputs
         if needs is None:
