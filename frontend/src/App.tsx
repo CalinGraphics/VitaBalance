@@ -3,6 +3,7 @@ import { Layout, Disclaimer, Alert } from './shared'
 import { LoginPage, RegisterPage } from './features/auth/pages'
 import { MedicalProfilePage, MedicalLabResultsPage, EditProfilePage } from './features/medical/pages'
 import { Recommendations } from './features/recommendations/components'
+import ProgressPage from './features/progress/ProgressPage'
 import { useAppNavigation } from './shared/hooks'
 import type { Route } from './shared/types'
 
@@ -13,6 +14,7 @@ const KNOWN_ROUTES: Route[] = [
   'lab-results',
   'recommendations',
   'edit-profile',
+  'progress',
 ]
 
 /** Mesaj de eroare centrat, cu o singură acțiune de revenire. */
@@ -54,6 +56,7 @@ function App() {
     handleMedicalProfileComplete,
     handleLabResultsComplete,
     handleProfileUpdate,
+    handleCheckinSaved,
     handleAvatarChange,
     handleLogout,
     notice,
@@ -61,7 +64,8 @@ function App() {
   } = useAppNavigation()
 
   const showNav =
-    (route === 'recommendations' || route === 'edit-profile' || route === 'lab-results') && !!medicalUser
+    (route === 'recommendations' || route === 'edit-profile' || route === 'lab-results' || route === 'progress') &&
+    !!medicalUser
 
   return (
     <Layout route={route} showNav={showNav} onNavigate={navigate} onLogout={handleLogout} user={authUser}>
@@ -123,6 +127,16 @@ function App() {
           {route === 'recommendations' && !medicalUser && (
             <RouteNotice
               message={t('app.errors.noProfileForRecs')}
+              actionLabel={t('common.createProfile')}
+              onAction={() => navigate('medical-profile')}
+            />
+          )}
+          {route === 'progress' && medicalUser && (
+            <ProgressPage user={medicalUser} onCheckinChange={handleCheckinSaved} />
+          )}
+          {route === 'progress' && !medicalUser && (
+            <RouteNotice
+              message={t('app.errors.noProfile')}
               actionLabel={t('common.createProfile')}
               onAction={() => navigate('medical-profile')}
             />

@@ -98,6 +98,11 @@ export const useAppNavigation = () => {
     setRoute('recommendations')
   }, [])
 
+  /** O zi nouă în jurnal schimbă stările recente, deci și recomandările (hash-ul intrărilor din backend). */
+  const handleCheckinSaved = useCallback(() => {
+    setRecommendationsRefreshKey((k) => k + 1)
+  }, [])
+
   const handleProfileUpdate = useCallback((updatedUser: User) => {
     setMedicalUser(updatedUser)
     setAuthUser((prev) => (prev ? { ...prev, fullName: updatedUser.name || prev.fullName } : prev))
@@ -164,6 +169,7 @@ export const useAppNavigation = () => {
     handleMedicalProfileComplete,
     handleLabResultsComplete,
     handleProfileUpdate,
+    handleCheckinSaved,
     handleAvatarChange,
     handleLogout,
     notice,

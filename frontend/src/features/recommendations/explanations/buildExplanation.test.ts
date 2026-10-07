@@ -91,6 +91,14 @@ describe('mesajele recomandărilor', () => {
     expect(buildExplanation(fish, 'ro').warnings).toContain('Dacă ești însărcinată, mănâncă-l doar bine gătit.')
   })
 
+  it('spune ce a adaptat după stările raportate recent', () => {
+    const rec = structuredClone(patients.p1_male_omnivore[1])
+    rec.facts!.symptoms = ['greata']
+    rec.facts!.symptom_adjustments = ['nausea_lighter_foods']
+    expect(buildExplanation(rec, 'ro').why).toContain('Am ținut cont de ce ai raportat recent: la greață, alimente mai puțin grase.')
+    expect(buildExplanation(rec, 'en').why).toContain('We took what you reported recently into account: with nausea, less fatty foods.')
+  })
+
   it('rândurile vechi, fără fapte, își păstrează textul salvat', () => {
     const legacy = { ...patients.p1_male_omnivore[0], facts: null, legacy: { text: 'Text vechi', reasons: ['r'], tips: [] } }
     const e = buildExplanation(legacy, 'en')

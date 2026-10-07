@@ -159,6 +159,11 @@ export function buildExplanation(rec: Recommendation, lang: Language): Localized
       )
     }
   }
+  const adjustments = facts.symptom_adjustments ?? []
+  if (adjustments.length > 0) {
+    const labels = adjustments.map((id) => i18n.t(`progress.adjustment.${id}`, { lng: lang }))
+    out.why.push(message(lang, 'considered.symptoms', { list: joinList(lang, labels) }))
+  }
   if (!facts.has_lab_data) out.why.push(message(lang, 'considered.no_labs'))
 
   // 4. Ce îți aduce porția

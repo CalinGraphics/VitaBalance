@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { FlaskConical, LayoutDashboard, LogOut, User, type LucideIcon } from 'lucide-react';
+import { Activity, FlaskConical, LayoutDashboard, LogOut, User, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AuthUser, Route } from '../../types';
 import Avatar from '../ui/Avatar';
@@ -26,6 +26,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { route: 'recommendations', labelKey: 'nav.dashboard', Icon: LayoutDashboard },
   { route: 'lab-results', labelKey: 'nav.labs', Icon: FlaskConical },
+  { route: 'progress', labelKey: 'nav.progress', Icon: Activity },
   { route: 'edit-profile', labelKey: 'nav.profile', Icon: User },
 ];
 

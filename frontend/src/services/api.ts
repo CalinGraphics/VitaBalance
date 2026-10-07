@@ -285,6 +285,62 @@ export const recommendationsService = {
   },
 }
 
+export interface CheckIn {
+  id: number
+  checked_on: string
+  symptoms: string[]
+  severity: number | null
+  energy: number | null
+  weight: number | null
+  notes: string | null
+}
+
+export interface SeriesPoint {
+  date: string
+  value: number
+}
+
+export interface ProgressData {
+  storage_available: boolean
+  symptom_codes: string[]
+  recent_days: number
+  checkins: CheckIn[]
+  insights: {
+    recent_symptoms: string[]
+    lab_suggestions: string[]
+    see_doctor: boolean
+    see_doctor_reasons: string[]
+    adjustments: string[]
+  }
+  series: {
+    labs: Record<string, { unit: string; low: number; high: number | null; points: SeriesPoint[] }>
+    weight: SeriesPoint[]
+    energy: SeriesPoint[]
+  }
+}
+
+export const progressService = {
+  get: async (userId: number) => {
+    const response = await api.get(`/progress/${userId}`, { timeout: 20_000 })
+    return response.data as ProgressData
+  },
+  saveCheckin: async (data: {
+    user_id: number
+    checked_on?: string
+    symptoms: string[]
+    severity?: number | null
+    energy?: number | null
+    weight?: number | null
+    notes?: string | null
+  }) => {
+    const response = await api.post('/checkins', data, { timeout: 15_000 })
+    return response.data as CheckIn
+  },
+  deleteCheckin: async (userId: number, checkinId: number) => {
+    await api.delete(`/checkins/${userId}/${checkinId}`, { timeout: 15_000 })
+  },
+}
+
 export const feedbackService = {
   create: async (data: {
     user_id: number

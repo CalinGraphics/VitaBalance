@@ -32,7 +32,8 @@
     "logout": "Log out",
     "logoAlt": "VitaBalance logo",
     "footer": "© {{year}} VitaBalance",
-    "account": "Your account: {{name}}"
+    "account": "Your account: {{name}}",
+    "progress": "Progress"
   },
   "lang": {
     "label": "Language",
@@ -650,7 +651,8 @@
       "diet": "It fits your {diet, select, vegan {vegan} vegetarian {vegetarian} pescatarian {pescatarian} other {}} diet.",
       "allergies": "Chosen with your allergies in mind: {list}.",
       "condition": "We took {condition} into account: {restriction}.",
-      "no_labs": "You have not added lab results yet, so this is based on your profile."
+      "no_labs": "You have not added lab results yet, so this is based on your profile.",
+      "symptoms": "We took what you reported recently into account: {list}."
     },
     "condition": {
       "pregnancy": {
@@ -726,5 +728,84 @@
     "refined_grains": "Refined grains",
     "bakery": "Bakery products",
     "sweets_snacks": "Sweets and snacks"
+  },
+  "progress": {
+    "title": "Your progress",
+    "subtitle": "Note how you feel and follow how your lab results change over time.",
+    "checkin": {
+      "title": "How do you feel today?",
+      "date": "Date",
+      "symptoms": "Did you have any of these?",
+      "severity": "How strong?",
+      "energy": "Energy level",
+      "energyHint": "1 = very tired, 5 = full of energy",
+      "weight": "Weight (kg)",
+      "notes": "Notes",
+      "notesPlaceholder": "E.g. I slept badly, I started a new treatment...",
+      "save": "Save the day",
+      "saving": "Saving...",
+      "saved": "Saved. Your recommendations take into account how you felt in the last 14 days.",
+      "empty": "Fill in at least one field.",
+      "error": "We could not save it. Please try again."
+    },
+    "severity": {
+      "1": "Mild",
+      "2": "Moderate",
+      "3": "Strong"
+    },
+    "symptom": {
+      "greata": "Nausea",
+      "varsaturi": "Vomiting",
+      "ameteli": "Dizziness",
+      "oboseala": "Tiredness",
+      "dureri_cap": "Headache",
+      "crampe_musculare": "Muscle cramps",
+      "constipatie": "Constipation",
+      "diaree": "Diarrhoea",
+      "balonare": "Bloating",
+      "arsuri": "Heartburn",
+      "lipsa_poftei": "Poor appetite"
+    },
+    "insights": {
+      "title": "What this means for you",
+      "none": "You have not reported anything in the last 14 days.",
+      "recent": "In the last 14 days you reported: {{list}}.",
+      "adjusted": "We adapted your recommendations:",
+      "labs": "If you have not had them yet, ask your doctor about these tests: {{list}}.",
+      "doctor": "Talk to a doctor:",
+      "doctorReason": {
+        "severe": "you reported a strong symptom.",
+        "persistent": "the same symptom came back on at least 4 days.",
+        "vomiting_2_days": "the vomiting has lasted at least 2 days."
+      },
+      "disclaimer": "Symptoms are not a diagnosis and do not change your nutrient needs, only how comfortable the chosen foods are."
+    },
+    "adjustment": {
+      "nausea_lighter_foods": "with nausea, less fatty foods",
+      "appetite_lighter_foods": "with a poor appetite, lighter portions",
+      "vomiting_lighter_foods": "after vomiting, light foods",
+      "diarrhoea_lighter_foods": "with diarrhoea, light and less fatty foods",
+      "heartburn_less_fat_chocolate": "with heartburn, less fat and no chocolate",
+      "constipation_more_fibre": "with constipation, foods with more fibre",
+      "bloating_fewer_gassy_foods": "with bloating, fewer legumes and cabbage"
+    },
+    "charts": {
+      "title": "How your results changed",
+      "empty": "When you save lab results more than once, you will see how they change here.",
+      "minimum": "Minimum: {{value}} {{unit}}",
+      "weight": "Weight (kg)",
+      "energy": "Energy (1–5)",
+      "wellbeing": "Weight and energy",
+      "wellbeingEmpty": "Add your weight or energy in the journal to see how they change."
+    },
+    "history": {
+      "title": "Your journal",
+      "empty": "You have not logged any day yet.",
+      "energy": "Energy {{value}}/5",
+      "weight": "{{value}} kg",
+      "delete": "Delete this day"
+    },
+    "unavailable": "The wellbeing journal will be available after the database update. Lab history already works.",
+    "loadError": "We could not load your progress. Please try again."
   }
 }

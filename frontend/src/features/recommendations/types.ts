@@ -39,6 +39,9 @@ export interface Facts {
   coverage_pct?: number
   profile: { diet: string | null; allergies: string[]; conditions: string[] }
   safety_rules: string[]
+  /** Stările raportate în ultimele 14 zile și ajustările de confort aplicate acestui aliment. */
+  symptoms?: string[]
+  symptom_adjustments?: string[]
   flags: string[]
   alternatives: number[]
   trace?: unknown

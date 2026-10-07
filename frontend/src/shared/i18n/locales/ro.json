@@ -32,7 +32,8 @@
     "logout": "Delogare",
     "logoAlt": "Logo VitaBalance",
     "footer": "© {{year}} VitaBalance",
-    "account": "Contul tău: {{name}}"
+    "account": "Contul tău: {{name}}",
+    "progress": "Progres"
   },
   "lang": {
     "label": "Limbă",
@@ -655,7 +656,8 @@
       "diet": "Se potrivește dietei tale {diet, select, vegan {vegane} vegetarian {vegetariene} pescatarian {pescetariene} other {}}.",
       "allergies": "Ales ținând cont de alergiile tale: {list}.",
       "condition": "Am ținut cont de {condition}: {restriction}.",
-      "no_labs": "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău."
+      "no_labs": "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
+      "symptoms": "Am ținut cont de ce ai raportat recent: {list}."
     },
     "condition": {
       "pregnancy": {
@@ -731,5 +733,84 @@
     "refined_grains": "Cereale rafinate",
     "bakery": "Produse de patiserie",
     "sweets_snacks": "Dulciuri și gustări"
+  },
+  "progress": {
+    "title": "Progresul tău",
+    "subtitle": "Notează cum te simți și urmărește cum evoluează analizele în timp.",
+    "checkin": {
+      "title": "Cum te simți azi?",
+      "date": "Data",
+      "symptoms": "Ai avut vreuna dintre aceste stări?",
+      "severity": "Cât de puternic?",
+      "energy": "Nivelul de energie",
+      "energyHint": "1 = foarte obosit, 5 = plin de energie",
+      "weight": "Greutate (kg)",
+      "notes": "Observații",
+      "notesPlaceholder": "Ex. am dormit puțin, am început un tratament nou...",
+      "save": "Salvează ziua",
+      "saving": "Se salvează...",
+      "saved": "Am salvat ziua. Recomandările țin cont de stările din ultimele 14 zile.",
+      "empty": "Completează cel puțin un câmp.",
+      "error": "Nu am putut salva. Încearcă din nou."
+    },
+    "severity": {
+      "1": "Ușor",
+      "2": "Moderat",
+      "3": "Puternic"
+    },
+    "symptom": {
+      "greata": "Greață",
+      "varsaturi": "Vărsături",
+      "ameteli": "Amețeli",
+      "oboseala": "Oboseală",
+      "dureri_cap": "Dureri de cap",
+      "crampe_musculare": "Crampe musculare",
+      "constipatie": "Constipație",
+      "diaree": "Diaree",
+      "balonare": "Balonare",
+      "arsuri": "Arsuri în capul pieptului",
+      "lipsa_poftei": "Lipsa poftei de mâncare"
+    },
+    "insights": {
+      "title": "Ce înseamnă pentru tine",
+      "none": "Nu ai raportat stări în ultimele 14 zile.",
+      "recent": "În ultimele 14 zile ai raportat: {{list}}.",
+      "adjusted": "Am adaptat recomandările:",
+      "labs": "Dacă nu le-ai făcut încă, întreabă medicul despre aceste analize: {{list}}.",
+      "doctor": "Discută cu un medic:",
+      "doctorReason": {
+        "severe": "ai raportat o stare puternică.",
+        "persistent": "aceeași stare a revenit în cel puțin 4 zile.",
+        "vomiting_2_days": "vărsăturile durează de cel puțin 2 zile."
+      },
+      "disclaimer": "Stările nu pun un diagnostic și nu schimbă nevoile tale de nutrienți, doar confortul alimentelor alese."
+    },
+    "adjustment": {
+      "nausea_lighter_foods": "la greață, alimente mai puțin grase",
+      "appetite_lighter_foods": "la lipsa poftei, porții mai ușoare",
+      "vomiting_lighter_foods": "după vărsături, alimente ușoare",
+      "diarrhoea_lighter_foods": "la diaree, alimente ușoare, mai puțin grase",
+      "heartburn_less_fat_chocolate": "la arsuri, mai puțină grăsime și fără ciocolată",
+      "constipation_more_fibre": "la constipație, alimente cu mai multe fibre",
+      "bloating_fewer_gassy_foods": "la balonare, mai puține leguminoase și varză"
+    },
+    "charts": {
+      "title": "Evoluția analizelor",
+      "empty": "Când salvezi analize de mai multe ori, aici vezi cum evoluează.",
+      "minimum": "Minim: {{value}} {{unit}}",
+      "weight": "Greutate (kg)",
+      "energy": "Energie (1–5)",
+      "wellbeing": "Greutate și energie",
+      "wellbeingEmpty": "Completează greutatea sau energia în jurnal ca să vezi evoluția."
+    },
+    "history": {
+      "title": "Jurnalul tău",
+      "empty": "Nu ai încă nicio zi notată.",
+      "energy": "Energie {{value}}/5",
+      "weight": "{{value}} kg",
+      "delete": "Șterge ziua"
+    },
+    "unavailable": "Jurnalul de stare va fi disponibil după actualizarea bazei de date. Evoluția analizelor funcționează deja.",
+    "loadError": "Nu am putut încărca progresul. Încearcă din nou."
   }
 }
