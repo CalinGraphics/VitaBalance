@@ -54,6 +54,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
     "inputs_hash": "a903e87c09265d79dd264a3d"
@@ -137,6 +139,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1078,
@@ -240,6 +244,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_mercury"
     ],
@@ -345,6 +351,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1071,
@@ -431,6 +439,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_oxalate"
     ],
@@ -521,6 +531,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
     "inputs_hash": "88975509a0c49b38e621ef61"
@@ -587,6 +599,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_oxalate"
     ],
@@ -669,6 +683,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_oxalate"
     ],
@@ -751,6 +767,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_oxalate"
     ],
@@ -833,6 +851,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1017,
@@ -928,6 +948,8 @@
      "pregnancy_no_liver",
      "pregnancy_immuno_no_soft_mould_cheese"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
     "inputs_hash": "7b2c63e299afc075d687d5fb"
@@ -1001,6 +1023,8 @@
      "pregnancy_no_liver",
      "pregnancy_immuno_no_soft_mould_cheese"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1068,
@@ -1094,6 +1118,8 @@
      "pregnancy_no_liver",
      "pregnancy_immuno_no_soft_mould_cheese"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1109
@@ -1175,6 +1201,8 @@
      "pregnancy_no_liver",
      "pregnancy_immuno_no_soft_mould_cheese"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1071,
@@ -1268,6 +1296,8 @@
      "pregnancy_no_liver",
      "pregnancy_immuno_no_soft_mould_cheese"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1110
@@ -1365,6 +1395,8 @@
     "safety_rules": [
      "anticoagulant_steady_vitamin_k"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1078,
@@ -1455,6 +1487,8 @@
     "safety_rules": [
      "anticoagulant_steady_vitamin_k"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
     "inputs_hash": "5c3529175aeb18017228d101"
@@ -1542,6 +1576,8 @@
     "safety_rules": [
      "anticoagulant_steady_vitamin_k"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_mercury"
     ],
@@ -1651,6 +1687,8 @@
     "safety_rules": [
      "anticoagulant_steady_vitamin_k"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1071,
@@ -1758,6 +1796,8 @@
     "safety_rules": [
      "anticoagulant_steady_vitamin_k"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1110
@@ -1852,6 +1892,8 @@
      "ckd_limit_potassium",
      "ckd_limit_phosphorus"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
     "inputs_hash": "33bfb055f6198466ff24efd4"
@@ -1936,6 +1978,8 @@
      "ckd_limit_potassium",
      "ckd_limit_phosphorus"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1031
@@ -2028,6 +2072,8 @@
      "ckd_limit_potassium",
      "ckd_limit_phosphorus"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1040
@@ -2120,6 +2166,8 @@
      "ckd_limit_potassium",
      "ckd_limit_phosphorus"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1038
@@ -2202,6 +2250,8 @@
      "ckd_limit_potassium",
      "ckd_limit_phosphorus"
     ],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1038,
@@ -2297,6 +2347,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_oxalate"
     ],
@@ -2398,6 +2450,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_oxalate"
     ],
@@ -2499,6 +2553,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "high_oxalate"
     ],
@@ -2600,6 +2656,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [
      "liver"
     ],
@@ -2689,6 +2747,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1037,
@@ -2777,6 +2837,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1069,
@@ -2857,6 +2919,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1098,
@@ -2943,6 +3007,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1100,
@@ -3029,6 +3095,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1100,
@@ -3115,6 +3183,8 @@
      "conditions": []
     },
     "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
     "flags": [],
     "alternatives": [
      1101,

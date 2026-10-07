@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Stethoscope, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, GlassCard, InputField, PageHeader, PrimaryButton, Spinner } from '../../shared/components'
@@ -40,29 +40,40 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<{ kind: 'success' | 'error' | 'warning'; text: string } | null>(null)
 
-  const load = useCallback(async () => {
-    if (!user.id) return
-    try {
-      setData(await progressService.get(user.id))
-      setLoadError(false)
-    } catch {
-      setLoadError(true)
-    }
-  }, [user.id])
+  const dayRef = useRef(day)
 
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  // Ziua aleasă se precompletează din jurnal (un rând pe zi: salvarea o actualizează).
-  useEffect(() => {
-    const existing = data?.checkins.find((c) => c.checked_on === day)
+  // Ziua aleasă se precompletează din jurnal (un rând pe zi: salvarea o actualizează). Se apelează explicit la
+  // încărcare și la schimbarea zilei, nu dintr-un efect: un efect întârziat ar putea șterge o alegere deja făcută.
+  const prefill = useCallback((source: ProgressData | null, forDay: string) => {
+    const existing = source?.checkins.find((c) => c.checked_on === forDay)
     setSymptoms(existing?.symptoms ?? [])
     setSeverity(existing?.severity ?? 1)
     setEnergy(existing?.energy ?? null)
     setWeight(existing?.weight != null ? String(existing.weight) : '')
     setNotes(existing?.notes ?? '')
-  }, [day, data])
+  }, [])
+
+  const load = useCallback(async () => {
+    if (!user.id) return
+    try {
+      const fresh = await progressService.get(user.id)
+      setData(fresh)
+      setLoadError(false)
+      prefill(fresh, dayRef.current)
+    } catch {
+      setLoadError(true)
+    }
+  }, [user.id, prefill])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const changeDay = (value: string) => {
+    dayRef.current = value
+    setDay(value)
+    prefill(data, value)
+  }
 
   const toggle = (code: string) =>
     setSymptoms((prev) => (prev.includes(code) ? prev.filter((s) => s !== code) : [...prev, code]))
@@ -136,7 +147,7 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
           <div className="space-y-5">
             <h3 className="text-base font-semibold text-zinc-50">{t('progress.checkin.title')}</h3>
             <InputField label={t('progress.checkin.date')} type="date" value={day} max={today()}
-              onChange={(e) => setDay(e.target.value || today())} />
+              onChange={(e) => changeDay(e.target.value || today())} />
 
             <div>
               <p className="mb-2 text-sm font-medium text-zinc-200">{t('progress.checkin.symptoms')}</p>
