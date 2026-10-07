@@ -28,6 +28,7 @@
     "label": "Main navigation",
     "dashboard": "Recommendations",
     "labs": "Lab results",
+    "labsShort": "Labs",
     "profile": "Profile",
     "logout": "Log out",
     "logoAlt": "VitaBalance logo",
@@ -247,6 +248,12 @@
     "login": {
       "heroTitle": "Welcome to",
       "heroText": "Nourish your balance and let your energy return to its natural level.",
+      "eyebrow": "Personalised nutrition",
+      "points": {
+        "labs": "Recommendations based on your lab results",
+        "data": "Nutrient values from the USDA database",
+        "progress": "Wellbeing journal and lab trends"
+      },
       "cardTitle": "Sign in",
       "cardSubtitle": "Enter your email and password to access your account.",
       "submit": "Sign in",
@@ -459,9 +466,10 @@
       "all": "All ({{count}})"
     },
     "chart": {
-      "title": "How much of your daily need one portion covers — top 5",
-      "series": "Of daily need",
-      "yAxis": "Daily need (%)"
+      "title": "Match with your needs — top 5",
+      "series": "Match",
+      "yAxis": "Match (%)",
+      "coverage": "one portion covers {{pct}}% of the daily need"
     },
     "caloric": {
       "title": "Daily calorie goal",
@@ -502,9 +510,12 @@
       "replacing": "Replacing...",
       "yes": "Yes",
       "no": "No",
-      "coverageHint": "How much of your daily need for the main nutrient the suggested portion covers",
+      "match": "Match with your needs",
+      "matchHint": "How well the food fits your deficiencies, relative to the top recommendation (100%). The list is ordered by this value.",
       "warningTitle": "Heads-up",
-      "howTitle": "How to eat it"
+      "howTitle": "How to eat it",
+      "showDetails": "Details and tips",
+      "hideDetails": "Hide details"
     }
   },
   "pdf": {
@@ -796,7 +807,10 @@
       "weight": "Weight (kg)",
       "energy": "Energy (1–5)",
       "wellbeing": "Weight and energy",
-      "wellbeingEmpty": "Add your weight or energy in the journal to see how they change."
+      "wellbeingEmpty": "Add your weight or energy in the journal to see how they change.",
+      "ok": "In range",
+      "below": "Below minimum",
+      "single": "Some results have a single measurement: you see the current value, and the chart appears after the next one."
     },
     "history": {
       "title": "Your journal",

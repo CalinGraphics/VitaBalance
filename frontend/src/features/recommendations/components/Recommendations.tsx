@@ -375,6 +375,13 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
         : recommendations.filter((rec) => categoryKeyOf(rec) === selectedCategory),
     [recommendations, selectedCategory, categoryKeyOf]
   )
+  // Lista vine sortată după scor; „potrivirea” de pe card e scorul raportat la primul aliment (nu la categoria filtrată),
+  // deci cifra afișată scade odată cu ordinea. Acoperirea nutrientului principal rămâne în textul explicației.
+  const topScore = useMemo(() => Math.max(0, ...recommendations.map((r) => Number(r.score) || 0)), [recommendations])
+  const matchPctOf = useCallback(
+    (rec: Recommendation) => (topScore > 0 ? Math.max(1, Math.round(((Number(rec.score) || 0) / topScore) * 100)) : 0),
+    [topScore]
+  )
   const visibleRecommendations = useMemo(
     () => filteredRecommendations.slice(0, visibleCount),
     [filteredRecommendations, visibleCount]
@@ -482,7 +489,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
           {/* Aceeași listă (și același filtru de categorie) ca în carduri. */}
           <Suspense fallback={<ChartSkeleton />}>
-            <NutrientChart recommendations={filteredRecommendations} />
+            <NutrientChart recommendations={filteredRecommendations} matchPctOf={matchPctOf} />
           </Suspense>
         </GlassCard>
       )}
@@ -537,6 +544,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
             <RecommendationCard
               recommendation={rec}
               index={index}
+              matchPct={matchPctOf(rec)}
               userId={userId}
               onFeedbackSent={handleFeedbackSent}
               onReplaceRequested={handleReplaceRequested}
@@ -551,6 +559,7 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
                 <RecommendationCard
                   recommendation={rec}
                   index={mainRecommendations.length + idx}
+                  matchPct={matchPctOf(rec)}
                   userId={userId}
                   onFeedbackSent={handleFeedbackSent}
                   onReplaceRequested={handleReplaceRequested}

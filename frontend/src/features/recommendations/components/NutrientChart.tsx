@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { foodName } from '../explanations/buildExplanation'
 import type { Recommendation } from '../types'
@@ -23,19 +24,29 @@ function YAxisLabel(props: { viewBox?: { x?: number; y?: number; width?: number;
 
 interface NutrientChartProps {
   recommendations: Recommendation[]
+  /** Aceeași „potrivire” ca pe carduri (scorul raportat la primul aliment), deci barele scad în ordinea listei. */
+  matchPctOf: (rec: Recommendation) => number
 }
 
-const NutrientChart = ({ recommendations }: NutrientChartProps) => {
+const NutrientChart = ({ recommendations, matchPctOf }: NutrientChartProps) => {
   const { t, i18n } = useTranslation()
   const lang = i18n.language === 'en' ? 'en' : 'ro'
   const seriesName = t('recommendations.chart.series')
+  // Pe telefon, marginea mare pentru eticheta axei Y lua o parte prea mare din lățime.
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth < 640)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
-  // Primele 5 din lista primită (ordinea backend-ului = ordinea cardurilor); `coverage` e același procent ca pe card.
+  // Primele 5 din lista primită (ordinea backend-ului = ordinea cardurilor).
   const chartData = recommendations.slice(0, 5).map((rec) => {
     const name = foodName(rec, lang)
     return {
       name: name.length > 18 ? name.substring(0, 18) + '…' : name,
       fullName: name,
+      match: matchPctOf(rec),
       coverage: Math.round(rec.coverage),
     }
   })
@@ -47,7 +58,7 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
       <h3 className="mb-4 text-base font-semibold text-zinc-100 sm:text-lg">{t('recommendations.chart.title')}</h3>
       <div className="h-[250px] w-full overflow-visible sm:h-[280px] md:h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 12, right: 16, left: 72, bottom: 8 }}>
+          <BarChart data={chartData} margin={{ top: 12, right: narrow ? 4 : 16, left: narrow ? 28 : 72, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis
               dataKey="name"
@@ -59,17 +70,21 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
               tick={{ fill: AXIS_TEXT, fontSize: 12 }}
             />
             <YAxis
-              label={<YAxisLabel text={t('recommendations.chart.yAxis')} />}
+              label={narrow ? undefined : <YAxisLabel text={t('recommendations.chart.yAxis')} />}
               domain={[0, 100]}
               stroke={GRID}
               tick={{ fill: AXIS_TEXT, fontSize: 12 }}
-              width={40}
-              tickMargin={12}
+              width={narrow ? 32 : 40}
+              tickMargin={narrow ? 6 : 12}
+              unit={narrow ? '%' : undefined}
             />
             <Tooltip
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               formatter={(value: number) => [`${value}%`, seriesName]}
-              labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName ?? _label}
+              labelFormatter={(_label, payload) => {
+                const row = payload?.[0]?.payload
+                return row ? `${row.fullName} · ${t('recommendations.chart.coverage', { pct: row.coverage })}` : _label
+              }}
               contentStyle={{
                 backgroundColor: '#101113',
                 border: '1px solid rgba(255,255,255,0.16)',
@@ -78,7 +93,7 @@ const NutrientChart = ({ recommendations }: NutrientChartProps) => {
               }}
               labelStyle={{ color: ACCENT }}
             />
-            <Bar dataKey="coverage" name={seriesName} fill={ACCENT} radius={[6, 6, 0, 0]} maxBarSize={56} />
+            <Bar dataKey="match" name={seriesName} fill={ACCENT} radius={[6, 6, 0, 0]} maxBarSize={56} />
           </BarChart>
         </ResponsiveContainer>
       </div>

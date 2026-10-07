@@ -1,6 +1,6 @@
-import { memo, useMemo, useState, useEffect } from 'react'
+import { memo, useId, useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, CheckCircle2, Flame, Info, Lightbulb, ThumbsUp, ThumbsDown, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Flame, Info, Lightbulb, ThumbsUp, ThumbsDown, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '../../../shared/components'
 import { formatFoodCategory } from '../../../shared/utils/formatters'
@@ -30,6 +30,8 @@ function Section({ title, items }: { title: string; items: string[] }) {
 interface RecommendationCardProps {
   recommendation: Recommendation
   index: number
+  /** Scorul raportat la primul aliment din listă (0–100): scade odată cu ordinea cardurilor. */
+  matchPct: number
   userId?: number
   onFeedbackSent?: (recId: number, rating: number | null, newLikes: number, newDislikes: number) => void
   onReplaceRequested?: (recId: number) => Promise<void>
@@ -37,6 +39,7 @@ interface RecommendationCardProps {
 
 const RecommendationCard = ({
   recommendation,
+  matchPct,
   userId,
   onFeedbackSent,
   onReplaceRequested,
@@ -44,7 +47,7 @@ const RecommendationCard = ({
   const { t, i18n } = useTranslation()
   // Textul se construiește în browser din fapte: schimbarea limbii nu face nicio cerere la server.
   const lang: Language = i18n.language === 'en' ? 'en' : 'ro'
-  const { coverage, feedback, facts } = recommendation
+  const { feedback, facts } = recommendation
   const explanation = useMemo(() => buildExplanation(recommendation, lang), [recommendation, lang])
   const name = foodName(recommendation, lang)
   const category = categoryLabel(recommendation, lang, formatFoodCategory)
@@ -57,6 +60,11 @@ const RecommendationCard = ({
   const [localCounts, setLocalCounts] = useState(feedback ? { ...feedback } : { likes: 0, dislikes: 0 })
   const [showDislikeModal, setShowDislikeModal] = useState(false)
   const [replaceLoading, setReplaceLoading] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
+  const detailsId = useId()
+  const hasDetails =
+    explanation.nutrients.length + explanation.why.length + explanation.tips.length +
+      explanation.alternatives.length + explanation.sources.length > 0
 
   useEffect(() => {
     setMyRating(recommendation.my_rating)
@@ -235,64 +243,42 @@ const RecommendationCard = ({
                     </span>
                   )}
                 </p>
-                <div className="flex items-center gap-2 mb-4 min-w-0" title={t('recommendations.card.coverageHint')}>
-                  <div className="flex-1 min-w-0 bg-white/10 rounded-full h-3 sm:h-2.5 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(coverage, 100)}%` }}
-                      transition={{ duration: 0.22, ease: 'easeOut' }}
-                      className="bg-accent h-3 sm:h-2.5 rounded-full"
-                    />
+                <div className="mb-4 min-w-0" title={t('recommendations.card.matchHint')}>
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                    {t('recommendations.card.match')}
+                  </p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="flex-1 min-w-0 bg-white/10 rounded-full h-3 sm:h-2.5 overflow-hidden"
+                      role="meter"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={matchPct}
+                      aria-label={t('recommendations.card.match')}
+                    >
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${matchPct}%` }}
+                        transition={{ duration: 0.22, ease: 'easeOut' }}
+                        className="bg-accent h-3 sm:h-2.5 rounded-full"
+                      />
+                    </div>
+                    <span className="text-base sm:text-sm font-semibold text-accent min-w-[56px] text-right tabular-nums">
+                      {matchPct}%
+                    </span>
                   </div>
-                  <span className="text-base sm:text-sm font-semibold text-accent min-w-[56px] text-right tabular-nums">
-                    {coverage.toFixed(1)}%
-                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Explicație: construită din fapte + șabloanele din locales */}
-            <div className="mb-5 space-y-3 rounded-lg border border-line bg-white/[0.03] p-4">
+            {/* Explicație: construită din fapte + șabloanele din locales. Rezumatul și avertismentele rămân mereu
+                vizibile; detaliile și sfaturile se deschid la cerere, ca lista să rămână ușor de parcurs. */}
+            <div className="mb-4 rounded-lg border border-line bg-white/[0.03] p-4">
               <Section title={t('recommendations.card.summary')} items={explanation.summary} />
-              <Section title={t('recommendations.card.nutrientDetail')} items={explanation.nutrients} />
             </div>
 
-            {explanation.why.length > 0 && (
-              <div className="mb-4 space-y-2">
-                <p className="text-base sm:text-sm font-semibold text-accent mb-3 flex items-center gap-2">
-                  <CheckCircle2 aria-hidden="true" className="w-4 h-4 flex-shrink-0" />
-                  {t('recommendations.card.whyTitle')}
-                </p>
-                <ul className="space-y-2">
-                  {explanation.why.map((reason, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 leading-relaxed break-words">
-                      <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
-                      <span className="leading-relaxed">{reason}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {explanation.tips.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-line">
-                <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2 flex items-center gap-2">
-                  <Info aria-hidden="true" className="w-4 h-4 flex-shrink-0 text-accent" />
-                  {t('recommendations.card.howTitle')}
-                </p>
-                <ul className="space-y-2">
-                  {explanation.tips.map((tip, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 bg-white/[0.03] border border-line p-3 rounded-lg break-words">
-                      <Lightbulb aria-hidden="true" className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {explanation.warnings.length > 0 && (
-              <div role="note" className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
+              <div role="note" className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
                 <p className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-amber-200">
                   <AlertTriangle aria-hidden="true" className="h-4 w-4 flex-shrink-0" />
                   {t('recommendations.card.warningTitle')}
@@ -305,15 +291,72 @@ const RecommendationCard = ({
               </div>
             )}
 
-            {explanation.alternatives.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-line">
-                <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2">{t('recommendations.card.alternatives')}</p>
-                <p className="text-base sm:text-sm text-zinc-300 break-words">{explanation.alternatives.join(', ')}</p>
-              </div>
-            )}
-
-            {explanation.sources.length > 0 && (
-              <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">{sourcesLine(lang, explanation.sources)}</p>
+            {hasDetails && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowDetails((v) => !v)}
+                  aria-expanded={showDetails}
+                  aria-controls={detailsId}
+                  className="mt-1 flex min-h-[44px] w-full cursor-pointer items-center justify-between rounded-lg border border-line px-4 text-sm font-medium text-zinc-200 transition-colors hover:border-accent-border hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                >
+                  {showDetails ? t('recommendations.card.hideDetails') : t('recommendations.card.showDetails')}
+                  <ChevronDown
+                    aria-hidden="true"
+                    className={`h-4 w-4 transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {showDetails && (
+                  <div id={detailsId} className="mt-4">
+                    {explanation.nutrients.length > 0 && (
+                      <div className="mb-4 rounded-lg border border-line bg-white/[0.03] p-4">
+                        <Section title={t('recommendations.card.nutrientDetail')} items={explanation.nutrients} />
+                      </div>
+                    )}
+                    {explanation.why.length > 0 && (
+                      <div className="mb-4 space-y-2">
+                        <p className="text-base sm:text-sm font-semibold text-accent mb-3 flex items-center gap-2">
+                          <CheckCircle2 aria-hidden="true" className="w-4 h-4 flex-shrink-0" />
+                          {t('recommendations.card.whyTitle')}
+                        </p>
+                        <ul className="space-y-2">
+                          {explanation.why.map((reason, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 leading-relaxed break-words">
+                              <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                              <span className="leading-relaxed">{reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {explanation.tips.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-line">
+                        <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2 flex items-center gap-2">
+                          <Info aria-hidden="true" className="w-4 h-4 flex-shrink-0 text-accent" />
+                          {t('recommendations.card.howTitle')}
+                        </p>
+                        <ul className="space-y-2">
+                          {explanation.tips.map((tip, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-base sm:text-sm text-zinc-300 bg-white/[0.03] border border-line p-3 rounded-lg break-words">
+                              <Lightbulb aria-hidden="true" className="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" />
+                              <span>{tip}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {explanation.alternatives.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-line">
+                        <p className="text-base sm:text-sm font-semibold text-zinc-200 mb-2">{t('recommendations.card.alternatives')}</p>
+                        <p className="text-base sm:text-sm text-zinc-300 break-words">{explanation.alternatives.join(', ')}</p>
+                      </div>
+                    )}
+                    {explanation.sources.length > 0 && (
+                      <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">{sourcesLine(lang, explanation.sources)}</p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Activity, FlaskConical, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { GlassCard, InputField, PrimaryButton } from '../../../shared/components';
@@ -6,6 +7,13 @@ import type { AuthUser, Route } from '../../../shared/types';
 import { authService } from '../../../services/api';
 import type { StoredSession } from '../../../services/authStorage';
 import { extractErrorMessage } from '../../../shared/utils/apiErrors';
+
+// Ce face aplicația, pe scurt (doar pe desktop, unde coloana din stânga are loc).
+const HERO_POINTS = [
+  { key: 'labs', Icon: FlaskConical },
+  { key: 'data', Icon: ShieldCheck },
+  { key: 'progress', Icon: Activity },
+] as const;
 
 interface LoginPageProps {
   onNavigate: (route: Route) => void;
@@ -56,10 +64,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onLogin }) => {
         transition={{ duration: 0.3 }}
         className="w-full max-w-sm text-center md:text-left"
       >
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+          {t('auth.login.eyebrow')}
+        </p>
         <h1 className="mb-3 text-3xl font-semibold tracking-tight text-zinc-50 md:text-4xl">
           {t('auth.login.heroTitle')} <span className="text-accent">VitaBalance</span>
         </h1>
         <p className="text-base leading-relaxed text-zinc-400 md:text-sm">{t('auth.login.heroText')}</p>
+        <ul className="mt-6 hidden space-y-3 md:block">
+          {HERO_POINTS.map(({ key, Icon }) => (
+            <li key={key} className="flex items-center gap-3 text-sm text-zinc-300">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-accent-border bg-accent/10">
+                <Icon aria-hidden="true" className="h-4 w-4 text-accent" />
+              </span>
+              {t(`auth.login.points.${key}`)}
+            </li>
+          ))}
+        </ul>
       </motion.div>
 
       <GlassCard className="w-full max-w-full md:max-w-md">

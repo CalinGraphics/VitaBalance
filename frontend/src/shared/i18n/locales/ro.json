@@ -28,6 +28,7 @@
     "label": "Navigare principală",
     "dashboard": "Recomandări",
     "labs": "Analize medicale",
+    "labsShort": "Analize",
     "profile": "Profil",
     "logout": "Delogare",
     "logoAlt": "Logo VitaBalance",
@@ -249,6 +250,12 @@
     "login": {
       "heroTitle": "Bine ai venit la",
       "heroText": "Hrănește-ți echilibrul și lasă-ți energia să revină la nivelul ei natural.",
+      "eyebrow": "Nutriție personalizată",
+      "points": {
+        "labs": "Recomandări pe baza analizelor tale",
+        "data": "Valori nutriționale din baza USDA",
+        "progress": "Jurnal de stare și evoluția analizelor"
+      },
       "cardTitle": "Autentificare",
       "cardSubtitle": "Introdu emailul și parola pentru a-ți accesa contul.",
       "submit": "Conectare",
@@ -462,9 +469,10 @@
       "all": "Toate ({{count}})"
     },
     "chart": {
-      "title": "Cât din necesarul zilnic acoperă o porție — primele 5",
-      "series": "Din necesarul zilnic",
-      "yAxis": "Necesar zilnic (%)"
+      "title": "Potrivirea cu nevoile tale — primele 5",
+      "series": "Potrivire",
+      "yAxis": "Potrivire (%)",
+      "coverage": "porția acoperă {{pct}}% din necesarul zilnic"
     },
     "caloric": {
       "title": "Obiectiv caloric zilnic",
@@ -507,9 +515,12 @@
       "replacing": "Se înlocuiește...",
       "yes": "Da",
       "no": "Nu",
-      "coverageHint": "Cât din necesarul tău zilnic pentru nutrientul principal acoperă porția sugerată",
+      "match": "Potrivire cu nevoile tale",
+      "matchHint": "Cât de bine se potrivește alimentul cu deficitele tale, față de prima recomandare (100%). Lista e ordonată după această valoare.",
       "warningTitle": "Atenție",
-      "howTitle": "Cum să-l mănânci"
+      "howTitle": "Cum să-l mănânci",
+      "showDetails": "Detalii și sfaturi",
+      "hideDetails": "Ascunde detaliile"
     }
   },
   "pdf": {
@@ -801,7 +812,10 @@
       "weight": "Greutate (kg)",
       "energy": "Energie (1–5)",
       "wellbeing": "Greutate și energie",
-      "wellbeingEmpty": "Completează greutatea sau energia în jurnal ca să vezi evoluția."
+      "wellbeingEmpty": "Completează greutatea sau energia în jurnal ca să vezi evoluția.",
+      "ok": "În limite",
+      "below": "Sub minim",
+      "single": "Unele analize au o singură măsurătoare: vezi valoarea de acum, iar graficul apare după următoarea."
     },
     "history": {
       "title": "Jurnalul tău",

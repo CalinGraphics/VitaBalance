@@ -20,12 +20,14 @@ interface LayoutProps {
 interface NavItem {
   route: Route;
   labelKey: string;
+  /** Eticheta scurtă din bara de jos (mobil), unde patru tab-uri împart lățimea ecranului. */
+  shortLabelKey?: string;
   Icon: LucideIcon;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { route: 'recommendations', labelKey: 'nav.dashboard', Icon: LayoutDashboard },
-  { route: 'lab-results', labelKey: 'nav.labs', Icon: FlaskConical },
+  { route: 'lab-results', labelKey: 'nav.labs', shortLabelKey: 'nav.labsShort', Icon: FlaskConical },
   { route: 'progress', labelKey: 'nav.progress', Icon: Activity },
   { route: 'edit-profile', labelKey: 'nav.profile', Icon: User },
 ];
@@ -129,8 +131,8 @@ const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNav
           className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/95 backdrop-blur-md md:hidden"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          <ul className="mx-auto grid max-w-md grid-cols-3">
-            {NAV_ITEMS.map(({ route: target, labelKey, Icon }) => {
+          <ul className="mx-auto grid max-w-md grid-cols-4">
+            {NAV_ITEMS.map(({ route: target, labelKey, shortLabelKey, Icon }) => {
               const active = route === target;
               return (
                 <li key={target}>
@@ -138,12 +140,13 @@ const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNav
                     type="button"
                     onClick={() => onNavigate?.(target)}
                     aria-current={active ? 'page' : undefined}
+                    aria-label={t(labelKey)}
                     className={`flex min-h-[56px] w-full cursor-pointer flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors touch-manipulation ${
                       active ? 'text-accent' : 'text-zinc-400 active:text-zinc-100'
                     }`}
                   >
                     <Icon aria-hidden="true" className="h-5 w-5" />
-                    <span className="max-w-full truncate px-1">{t(labelKey)}</span>
+                    <span className="max-w-full truncate px-1">{t(shortLabelKey ?? labelKey)}</span>
                   </button>
                 </li>
               );
