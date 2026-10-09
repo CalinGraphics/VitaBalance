@@ -60,3 +60,22 @@ def test_ranking_cache_hit_returns_same_result():
     assert second is first and RANKING_CACHE.hits == hits + 1
     other = RecommenderService().rank(replace(USER, diet_type="vegan"), FOODS, LABS)
     assert other is not first
+
+
+def test_any_catalog_value_change_invalidates_stored_recommendations():
+    # Iodul a intrat în catalog după migrarea 014: hash-ul trebuie să se schimbe, altfel recomandările rămân vechi.
+    base = recommendation_inputs_hash(USER, FOODS, LABS)
+    for field, value in (("iodine", 999.0), ("potassium", 1.0), ("flags", ("ultra_processed",)),
+                         ("allergen_codes", ("peste",)), ("sodium", 5000.0)):
+        changed = [replace(FOODS[0], **{field: value})] + FOODS[1:]
+        assert recommendation_inputs_hash(USER, changed, LABS) != base, field
+
+
+def test_food_matrix_rebuilt_when_values_change_for_same_ids():
+    from services.recommendations.food_matrix import matrix_for
+
+    first = matrix_for(FOODS)
+    assert matrix_for(list(FOODS)) is first
+    changed = [replace(FOODS[0], iodine=(FOODS[0].iodine or 0) + 50)] + FOODS[1:]
+    m = matrix_for(changed)
+    assert m is not first and m.column("iodine")[0] == changed[0].iodine

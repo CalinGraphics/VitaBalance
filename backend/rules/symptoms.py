@@ -129,10 +129,16 @@ def analyse(checkins: Iterable, lab_values: Dict[str, Optional[float]], today: O
 
 
 def symptom_factors(food: FoodItem, symptoms: FrozenSet[str]) -> List[Tuple[str, float]]:
+    """
+    Același sfat („mâncare mai puțin grasă”) se aplică o singură dată, oricâte simptome îl cer: greața, vărsăturile
+    și diareea împreună nu fac un aliment gras de trei ori mai puțin potrivit (0,6³ ≈ 0,2).
+    """
     out = []
+    applied = set()
     for s in sorted(symptoms):
         for r in RULES_BY_SYMPTOM.get(s, []):
-            if r.factor is not None:
+            if r.factor is not None and r.factor not in applied:
+                applied.add(r.factor)
                 f = r.factor(food)
                 if f != 1.0:
                     out.append((r.id, f))

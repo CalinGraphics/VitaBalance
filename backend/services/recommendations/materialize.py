@@ -257,7 +257,8 @@ def materialize_recommendations(
         remaining = [r for r in existing if r.id != to_replace.id]
         exclude |= {r.food_id for r in existing}
         ranking = recommender.rank(user, foods, lab_results, user_feedbacks, exclude_food_ids=exclude,
-                                   symptoms=symptoms)
+                                   symptoms=symptoms,
+                                   taken=[food_by_id[r.food_id] for r in remaining if r.food_id in food_by_id])
         rec_repo.delete_by_id(to_replace.id)
         inserted = rec_repo.insert_many(_insert_rows(user, ranking, ranking.items[:1], has_lab_data)) \
             if ranking.items else []

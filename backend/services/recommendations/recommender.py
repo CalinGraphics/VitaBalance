@@ -54,12 +54,15 @@ class RecommenderService:
         exclude_food_ids: Iterable[int] = (),
         needs: Optional[NeedsResult] = None,
         symptoms: Iterable[str] = (),
+        taken: Iterable[FoodItem] = (),
     ) -> Ranking:
+        """`taken`: alimentele care rămân pe listă când se înlocuiește o recomandare (diversitate)."""
         exclude = set(exclude_food_ids)
         symptoms = frozenset(symptoms)
+        taken = list(taken)
         feedback = feedback_map(user_feedbacks)
         inputs = recommendation_inputs_hash(user, foods, lab_results, symptoms)
-        key = RANKING_CACHE.key(inputs, feedback, exclude)
+        key = RANKING_CACHE.key(inputs, feedback, exclude) + f"|taken:{sorted(f.id for f in taken)}"
         cached = None if needs is not None else RANKING_CACHE.get(key)
         if cached is not None:
             return cached
@@ -70,6 +73,7 @@ class RecommenderService:
             feedback=feedback,
             exclude_food_ids=exclude,
             symptoms=symptoms,
+            taken=taken,
         )
         ranking.inputs_hash = inputs
         if needs is None:

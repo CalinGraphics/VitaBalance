@@ -3,7 +3,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Depends, Query, Res
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
 import uvicorn
 import os
@@ -593,6 +593,8 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
             labs_fresh_at = max(candidates)
 
     refresh_status = getattr(u, "rec_refresh_status", None) or "idle" if u else "idle"
+    if refresh_status == "pending" and _refresh_pending_is_stale(getattr(u, "rec_refresh_at", None)):
+        refresh_status = "idle"  # job mort (repornire): clientul pornește unul nou în loc să aștepte 2 minute
     refresh_error = getattr(u, "rec_refresh_error", None) if u else None
     refresh_at = iso(getattr(u, "rec_refresh_at", None)) if u else None
 
@@ -608,6 +610,26 @@ async def recommendations_sync_meta(user_id: int, current_user: dict = Depends(g
     }
 
 
+REFRESH_PENDING_STALE_AFTER = timedelta(minutes=3)
+
+
+def _refresh_pending_is_stale(refresh_at, now: Optional[datetime] = None) -> bool:
+    """
+    Un job din fundal moare odată cu procesul (redeploy sau repornire pe Render) și lasă „pending” în DB. Fără limită,
+    fiecare cerere nouă primea „already_pending” și recomandările nu se mai actualizau niciodată.
+    """
+    if refresh_at is None:
+        return True
+    if isinstance(refresh_at, str):
+        try:
+            refresh_at = datetime.fromisoformat(refresh_at.replace("Z", "+00:00"))
+        except ValueError:
+            return True
+    if refresh_at.tzinfo is None:
+        refresh_at = refresh_at.replace(tzinfo=timezone.utc)
+    return (now or datetime.now(timezone.utc)) - refresh_at > REFRESH_PENDING_STALE_AFTER
+
+
 @app.post("/api/recommendations/refresh-async/{user_id}")
 async def recommendations_refresh_async(
     user_id: int,
@@ -619,7 +641,8 @@ async def recommendations_refresh_async(
     owner_email = current_user["email"]
     user_repo = UserRepository()
     existing = user_repo.get_by_id(user_id)
-    if existing and getattr(existing, "rec_refresh_status", None) == "pending":
+    if existing and getattr(existing, "rec_refresh_status", None) == "pending" \
+            and not _refresh_pending_is_stale(getattr(existing, "rec_refresh_at", None)):
         return {
             "status": "already_pending",
             "recommendations": [],

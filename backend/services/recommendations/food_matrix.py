@@ -13,6 +13,10 @@ import numpy as np
 
 from domain.models import FoodItem
 from services.nutrition.needs import NUTRIENTS
+from services.recommendations.cache import catalog_signature
+
+# Fierul din carne, pasăre, pește și fructe de mare e parțial hem; din ouă, lactate și plante e doar non-hem.
+HEME_IRON_SOURCES = frozenset({"meat", "poultry", "fish", "shellfish"})
 
 
 @dataclass(frozen=True)
@@ -23,6 +27,7 @@ class FoodMatrix:
     kcal: np.ndarray                 # (n_foods,), NaN = necunoscut
     portion: np.ndarray              # (n_foods,), grame; NaN dacă lipsește
     high_oxalate: np.ndarray         # (n_foods,), bool
+    heme_iron: np.ndarray            # (n_foods,), bool — carne, pasăre, pește, fructe de mare (fier hem)
     columns: Dict[str, int]          # nutrient -> coloană
 
     def column(self, nutrient: str) -> np.ndarray:
@@ -44,17 +49,21 @@ def build_matrix(foods: Sequence[FoodItem]) -> FoodMatrix:
         kcal=np.array([_num(f.calories) for f in foods], dtype=float),
         portion=np.array([_num(f.portion_g) for f in foods], dtype=float),
         high_oxalate=np.array([f.has_flag("high_oxalate") for f in foods], dtype=bool),
+        heme_iron=np.array([f.animal_source in HEME_IRON_SOURCES for f in foods], dtype=bool),
         columns=columns,
     )
 
 
 _lock = threading.Lock()
-_cache: Dict[Tuple[int, ...], FoodMatrix] = {}
+_cache: Dict[Tuple[Tuple[int, ...], str], FoodMatrix] = {}
 
 
 def matrix_for(foods: Sequence[FoodItem]) -> FoodMatrix:
-    """Aceeași listă de alimente (după id-uri și ordine) -> aceeași matrice; construită o singură dată."""
-    key = tuple(f.id for f in foods)
+    """
+    Același catalog -> aceeași matrice, construită o singură dată. Cheia include valorile, nu doar id-urile: catalogul
+    se reîncarcă din DB la 10 minute, iar o valoare corectată trebuie să ajungă în scor fără repornirea serverului.
+    """
+    key = (tuple(f.id for f in foods), catalog_signature(foods, validated_only=False))
     with _lock:
         m = _cache.get(key)
         if m is None:
@@ -67,7 +76,7 @@ def matrix_for(foods: Sequence[FoodItem]) -> FoodMatrix:
 
 def nutrient_scores(
     m: FoodMatrix, nutrient: str, daily_ref: float, weight: float, *, density_cap: float, min_share: float,
-    min_kcal: float, bioavailability: float,
+    min_kcal: float, bio: np.ndarray,
 ) -> Dict[str, np.ndarray]:
     """Pentru toate alimentele: densitate, cota din porție și contribuția (0 unde nutrientul nu contează)."""
     v100 = m.column(nutrient)
@@ -77,7 +86,6 @@ def nutrient_scores(
         amount = v100 * m.portion / 100.0
         share = amount / daily_ref
     valid = ~np.isnan(v100) & (v100 > 0) & ~np.isnan(m.kcal) & ~np.isnan(m.portion) & (share >= min_share)
-    bio = np.where(m.high_oxalate, bioavailability, 1.0)
     contribution = np.where(valid, weight * np.minimum(density, density_cap) * bio, 0.0)
     return {"valid": valid, "per100": v100, "per100kcal": per100kcal, "density": density, "amount": amount,
             "share": share, "bio": bio, "contribution": contribution}

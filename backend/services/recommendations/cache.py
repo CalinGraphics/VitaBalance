@@ -15,18 +15,27 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterable, Optional, Sequence
 
 from domain.models import FoodItem, LabResultItem, UserProfile
+from services.nutrition.needs import NUTRIENTS
 
 _PROFILE_FIELDS = ("age", "sex", "weight", "height", "activity_level", "diet_type", "allergies", "medical_conditions")
 _LAB_FIELDS = ("hemoglobin", "ferritin", "vitamin_d", "vitamin_b12", "calcium", "magnesium", "zinc", "protein", "folate",
                "vitamin_a", "vitamin_c", "iodine", "vitamin_k", "potassium", "notes")
 
 
-def catalog_signature(foods: Sequence[FoodItem]) -> str:
-    """Se schimbă când se schimbă catalogul validat (alimente adăugate/scoase sau valori modificate)."""
+# Tot ce citește motorul dintr-un aliment (scor, filtre, penalizări). Dacă lipsea un câmp de aici (ex. iodul, adăugat
+# în catalog după migrarea 014), recomandările salvate rămâneau „la zi” deși catalogul se schimbase.
+_FOOD_FIELDS = ("food_key", "validated", "calories", "portion_g", "category_key", "animal_source", "sodium",
+                "phosphorus", "fat", "carbs", "fiber", *NUTRIENTS)
+
+
+def catalog_signature(foods: Sequence[FoodItem], validated_only: bool = True) -> str:
+    """Se schimbă când se schimbă catalogul (alimente adăugate/scoase, valori, marcaje sau alergeni modificați)."""
     h = hashlib.sha256()
     for f in foods:
-        if f.validated:
-            h.update(f"{f.id}:{f.food_key}:{f.calories}:{f.portion_g}:{f.magnesium}:{f.iron}:{f.vitamin_d};".encode())
+        if validated_only and not f.validated:
+            continue
+        values = ":".join(str(getattr(f, k, None)) for k in _FOOD_FIELDS)
+        h.update(f"{f.id}:{values}:{sorted(f.flags or ())}:{sorted(f.allergen_codes or ())};".encode())
     return h.hexdigest()[:16]
 
 

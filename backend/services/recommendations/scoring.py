@@ -8,7 +8,8 @@ Pentru fiecare aliment permis (după filtrele de dietă, alergii, restricții sc
      porție_n      = (cantitatea în porția realistă) / necesarul zilnic    -> fracție din necesar per porție
    Nutrientul „contează” doar dacă porția acoperă cel puțin MIN_PORTION_SHARE din necesar (altfel urmele dintr-un
    aliment ar ridica scorul) și dacă valoarea e cunoscută (None = exclus de la scorul pentru acel nutrient).
-     contribuție_n = pondere_severitate_n × min(densitate_n, DENSITY_CAP)
+     contribuție_n = pondere_severitate_n × min(densitate_n, DENSITY_CAP) × biodisponibilitate_n
+   (biodisponibilitate < 1 pentru fierul non-hem și pentru fierul/calciul din legumele bogate în oxalați).
 2. scor_bază = Σ contribuții; bonus pentru deficite multiple: × (1 + MULTI_DEFICIT_BONUS × (k − 1)).
 3. Penalizări de calitate (ultraprocesat, făină rafinată, zahăr adăugat, sare multă) și penalizările regulilor de
    contraindicații (ex. diabet); feedback-ul utilizatorului (like/dislike).
@@ -18,8 +19,11 @@ schimbarea lor cere actualizarea testelor golden (tests/golden) și o explicați
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple
+
+import numpy as np
 
 from domain.models import FoodItem
 from rules.contraindications import active_rules, exclusion_reasons, no_target_nutrients, penalty_factors
@@ -28,7 +32,7 @@ from services.nutrition.needs import NUTRIENTS, Need, NeedsResult
 from services.recommendations.food_matrix import FoodMatrix, matrix_for, nutrient_scores
 from data.reference_values import reference_intake
 
-SCORING_VERSION = 1
+SCORING_VERSION = 2  # 2: fier non-hem, fără variante duble (crud/gătit), catalog complet în hash
 
 DENSITY_CAP = 1.0            # o densitate peste 100% din necesar la 100 kcal nu mai adaugă (evită ficatul „infinit”)
 MIN_PORTION_SHARE = 0.10     # porția trebuie să aducă ≥ 10% din necesarul zilnic ca nutrientul să conteze
@@ -55,6 +59,10 @@ HIGH_SODIUM_PER_100G = 600.0
 # 1983;49:331 — fier; Weaver et al., J Food Sci 1987;52:1029 — calciu din spanac ~5% față de ~27% din lapte).
 # Factorul 0,5 e alegerea aplicației (direcția e susținută de surse, mărimea nu).
 OXALATE_BIOAVAILABILITY = {"iron": 0.5, "calcium": 0.5}
+# Fierul non-hem (plante, ouă, lactate) se absoarbe mult mai slab decât fierul hem din carne și pește: ~5–12% față de
+# ~15–35% (Hurrell & Egli, Am J Clin Nutr 2010;91:1461S). Fără factorul ăsta, spanacul (foarte puține kcal) ieșea
+# primul la anemie, înaintea ficatului și a midiilor. Mărimea 0,5 e alegerea aplicației; se cumulează cu oxalații.
+NON_HEME_IRON_BIOAVAILABILITY = 0.5
 
 MAX_PER_CATEGORY = 3          # diversitate: maximum 3 alimente din aceeași categorie
 # Categorii de consumat rar: cel mult un aliment pe listă. Ficat: NHS, „Vitamin A” (2023) — cel mult o dată pe
@@ -131,8 +139,7 @@ class _NutrientArrays:
     def __init__(self, m: FoodMatrix, nutrient: str, daily_ref: float, weight: float):
         self.nutrient, self.daily_ref, self.weight = nutrient, daily_ref, weight
         self.a = nutrient_scores(m, nutrient, daily_ref, weight, density_cap=DENSITY_CAP, min_share=MIN_PORTION_SHARE,
-                                 min_kcal=MIN_KCAL_FOR_DENSITY,
-                                 bioavailability=OXALATE_BIOAVAILABILITY.get(nutrient, 1.0)) if daily_ref > 0 else None
+                                 min_kcal=MIN_KCAL_FOR_DENSITY, bio=bioavailability(m, nutrient)) if daily_ref > 0 else None
 
     def component(self, row: int) -> Optional[Component]:
         a = self.a
@@ -141,6 +148,16 @@ class _NutrientArrays:
         return Component(self.nutrient, float(a["per100"][row]), float(a["per100kcal"][row]), self.daily_ref,
                          float(a["density"][row]), float(a["amount"][row]), float(a["share"][row]), self.weight,
                          float(a["contribution"][row]), float(a["bio"][row]))
+
+
+def bioavailability(m: FoodMatrix, nutrient: str) -> np.ndarray:
+    """Factorul de absorbție per aliment pentru un nutrient (1 = fără corecție)."""
+    bio = np.ones(len(m.foods))
+    if nutrient == "iron":
+        bio = np.where(m.heme_iron, 1.0, NON_HEME_IRON_BIOAVAILABILITY)
+    if nutrient in OXALATE_BIOAVAILABILITY:
+        bio = bio * np.where(m.high_oxalate, OXALATE_BIOAVAILABILITY[nutrient], 1.0)
+    return bio
 
 
 def quality_penalties(food: FoodItem) -> List[Tuple[str, float]]:
@@ -174,7 +191,9 @@ def rank_foods(
     feedback: Optional[Dict[int, str]] = None,
     exclude_food_ids: Iterable[int] = (),
     symptoms: FrozenSet[str] = frozenset(),
+    taken: Iterable[FoodItem] = (),
 ) -> Ranking:
+    """`taken`: alimentele care rămân deja pe listă (la înlocuirea unei recomandări) — contează la diversitate."""
     ctx = needs_result.context
     rules = active_rules(ctx)
     blocked = no_target_nutrients(rules)
@@ -223,7 +242,8 @@ def rank_foods(
 
     scored.sort(key=lambda s: (-s.score, s.food.food_key or "", s.food.id))
     covering = [s for s in scored if s.components and s.score > 0]
-    items = _diversify(covering)
+    taken = list(taken)
+    items = _diversify(covering, taken)
 
     if len(items) < MIN_RECOMMENDATIONS and targeted:
         # Prea puține alimente acoperă deficitele (ex. vegan + alergii): completăm cu alimente dense nutritiv,
@@ -242,7 +262,7 @@ def rank_foods(
         top_g = max((s.score for s in general), default=1.0) or 1.0
         for s in general:
             s.score = floor * FILL_SCORE_FACTOR * (s.score / top_g)
-        items = _diversify(items + general)
+        items = _diversify(items + general, taken)
 
     for s in items:
         s.alternatives = _alternatives(s, scored)
@@ -258,17 +278,34 @@ def _fill(s: ScoredFood, comps: List[Component], g: float) -> ScoredFood:
     return ScoredFood(s.food, g * factor * s.feedback_factor, comps, s.penalties, 1.0, s.feedback_factor, fill=True)
 
 
-def _diversify(ordered: List[ScoredFood]) -> List[ScoredFood]:
-    """Păstrează ordinea după scor și maximum MAX_PER_CATEGORY pe categorie (lista rămâne descrescătoare)."""
+_VARIANT_SUFFIX = re.compile(r"_(raw|cooked|farmed|wild)$")
+
+
+def base_food(food: FoodItem) -> str:
+    """Același aliment în altă formă (spanac crud / fiert, somon de crescătorie / sălbatic) -> aceeași bază."""
+    return _VARIANT_SUFFIX.sub("", food.food_key or str(food.id))
+
+
+def _diversify(ordered: List[ScoredFood], taken: Iterable[FoodItem] = ()) -> List[ScoredFood]:
+    """
+    Păstrează ordinea după scor, maximum MAX_PER_CATEGORY pe categorie și o singură formă a aceluiași aliment
+    (lista rămâne descrescătoare). `taken` = alimente deja pe listă, care ocupă locuri în categorii.
+    """
     ordered = sorted(ordered, key=lambda s: (-s.score, s.food.food_key or "", s.food.id))
     out: List[ScoredFood] = []
     per_cat: Dict[str, int] = {}
+    bases = set()
+    for f in taken:
+        cat = f.category_key or "other"
+        per_cat[cat] = per_cat.get(cat, 0) + 1
+        bases.add(base_food(f))
     for s in ordered:
         cat = s.food.category_key or "other"
-        if per_cat.get(cat, 0) >= CATEGORY_CAPS.get(cat, MAX_PER_CATEGORY):
+        if per_cat.get(cat, 0) >= CATEGORY_CAPS.get(cat, MAX_PER_CATEGORY) or base_food(s.food) in bases:
             continue
         out.append(s)
         per_cat[cat] = per_cat.get(cat, 0) + 1
+        bases.add(base_food(s.food))
         if len(out) >= MAX_RECOMMENDATIONS:
             break
     return out

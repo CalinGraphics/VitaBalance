@@ -249,3 +249,14 @@ class RecommendationsEndpointTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_stale_pending_refresh_does_not_block_new_jobs():
+    from datetime import datetime, timedelta, timezone
+    from main import _refresh_pending_is_stale
+
+    now = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc)
+    assert not _refresh_pending_is_stale((now - timedelta(seconds=30)).isoformat(), now)
+    assert _refresh_pending_is_stale((now - timedelta(minutes=10)).isoformat(), now)
+    assert _refresh_pending_is_stale("2026-10-10T11:00:00Z", now)
+    assert _refresh_pending_is_stale(None, now)

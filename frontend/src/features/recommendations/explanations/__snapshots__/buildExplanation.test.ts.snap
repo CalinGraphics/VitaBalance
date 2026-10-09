@@ -383,60 +383,6 @@ exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-ti
     "en": {
       "alternatives": [
         "Cooked spinach",
-        "Swiss chard, cooked",
-      ],
-      "nutrients": [
-        "A bowl (80 g) covers about 14% of your daily iron needs.",
-      ],
-      "sources": [
-        "Reg. (UE) 432/2012",
-        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
-      ],
-      "summary": [
-        "Raw spinach: helps you cover your iron needs.",
-        "Your ferritin is 9 ng/mL, below the minimum of 15 ng/mL. That is well below the limit.",
-      ],
-      "tips": [
-        "Add a source of vitamin C to the same meal (peppers, lemon, kiwi): it helps you absorb iron from plants. Tea and coffee with the meal make it harder.",
-        "In a salad or as a side, with a drizzle of oil.",
-      ],
-      "warnings": [],
-      "why": [
-        "Iron helps form red blood cells and carry oxygen around your body.",
-        "It fits your vegan diet.",
-      ],
-    },
-    "ro": {
-      "alternatives": [
-        "Spanac fiert",
-        "Mangold fiert",
-      ],
-      "nutrients": [
-        "Un bol (80 g) acoperă aproximativ 14% din necesarul tău zilnic de fier.",
-      ],
-      "sources": [
-        "Reg. (UE) 432/2012",
-        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
-      ],
-      "summary": [
-        "Spanac crud: te ajută să-ți acoperi necesarul de fier.",
-        "Feritina îți e 9 ng/mL, sub minimul de 15 ng/mL. E mult sub limită.",
-      ],
-      "tips": [
-        "Adaugă la aceeași masă o sursă de vitamina C (ardei, lămâie, kiwi): te ajută să absorbi fierul din plante. Ceaiul și cafeaua băute la masă îl fac mai greu de absorbit.",
-        "Într-o salată sau ca garnitură, cu un strop de ulei.",
-      ],
-      "warnings": [],
-      "why": [
-        "Fierul ajută la formarea globulelor roșii și la transportul oxigenului în corp.",
-        "Se potrivește dietei tale vegane.",
-      ],
-    },
-  },
-  {
-    "en": {
-      "alternatives": [
-        "Cooked spinach",
         "Raw spinach",
       ],
       "nutrients": [
@@ -530,6 +476,62 @@ exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-ti
       ],
       "summary": [
         "Linte fiartă: te ajută să-ți acoperi necesarul de fier.",
+        "Feritina îți e 9 ng/mL, sub minimul de 15 ng/mL. E mult sub limită.",
+      ],
+      "tips": [
+        "Adaugă la aceeași masă o sursă de vitamina C (ardei, lămâie, kiwi): te ajută să absorbi fierul din plante. Ceaiul și cafeaua băute la masă îl fac mai greu de absorbit.",
+        "În supe, salate sau tocănițe.",
+      ],
+      "warnings": [],
+      "why": [
+        "Fierul ajută la formarea globulelor roșii și la transportul oxigenului în corp.",
+        "Se potrivește dietei tale vegane.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Lentils, cooked",
+        "Firm tofu",
+        "Edamame",
+      ],
+      "nutrients": [
+        "A small bowl (150 g) covers about 35% of your daily iron needs.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "White beans, cooked: helps you cover your iron needs.",
+        "Your ferritin is 9 ng/mL, below the minimum of 15 ng/mL. That is well below the limit.",
+      ],
+      "tips": [
+        "Add a source of vitamin C to the same meal (peppers, lemon, kiwi): it helps you absorb iron from plants. Tea and coffee with the meal make it harder.",
+        "In soups, salads or stews.",
+      ],
+      "warnings": [],
+      "why": [
+        "Iron helps form red blood cells and carry oxygen around your body.",
+        "It fits your vegan diet.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Linte fiartă",
+        "Tofu tare",
+        "Edamame (boabe de soia verzi)",
+      ],
+      "nutrients": [
+        "Un castron mic (150 g) acoperă aproximativ 35% din necesarul tău zilnic de fier.",
+      ],
+      "sources": [
+        "Reg. (UE) 432/2012",
+        "Hallberg 1989, Am J Clin Nutr 49:140; Hurrell 1999, Br J Nutr 81:289",
+      ],
+      "summary": [
+        "Fasole albă fiartă: te ajută să-ți acoperi necesarul de fier.",
         "Feritina îți e 9 ng/mL, sub minimul de 15 ng/mL. E mult sub limită.",
       ],
       "tips": [
@@ -1447,64 +1449,8 @@ exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-ti
     "en": {
       "alternatives": [
         "Raw spinach",
-        "Swiss chard, cooked",
-        "Arugula",
-      ],
-      "nutrients": [
-        "A serving (80 g) covers about 20% of your daily magnesium needs.",
-        "It also gives you 35% of your folate needs and 56% of your vitamin A needs.",
-      ],
-      "sources": [
-        "McKillop 2002, Br J Nutr 88:681",
-        "NIH ODS 2023, Vitamin A fact sheet",
-      ],
-      "summary": [
-        "Cooked spinach: fits your profile and gives you 20% of your magnesium needs, 35% of your folate needs and 56% of your vitamin A needs.",
-      ],
-      "tips": [
-        "For folate, cook briefly by steaming or eat it raw: long boiling destroys part of it.",
-        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
-        "In a salad or as a side, with a drizzle of oil.",
-      ],
-      "warnings": [],
-      "why": [
-        "You have not added lab results yet, so this is based on your profile.",
-      ],
-    },
-    "ro": {
-      "alternatives": [
-        "Spanac crud",
-        "Mangold fiert",
-        "Rucola",
-      ],
-      "nutrients": [
-        "O porție (80 g) acoperă aproximativ 20% din necesarul tău zilnic de magneziu.",
-        "Îți aduce și 35% din necesarul de folat și 56% din necesarul de vitamina A.",
-      ],
-      "sources": [
-        "McKillop 2002, Br J Nutr 88:681",
-        "NIH ODS 2023, Vitamin A fact sheet",
-      ],
-      "summary": [
-        "Spanac fiert: se potrivește profilului tău și îți aduce 20% din necesarul de magneziu, 35% din necesarul de folat și 56% din necesarul de vitamina A.",
-      ],
-      "tips": [
-        "Pentru folat, alege gătirea scurtă, la abur, sau consumul crud: fierberea lungă distruge o parte din el.",
-        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
-        "Într-o salată sau ca garnitură, cu un strop de ulei.",
-      ],
-      "warnings": [],
-      "why": [
-        "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
-      ],
-    },
-  },
-  {
-    "en": {
-      "alternatives": [
-        "Raw spinach",
         "Cooked spinach",
-        "Arugula",
+        "Beet greens, cooked",
       ],
       "nutrients": [
         "A serving (80 g) covers about 20% of your daily magnesium needs.",
@@ -1529,7 +1475,7 @@ exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-ti
       "alternatives": [
         "Spanac crud",
         "Spanac fiert",
-        "Rucola",
+        "Frunze de sfeclă fierte",
       ],
       "nutrients": [
         "O porție (80 g) acoperă aproximativ 20% din necesarul tău zilnic de magneziu.",
@@ -1540,6 +1486,58 @@ exports[`mesajele recomandărilor > snapshot RO și EN pentru fiecare pacient-ti
       ],
       "summary": [
         "Mangold fiert: se potrivește profilului tău și îți aduce 20% din necesarul de magneziu, 33% din necesarul de vitamina A și 100% din necesarul de vitamina K.",
+      ],
+      "tips": [
+        "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",
+        "Într-o salată sau ca garnitură, cu un strop de ulei.",
+      ],
+      "warnings": [],
+      "why": [
+        "Nu ai încă analize, așa că recomandarea se bazează pe profilul tău.",
+      ],
+    },
+  },
+  {
+    "en": {
+      "alternatives": [
+        "Raw spinach",
+        "Cooked spinach",
+        "Swiss chard, cooked",
+      ],
+      "nutrients": [
+        "A serving (80 g) covers about 41% of your daily vitamin A needs.",
+        "It also gives you 100% of your vitamin K needs and 21% of your potassium needs.",
+      ],
+      "sources": [
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Beet greens, cooked: fits your profile and gives you 41% of your vitamin A needs, 100% of your vitamin K needs and 21% of your potassium needs.",
+      ],
+      "tips": [
+        "Vitamin A is absorbed better with a little fat, for example a drizzle of oil.",
+        "In a salad or as a side, with a drizzle of oil.",
+      ],
+      "warnings": [],
+      "why": [
+        "You have not added lab results yet, so this is based on your profile.",
+      ],
+    },
+    "ro": {
+      "alternatives": [
+        "Spanac crud",
+        "Spanac fiert",
+        "Mangold fiert",
+      ],
+      "nutrients": [
+        "O porție (80 g) acoperă aproximativ 41% din necesarul tău zilnic de vitamina A.",
+        "Îți aduce și 100% din necesarul de vitamina K și 21% din necesarul de potasiu.",
+      ],
+      "sources": [
+        "NIH ODS 2023, Vitamin A fact sheet",
+      ],
+      "summary": [
+        "Frunze de sfeclă fierte: se potrivește profilului tău și îți aduce 41% din necesarul de vitamina A, 100% din necesarul de vitamina K și 21% din necesarul de potasiu.",
       ],
       "tips": [
         "Vitamina A se absoarbe mai bine împreună cu puțină grăsime, de exemplu un strop de ulei.",

@@ -158,3 +158,8 @@ def test_progress_api():
         body = resp.json()
         assert body["storage_available"] is True and body["symptom_codes"] == list(SYMPTOM_CODES)
     main_module.app.dependency_overrides = {}
+
+
+def test_same_comfort_advice_applies_once_for_several_symptoms():
+    factors = symptom_factors(food("salmon_farmed"), frozenset({"greata", "varsaturi", "diaree", "lipsa_poftei"}))
+    assert [f for _, f in factors] == [0.6]

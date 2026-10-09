@@ -58,7 +58,7 @@
     "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
-    "inputs_hash": "a903e87c09265d79dd264a3d"
+    "inputs_hash": "a3ee2abc7dd52be99b351105"
    },
    "alternatives": [],
    "legacy": null,
@@ -147,7 +147,7 @@
      1068,
      1073
     ],
-    "inputs_hash": "a903e87c09265d79dd264a3d"
+    "inputs_hash": "a3ee2abc7dd52be99b351105"
    },
    "alternatives": [
     {
@@ -254,7 +254,7 @@
      1068,
      1073
     ],
-    "inputs_hash": "a903e87c09265d79dd264a3d"
+    "inputs_hash": "a3ee2abc7dd52be99b351105"
    },
    "alternatives": [
     {
@@ -359,7 +359,7 @@
      1078,
      1073
     ],
-    "inputs_hash": "a903e87c09265d79dd264a3d"
+    "inputs_hash": "a3ee2abc7dd52be99b351105"
    },
    "alternatives": [
     {
@@ -449,7 +449,7 @@
      1026,
      1032
     ],
-    "inputs_hash": "a903e87c09265d79dd264a3d"
+    "inputs_hash": "a3ee2abc7dd52be99b351105"
    },
    "alternatives": [
     {
@@ -535,7 +535,7 @@
     "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
-    "inputs_hash": "88975509a0c49b38e621ef61"
+    "inputs_hash": "57e2bf9f6caf1e1525038d04"
    },
    "alternatives": [],
    "legacy": null,
@@ -556,7 +556,7 @@
     "category_key": "leafy_greens",
     "calories": 23.0
    },
-   "score": 1.455163,
+   "score": 0.727582,
    "coverage": 17.8,
    "facts": {
     "v": 4,
@@ -608,7 +608,7 @@
      1026,
      1029
     ],
-    "inputs_hash": "88975509a0c49b38e621ef61"
+    "inputs_hash": "57e2bf9f6caf1e1525038d04"
    },
    "alternatives": [
     {
@@ -630,92 +630,8 @@
    "my_rating": null
   },
   {
-   "food_id": 1026,
-   "recommendation_id": 3,
-   "food": {
-    "id": 1026,
-    "name_ro": "Spanac crud",
-    "name_en": "Raw spinach",
-    "category": "Legume cu frunze verzi",
-    "category_key": "leafy_greens",
-    "calories": 23.0
-   },
-   "score": 1.10462,
-   "coverage": 13.6,
-   "facts": {
-    "v": 4,
-    "food_id": 1026,
-    "food_key": "spinach_raw",
-    "category": "leafy_greens",
-    "animal": null,
-    "portion": {
-     "amount": 80,
-     "unit": "g",
-     "label_ro": "un bol (80 g)",
-     "label_en": "a bowl (80 g)"
-    },
-    "kcal_portion": 18,
-    "has_lab_data": true,
-    "nutrients": [
-     {
-      "key": "iron",
-      "amount": 2.17,
-      "per100": 2.71,
-      "daily_reference": 16.0,
-      "pct": 14,
-      "need": {
-       "nutrient": "iron",
-       "source": "lab",
-       "severity": "severe",
-       "daily_reference": 16.0,
-       "marker": "ferritin",
-       "value": 9.0,
-       "threshold": 15.0,
-       "unit": "ng/mL"
-      }
-     }
-    ],
-    "primary": "iron",
-    "coverage_pct": 13.6,
-    "profile": {
-     "diet": "vegan",
-     "allergies": [],
-     "conditions": []
-    },
-    "safety_rules": [],
-    "symptoms": [],
-    "symptom_adjustments": [],
-    "flags": [
-     "high_oxalate"
-    ],
-    "alternatives": [
-     1027,
-     1029
-    ],
-    "inputs_hash": "88975509a0c49b38e621ef61"
-   },
-   "alternatives": [
-    {
-     "id": 1027,
-     "name_ro": "Spanac fiert",
-     "name_en": "Cooked spinach"
-    },
-    {
-     "id": 1029,
-     "name_ro": "Mangold fiert",
-     "name_en": "Swiss chard, cooked"
-    }
-   ],
-   "legacy": null,
-   "feedback": {
-    "likes": 0,
-    "dislikes": 0
-   },
-   "my_rating": null
-  },
-  {
    "food_id": 1029,
-   "recommendation_id": 4,
+   "recommendation_id": 3,
    "food": {
     "id": 1029,
     "name_ro": "Mangold fiert",
@@ -724,7 +640,7 @@
     "category_key": "leafy_greens",
     "calories": 20.0
    },
-   "score": 1.059375,
+   "score": 0.529687,
    "coverage": 11.3,
    "facts": {
     "v": 4,
@@ -776,7 +692,7 @@
      1027,
      1026
     ],
-    "inputs_hash": "88975509a0c49b38e621ef61"
+    "inputs_hash": "57e2bf9f6caf1e1525038d04"
    },
    "alternatives": [
     {
@@ -799,7 +715,7 @@
   },
   {
    "food_id": 1019,
-   "recommendation_id": 5,
+   "recommendation_id": 4,
    "food": {
     "id": 1019,
     "name_ro": "Linte fiartă",
@@ -808,7 +724,7 @@
     "category_key": "legumes",
     "calories": 116.0
    },
-   "score": 0.538254,
+   "score": 0.269127,
    "coverage": 31.2,
    "facts": {
     "v": 4,
@@ -859,13 +775,101 @@
      1022,
      1021
     ],
-    "inputs_hash": "88975509a0c49b38e621ef61"
+    "inputs_hash": "57e2bf9f6caf1e1525038d04"
    },
    "alternatives": [
     {
      "id": 1017,
      "name_ro": "Fasole albă fiartă",
      "name_en": "White beans, cooked"
+    },
+    {
+     "id": 1022,
+     "name_ro": "Tofu tare",
+     "name_en": "Firm tofu"
+    },
+    {
+     "id": 1021,
+     "name_ro": "Edamame (boabe de soia verzi)",
+     "name_en": "Edamame"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1017,
+   "recommendation_id": 5,
+   "food": {
+    "id": 1017,
+    "name_ro": "Fasole albă fiartă",
+    "name_en": "White beans, cooked",
+    "category": "Leguminoase",
+    "category_key": "legumes",
+    "calories": 139.0
+   },
+   "score": 0.24955,
+   "coverage": 34.7,
+   "facts": {
+    "v": 4,
+    "food_id": 1017,
+    "food_key": "white_beans",
+    "category": "legumes",
+    "animal": null,
+    "portion": {
+     "amount": 150,
+     "unit": "g",
+     "label_ro": "un castron mic (150 g)",
+     "label_en": "a small bowl (150 g)"
+    },
+    "kcal_portion": 208,
+    "has_lab_data": true,
+    "nutrients": [
+     {
+      "key": "iron",
+      "amount": 5.55,
+      "per100": 3.7,
+      "daily_reference": 16.0,
+      "pct": 35,
+      "need": {
+       "nutrient": "iron",
+       "source": "lab",
+       "severity": "severe",
+       "daily_reference": 16.0,
+       "marker": "ferritin",
+       "value": 9.0,
+       "threshold": 15.0,
+       "unit": "ng/mL"
+      }
+     }
+    ],
+    "primary": "iron",
+    "coverage_pct": 34.7,
+    "profile": {
+     "diet": "vegan",
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
+    "flags": [],
+    "alternatives": [
+     1019,
+     1022,
+     1021
+    ],
+    "inputs_hash": "57e2bf9f6caf1e1525038d04"
+   },
+   "alternatives": [
+    {
+     "id": 1019,
+     "name_ro": "Linte fiartă",
+     "name_en": "Lentils, cooked"
     },
     {
      "id": 1022,
@@ -952,7 +956,7 @@
     "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
-    "inputs_hash": "7b2c63e299afc075d687d5fb"
+    "inputs_hash": "c7f6bfa6434a477232a32d78"
    },
    "alternatives": [],
    "legacy": null,
@@ -1031,7 +1035,7 @@
      1073,
      1072
     ],
-    "inputs_hash": "7b2c63e299afc075d687d5fb"
+    "inputs_hash": "c7f6bfa6434a477232a32d78"
    },
    "alternatives": [
     {
@@ -1124,7 +1128,7 @@
     "alternatives": [
      1109
     ],
-    "inputs_hash": "7b2c63e299afc075d687d5fb"
+    "inputs_hash": "c7f6bfa6434a477232a32d78"
    },
    "alternatives": [
     {
@@ -1209,7 +1213,7 @@
      1073,
      1072
     ],
-    "inputs_hash": "7b2c63e299afc075d687d5fb"
+    "inputs_hash": "c7f6bfa6434a477232a32d78"
    },
    "alternatives": [
     {
@@ -1302,7 +1306,7 @@
     "alternatives": [
      1110
     ],
-    "inputs_hash": "7b2c63e299afc075d687d5fb"
+    "inputs_hash": "c7f6bfa6434a477232a32d78"
    },
    "alternatives": [
     {
@@ -1403,7 +1407,7 @@
      1068,
      1073
     ],
-    "inputs_hash": "5c3529175aeb18017228d101"
+    "inputs_hash": "e59299be03c79b06521325d3"
    },
    "alternatives": [
     {
@@ -1491,7 +1495,7 @@
     "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
-    "inputs_hash": "5c3529175aeb18017228d101"
+    "inputs_hash": "e59299be03c79b06521325d3"
    },
    "alternatives": [],
    "legacy": null,
@@ -1586,7 +1590,7 @@
      1068,
      1073
     ],
-    "inputs_hash": "5c3529175aeb18017228d101"
+    "inputs_hash": "e59299be03c79b06521325d3"
    },
    "alternatives": [
     {
@@ -1695,7 +1699,7 @@
      1078,
      1073
     ],
-    "inputs_hash": "5c3529175aeb18017228d101"
+    "inputs_hash": "e59299be03c79b06521325d3"
    },
    "alternatives": [
     {
@@ -1802,7 +1806,7 @@
     "alternatives": [
      1110
     ],
-    "inputs_hash": "5c3529175aeb18017228d101"
+    "inputs_hash": "e59299be03c79b06521325d3"
    },
    "alternatives": [
     {
@@ -1896,7 +1900,7 @@
     "symptom_adjustments": [],
     "flags": [],
     "alternatives": [],
-    "inputs_hash": "33bfb055f6198466ff24efd4"
+    "inputs_hash": "b6458adf825ccd6c452ac6cc"
    },
    "alternatives": [],
    "legacy": null,
@@ -1984,7 +1988,7 @@
     "alternatives": [
      1031
     ],
-    "inputs_hash": "33bfb055f6198466ff24efd4"
+    "inputs_hash": "b6458adf825ccd6c452ac6cc"
    },
    "alternatives": [
     {
@@ -2078,7 +2082,7 @@
     "alternatives": [
      1040
     ],
-    "inputs_hash": "33bfb055f6198466ff24efd4"
+    "inputs_hash": "b6458adf825ccd6c452ac6cc"
    },
    "alternatives": [
     {
@@ -2172,7 +2176,7 @@
     "alternatives": [
      1038
     ],
-    "inputs_hash": "33bfb055f6198466ff24efd4"
+    "inputs_hash": "b6458adf825ccd6c452ac6cc"
    },
    "alternatives": [
     {
@@ -2257,7 +2261,7 @@
      1038,
      1040
     ],
-    "inputs_hash": "33bfb055f6198466ff24efd4"
+    "inputs_hash": "b6458adf825ccd6c452ac6cc"
    },
    "alternatives": [
     {
@@ -2291,7 +2295,7 @@
     "category_key": "leafy_greens",
     "calories": 23.0
    },
-   "score": 6.174534,
+   "score": 5.924534,
    "coverage": 47.0,
    "facts": {
     "v": 4,
@@ -2357,7 +2361,7 @@
      1030,
      1028
     ],
-    "inputs_hash": "e98ccd2e24138242ccdcde22"
+    "inputs_hash": "afb289abd2afb5e979642f00"
    },
    "alternatives": [
     {
@@ -2384,111 +2388,8 @@
    "my_rating": null
   },
   {
-   "food_id": 1027,
-   "recommendation_id": 2,
-   "food": {
-    "id": 1027,
-    "name_ro": "Spanac fiert",
-    "name_en": "Cooked spinach",
-    "category": "Legume cu frunze verzi",
-    "category_key": "leafy_greens",
-    "calories": 23.0
-   },
-   "score": 5.390095,
-   "coverage": 19.9,
-   "facts": {
-    "v": 4,
-    "food_id": 1027,
-    "food_key": "spinach_cooked",
-    "category": "leafy_greens",
-    "animal": null,
-    "portion": {
-     "amount": 80,
-     "unit": "g",
-     "label_ro": "o porție (80 g)",
-     "label_en": "a serving (80 g)"
-    },
-    "kcal_portion": 18,
-    "has_lab_data": false,
-    "nutrients": [
-     {
-      "key": "magnesium",
-      "amount": 69.6,
-      "per100": 87.0,
-      "daily_reference": 350.0,
-      "pct": 20,
-      "need": {
-       "source": "general"
-      }
-     },
-     {
-      "key": "folate",
-      "amount": 116.8,
-      "per100": 146.0,
-      "daily_reference": 330.0,
-      "pct": 35,
-      "need": {
-       "source": "general"
-      }
-     },
-     {
-      "key": "vitamin_a",
-      "amount": 419.2,
-      "per100": 524.0,
-      "daily_reference": 750.0,
-      "pct": 56,
-      "need": {
-       "source": "general"
-      }
-     }
-    ],
-    "primary": "magnesium",
-    "coverage_pct": 19.9,
-    "profile": {
-     "diet": null,
-     "allergies": [],
-     "conditions": []
-    },
-    "safety_rules": [],
-    "symptoms": [],
-    "symptom_adjustments": [],
-    "flags": [
-     "high_oxalate"
-    ],
-    "alternatives": [
-     1026,
-     1029,
-     1030
-    ],
-    "inputs_hash": "e98ccd2e24138242ccdcde22"
-   },
-   "alternatives": [
-    {
-     "id": 1026,
-     "name_ro": "Spanac crud",
-     "name_en": "Raw spinach"
-    },
-    {
-     "id": 1029,
-     "name_ro": "Mangold fiert",
-     "name_en": "Swiss chard, cooked"
-    },
-    {
-     "id": 1030,
-     "name_ro": "Rucola",
-     "name_en": "Arugula"
-    }
-   ],
-   "legacy": null,
-   "feedback": {
-    "likes": 0,
-    "dislikes": 0
-   },
-   "my_rating": null
-  },
-  {
    "food_id": 1029,
-   "recommendation_id": 3,
+   "recommendation_id": 2,
    "food": {
     "id": 1029,
     "name_ro": "Mangold fiert",
@@ -2497,7 +2398,7 @@
     "category_key": "leafy_greens",
     "calories": 20.0
    },
-   "score": 5.102468,
+   "score": 4.852468,
    "coverage": 19.7,
    "facts": {
     "v": 4,
@@ -2561,9 +2462,9 @@
     "alternatives": [
      1026,
      1027,
-     1030
+     1032
     ],
-    "inputs_hash": "e98ccd2e24138242ccdcde22"
+    "inputs_hash": "afb289abd2afb5e979642f00"
    },
    "alternatives": [
     {
@@ -2577,9 +2478,112 @@
      "name_en": "Cooked spinach"
     },
     {
-     "id": 1030,
-     "name_ro": "Rucola",
-     "name_en": "Arugula"
+     "id": 1032,
+     "name_ro": "Frunze de sfeclă fierte",
+     "name_en": "Beet greens, cooked"
+    }
+   ],
+   "legacy": null,
+   "feedback": {
+    "likes": 0,
+    "dislikes": 0
+   },
+   "my_rating": null
+  },
+  {
+   "food_id": 1032,
+   "recommendation_id": 3,
+   "food": {
+    "id": 1032,
+    "name_ro": "Frunze de sfeclă fierte",
+    "name_en": "Beet greens, cooked",
+    "category": "Legume cu frunze verzi",
+    "category_key": "leafy_greens",
+    "calories": 27.0
+   },
+   "score": 4.679798,
+   "coverage": 40.9,
+   "facts": {
+    "v": 4,
+    "food_id": 1032,
+    "food_key": "beet_greens",
+    "category": "leafy_greens",
+    "animal": null,
+    "portion": {
+     "amount": 80,
+     "unit": "g",
+     "label_ro": "o porție (80 g)",
+     "label_en": "a serving (80 g)"
+    },
+    "kcal_portion": 22,
+    "has_lab_data": false,
+    "nutrients": [
+     {
+      "key": "vitamin_a",
+      "amount": 306.4,
+      "per100": 383.0,
+      "daily_reference": 750.0,
+      "pct": 41,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "vitamin_k",
+      "amount": 387.2,
+      "per100": 484.0,
+      "daily_reference": 70.0,
+      "pct": 100,
+      "need": {
+       "source": "general"
+      }
+     },
+     {
+      "key": "potassium",
+      "amount": 727.2,
+      "per100": 909.0,
+      "daily_reference": 3500.0,
+      "pct": 21,
+      "need": {
+       "source": "general"
+      }
+     }
+    ],
+    "primary": "vitamin_a",
+    "coverage_pct": 40.9,
+    "profile": {
+     "diet": null,
+     "allergies": [],
+     "conditions": []
+    },
+    "safety_rules": [],
+    "symptoms": [],
+    "symptom_adjustments": [],
+    "flags": [
+     "high_oxalate"
+    ],
+    "alternatives": [
+     1026,
+     1027,
+     1029
+    ],
+    "inputs_hash": "afb289abd2afb5e979642f00"
+   },
+   "alternatives": [
+    {
+     "id": 1026,
+     "name_ro": "Spanac crud",
+     "name_en": "Raw spinach"
+    },
+    {
+     "id": 1027,
+     "name_ro": "Spanac fiert",
+     "name_en": "Cooked spinach"
+    },
+    {
+     "id": 1029,
+     "name_ro": "Mangold fiert",
+     "name_en": "Swiss chard, cooked"
     }
    ],
    "legacy": null,
@@ -2664,7 +2668,7 @@
     "alternatives": [
      1091
     ],
-    "inputs_hash": "e98ccd2e24138242ccdcde22"
+    "inputs_hash": "afb289abd2afb5e979642f00"
    },
    "alternatives": [
     {
@@ -2755,7 +2759,7 @@
      1034,
      1038
     ],
-    "inputs_hash": "e98ccd2e24138242ccdcde22"
+    "inputs_hash": "afb289abd2afb5e979642f00"
    },
    "alternatives": [
     {
@@ -2844,7 +2848,7 @@
      1069,
      1068
     ],
-    "inputs_hash": "abe9589401cddad90aac532b"
+    "inputs_hash": "0bfce4e2528654ec4070382f"
    },
    "alternatives": [
     {
@@ -2927,7 +2931,7 @@
      1097,
      1099
     ],
-    "inputs_hash": "abe9589401cddad90aac532b"
+    "inputs_hash": "0bfce4e2528654ec4070382f"
    },
    "alternatives": [
     {
@@ -3015,7 +3019,7 @@
      1097,
      1099
     ],
-    "inputs_hash": "abe9589401cddad90aac532b"
+    "inputs_hash": "0bfce4e2528654ec4070382f"
    },
    "alternatives": [
     {
@@ -3103,7 +3107,7 @@
      1098,
      1099
     ],
-    "inputs_hash": "abe9589401cddad90aac532b"
+    "inputs_hash": "0bfce4e2528654ec4070382f"
    },
    "alternatives": [
     {
@@ -3190,7 +3194,7 @@
      1101,
      1104
     ],
-    "inputs_hash": "abe9589401cddad90aac532b"
+    "inputs_hash": "0bfce4e2528654ec4070382f"
    },
    "alternatives": [
     {

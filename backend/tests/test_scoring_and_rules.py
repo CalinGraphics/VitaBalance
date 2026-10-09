@@ -188,3 +188,32 @@ def test_unvalidated_legacy_foods_are_never_recommended():
     legacy = FoodItem(id=1, name="Bagel Simplu", category="Cereale", magnesium=57, calories=270)
     r = _rank(_user(), _lab(magnesium=1.4), foods=FOODS + [legacy])
     assert 1 not in {s.food.id for s in r.eligible}
+
+
+# ---------- biodisponibilitate și variante ----------
+
+def test_heme_iron_sources_beat_spinach_for_iron_deficiency():
+    r = _rank(_user(sex="F", age=30, weight=60, height=165), _lab(ferritin=8))
+    keys = _keys(r)
+    assert keys.index("chicken_liver") < keys.index("spinach_cooked")
+    assert keys.index("mussels") < keys.index("spinach_cooked")
+    bio = {s.food.food_key: s.primary.bioavailability for s in r.eligible if s.primary}
+    assert bio["beef_lean"] == 1.0 and bio["lentils"] == 0.5 and bio["spinach_cooked"] == 0.25
+
+
+def test_one_form_of_the_same_food_per_list():
+    from services.recommendations.scoring import base_food
+
+    for user, lab in ((_user(), None), (_user(), _lab(magnesium=1.4)), (_user(), _lab(vitamin_d=12))):
+        bases = [base_food(s.food) for s in _rank(user, lab).items]
+        assert len(bases) == len(set(bases)), bases
+
+
+def test_replacement_respects_category_caps_and_variants_of_kept_foods():
+    user, lab = _user(), _lab(magnesium=1.4)
+    full = _rank(user, lab).items
+    kept = [s.food for s in full if s.food.category_key == "leafy_greens"][:MAX_PER_CATEGORY]
+    assert len(kept) == MAX_PER_CATEGORY
+    r = RecommenderService().rank(user, FOODS, lab, exclude_food_ids={f.id for f in kept}, taken=kept)
+    assert all(s.food.category_key != "leafy_greens" for s in r.items)
+    assert "spinach_raw" not in _keys(r) and "spinach_cooked" not in _keys(r)
