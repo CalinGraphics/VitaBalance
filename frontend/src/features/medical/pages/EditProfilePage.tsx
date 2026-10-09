@@ -94,7 +94,7 @@ const EditProfilePage = ({
         {error && <Alert variant="error" className="mb-5">{error}</Alert>}
         {success && <Alert variant="success" className="mb-5">{t('profile.edit.success')}</Alert>}
 
-        <ProfileAvatarEditor name={user.name || user.email} url={user.avatar_url} onChange={onAvatarChange} />
+        <ProfileAvatarEditor name={form.formData.name.trim() || user.name || user.email} email={user.email} url={user.avatar_url} onChange={onAvatarChange} />
 
         <form onSubmit={handleSubmit} noValidate>
           <ProfileFormFields form={form} />
