@@ -762,7 +762,9 @@
       "saving": "Se salvează...",
       "saved": "Am salvat ziua. Recomandările țin cont de stările din ultimele 14 zile.",
       "empty": "Completează cel puțin un câmp.",
-      "error": "Nu am putut salva. Încearcă din nou."
+      "error": "Nu am putut salva. Încearcă din nou.",
+      "editing": "Ziua e deja notată: salvarea o actualizează.",
+      "forDay": "Notezi pentru {{date}}"
     },
     "severity": {
       "1": "Ușor",
@@ -815,16 +817,45 @@
       "wellbeingEmpty": "Completează greutatea sau energia în jurnal ca să vezi evoluția.",
       "ok": "În limite",
       "below": "Sub minim",
-      "single": "Unele analize au o singură măsurătoare: vezi valoarea de acum, iar graficul apare după următoarea."
+      "single": "Unele analize au o singură măsurătoare: vezi valoarea de acum, iar graficul apare după următoarea.",
+      "delta": "{{value}} față de data trecută"
     },
     "history": {
       "title": "Jurnalul tău",
       "empty": "Nu ai încă nicio zi notată.",
       "energy": "Energie {{value}}/5",
       "weight": "{{value}} kg",
-      "delete": "Șterge ziua"
+      "delete": "Șterge ziua",
+      "edit": "Modifică ziua",
+      "showMore": "Arată toate zilele ({{count}})",
+      "showLess": "Arată mai puține"
     },
     "unavailable": "Jurnalul de stare va fi disponibil după actualizarea bazei de date. Evoluția analizelor funcționează deja.",
-    "loadError": "Nu am putut încărca progresul. Încearcă din nou."
+    "loadError": "Nu am putut încărca progresul. Încearcă din nou.",
+    "stats": {
+      "logged": "Zile notate",
+      "loggedHint": "din ultimele {{days}}",
+      "streak": "Serie",
+      "streakHint": "zile la rând",
+      "energy": "Energie medie",
+      "energyHint": "din 5, în ultimele {{days}} zile",
+      "labs": "Analize în limite",
+      "labsHint": "din {{total}} analize"
+    },
+    "strip": {
+      "title": "Ultimele {{days}} zile",
+      "hint": "Atinge o zi ca s-o completezi sau s-o modifici.",
+      "logged": "notată",
+      "symptoms": "cu stări",
+      "empty": "nenotată",
+      "today": "Azi"
+    },
+    "energyLevel": {
+      "1": "Epuizat",
+      "2": "Obosit",
+      "3": "Normal",
+      "4": "Bine",
+      "5": "Plin de energie"
+    }
   }
 }

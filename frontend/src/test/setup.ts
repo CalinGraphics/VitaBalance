@@ -14,3 +14,6 @@ class ResizeObserverStub {
 
 const g = globalThis as unknown as { ResizeObserver?: unknown }
 g.ResizeObserver = g.ResizeObserver ?? ResizeObserverStub
+
+// Animațiile de layout (framer-motion) citesc poziția de scroll; jsdom nu implementează scrollTo.
+window.scrollTo = (() => {}) as typeof window.scrollTo

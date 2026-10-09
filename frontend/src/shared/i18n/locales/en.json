@@ -757,7 +757,9 @@
       "saving": "Saving...",
       "saved": "Saved. Your recommendations take into account how you felt in the last 14 days.",
       "empty": "Fill in at least one field.",
-      "error": "We could not save it. Please try again."
+      "error": "We could not save it. Please try again.",
+      "editing": "This day is already logged: saving updates it.",
+      "forDay": "Logging {{date}}"
     },
     "severity": {
       "1": "Mild",
@@ -810,16 +812,45 @@
       "wellbeingEmpty": "Add your weight or energy in the journal to see how they change.",
       "ok": "In range",
       "below": "Below minimum",
-      "single": "Some results have a single measurement: you see the current value, and the chart appears after the next one."
+      "single": "Some results have a single measurement: you see the current value, and the chart appears after the next one.",
+      "delta": "{{value}} vs. last time"
     },
     "history": {
       "title": "Your journal",
       "empty": "You have not logged any day yet.",
       "energy": "Energy {{value}}/5",
       "weight": "{{value}} kg",
-      "delete": "Delete this day"
+      "delete": "Delete this day",
+      "edit": "Edit this day",
+      "showMore": "Show all days ({{count}})",
+      "showLess": "Show fewer"
     },
     "unavailable": "The wellbeing journal will be available after the database update. Lab history already works.",
-    "loadError": "We could not load your progress. Please try again."
+    "loadError": "We could not load your progress. Please try again.",
+    "stats": {
+      "logged": "Days logged",
+      "loggedHint": "of the last {{days}}",
+      "streak": "Streak",
+      "streakHint": "days in a row",
+      "energy": "Average energy",
+      "energyHint": "out of 5, last {{days}} days",
+      "labs": "Results in range",
+      "labsHint": "of {{total}} results"
+    },
+    "strip": {
+      "title": "Last {{days}} days",
+      "hint": "Tap a day to fill it in or change it.",
+      "logged": "logged",
+      "symptoms": "with symptoms",
+      "empty": "not logged",
+      "today": "Today"
+    },
+    "energyLevel": {
+      "1": "Drained",
+      "2": "Tired",
+      "3": "Okay",
+      "4": "Good",
+      "5": "Full of energy"
+    }
   }
 }

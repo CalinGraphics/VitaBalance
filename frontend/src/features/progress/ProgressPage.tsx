@@ -1,17 +1,17 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, Stethoscope, Trash2 } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Check, PenLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Alert, GlassCard, InputField, PageHeader, PrimaryButton, Spinner } from '../../shared/components'
+import { Alert, GlassCard, InputField, PrimaryButton, Spinner } from '../../shared/components'
 import { progressService, type ProgressData } from '../../services/api'
 import type { User } from '../../shared/types'
 import { ChartSkeleton } from '../recommendations/components/RecommendationSkeleton'
+import InsightsPanel from './InsightsPanel'
+import JournalTimeline from './JournalTimeline'
+import ProgressHero from './ProgressHero'
+import { ENERGY_COLORS, summarize, today } from './progressStats'
 
 const ProgressCharts = lazy(() => import('./ProgressCharts'))
-
-const today = () => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 interface ProgressPageProps {
   user: User
@@ -20,15 +20,23 @@ interface ProgressPageProps {
 }
 
 const chip = (active: boolean) =>
-  `min-h-[36px] cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+  `inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
     active
       ? 'border-accent-border bg-accent-soft text-accent'
       : 'border-line-strong bg-white/[0.03] text-zinc-300 hover:border-accent-border hover:text-accent'
   }`
 
+const SectionLabel = ({ children, hint }: { children: string; hint?: string }) => (
+  <div className="mb-2">
+    <p className="text-sm font-medium text-zinc-200">{children}</p>
+    {hint && <p className="mt-0.5 text-xs text-zinc-500">{hint}</p>}
+  </div>
+)
+
 const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
   const { t, i18n } = useTranslation()
   const lang = i18n.language === 'en' ? 'en' : 'ro'
+  const locale = lang === 'en' ? 'en-GB' : 'ro-RO'
   const [data, setData] = useState<ProgressData | null>(null)
   const [loadError, setLoadError] = useState(false)
   const [day, setDay] = useState(today())
@@ -41,6 +49,7 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
   const [status, setStatus] = useState<{ kind: 'success' | 'error' | 'warning'; text: string } | null>(null)
 
   const dayRef = useRef(day)
+  const formRef = useRef<HTMLDivElement>(null)
 
   // Ziua aleasă se precompletează din jurnal (un rând pe zi: salvarea o actualizează). Se apelează explicit la
   // încărcare și la schimbarea zilei, nu dintr-un efect: un efect întârziat ar putea șterge o alegere deja făcută.
@@ -72,7 +81,13 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
   const changeDay = (value: string) => {
     dayRef.current = value
     setDay(value)
+    setStatus(null)
     prefill(data, value)
+  }
+
+  const editDay = (value: string) => {
+    changeDay(value)
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const toggle = (code: string) =>
@@ -119,120 +134,176 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
     }
   }
 
-  const insights = data?.insights
-  const symptomList = useMemo(
-    () => (insights?.recent_symptoms ?? []).map((s) => t(`progress.symptom.${s}`).toLowerCase()),
-    [insights, t]
-  )
+  const recentDays = data?.recent_days ?? 14
+  const summary = useMemo(() => (data ? summarize(data, recentDays) : null), [data, recentDays])
   const listFormat = (items: string[]) =>
-    new Intl.ListFormat(lang === 'en' ? 'en-GB' : 'ro-RO', { style: 'long', type: 'conjunction' }).format(items)
+    new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(items)
+  const existing = data?.checkins.some((c) => c.checked_on === day) ?? false
 
   if (!data && !loadError) {
     return (
-      <GlassCard className="w-full max-w-5xl py-12 text-center">
-        <Spinner className="mb-3 h-7 w-7 text-accent" />
-        <p className="text-zinc-300">{t('common.loading')}</p>
-      </GlassCard>
+      <div role="status" aria-busy="true" className="w-full max-w-5xl space-y-6">
+        <div className="relative overflow-hidden rounded-card border border-line bg-surface p-8">
+          <div className="mb-6 flex items-center gap-3.5">
+            <Spinner className="h-7 w-7 text-accent" />
+            <p className="text-zinc-300">{t('common.loading')}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-xl bg-white/[0.05]" />)}
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
     <div className="w-full max-w-5xl space-y-6">
-      <GlassCard className="w-full !max-w-none">
-        <PageHeader Icon={Activity} title={t('progress.title')} subtitle={t('progress.subtitle')} />
-        {loadError && <Alert variant="error">{t('progress.loadError')}</Alert>}
-        {data && !data.storage_available && <Alert variant="warning" className="mb-4">{t('progress.unavailable')}</Alert>}
+      {data && summary && (
+        <ProgressHero summary={summary} checkins={data.checkins} days={recentDays} selectedDay={day}
+          onSelectDay={changeDay} showStrip={data.storage_available} />
+      )}
+      {loadError && <Alert variant="error">{t('progress.loadError')}</Alert>}
+      {data && !data.storage_available && <Alert variant="warning">{t('progress.unavailable')}</Alert>}
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {data?.storage_available && (
-          <div className="space-y-5">
-            <h3 className="text-base font-semibold text-zinc-50">{t('progress.checkin.title')}</h3>
-            <InputField label={t('progress.checkin.date')} type="date" value={day} max={today()}
-              onChange={(e) => changeDay(e.target.value || today())} />
-
-            <div>
-              <p className="mb-2 text-sm font-medium text-zinc-200">{t('progress.checkin.symptoms')}</p>
-              <div className="flex flex-wrap gap-2">
-                {data.symptom_codes.map((code) => (
-                  <button key={code} type="button" aria-pressed={symptoms.includes(code)} onClick={() => toggle(code)}
-                    className={chip(symptoms.includes(code))}>
-                    {t(`progress.symptom.${code}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {symptoms.length > 0 && (
-              <div>
-                <p className="mb-2 text-sm font-medium text-zinc-200">{t('progress.checkin.severity')}</p>
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2, 3].map((s) => (
-                    <button key={s} type="button" aria-pressed={severity === s} onClick={() => setSeverity(s)} className={chip(severity === s)}>
-                      {t(`progress.severity.${s}`)}
-                    </button>
-                  ))}
+          <div ref={formRef} className="scroll-mt-24 lg:col-span-3">
+            <GlassCard className="h-full !max-w-none">
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-50">
+                      <PenLine aria-hidden="true" className="h-4 w-4 text-accent" />
+                      {t('progress.checkin.title')}
+                    </h3>
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.p key={day} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                        className="mt-0.5 text-xs text-zinc-500">
+                        {existing
+                          ? t('progress.checkin.editing')
+                          : t('progress.checkin.forDay', { date: new Date(`${day}T00:00:00`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }) })}
+                      </motion.p>
+                    </AnimatePresence>
+                  </div>
+                  <div className="w-full sm:w-44">
+                    <InputField label={t('progress.checkin.date')} type="date" value={day} max={today()}
+                      onChange={(e) => changeDay(e.target.value || today())} />
+                  </div>
                 </div>
+
+                <div>
+                  <SectionLabel>{t('progress.checkin.symptoms')}</SectionLabel>
+                  <div className="flex flex-wrap gap-2">
+                    {data.symptom_codes.map((code) => {
+                      const on = symptoms.includes(code)
+                      return (
+                        <motion.button key={code} type="button" aria-pressed={on} onClick={() => toggle(code)}
+                          whileTap={{ scale: 0.94 }} layout="position" className={chip(on)}>
+                          <AnimatePresence initial={false}>
+                            {on && (
+                              <motion.span initial={{ width: 0, opacity: 0 }} animate={{ width: 'auto', opacity: 1 }} exit={{ width: 0, opacity: 0 }}
+                                className="inline-flex overflow-hidden" aria-hidden="true">
+                                <Check className="h-3.5 w-3.5" />
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                          {t(`progress.symptom.${code}`)}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {symptoms.length > 0 && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden">
+                      <SectionLabel>{t('progress.checkin.severity')}</SectionLabel>
+                      <div className="inline-flex rounded-full border border-line-strong bg-white/[0.03] p-1">
+                        {[1, 2, 3].map((s) => (
+                          <button key={s} type="button" aria-pressed={severity === s} onClick={() => setSeverity(s)}
+                            className={`relative min-h-[36px] cursor-pointer rounded-full px-4 text-xs font-medium transition-colors ${
+                              severity === s ? (s === 3 ? 'text-amber-950' : 'text-accent-fg') : 'text-zinc-300 hover:text-zinc-50'
+                            }`}>
+                            {severity === s && (
+                              <motion.span layoutId="severity-pill" aria-hidden="true"
+                                className={`absolute inset-0 rounded-full ${s === 3 ? 'bg-amber-400' : s === 2 ? 'bg-accent-hover' : 'bg-accent'}`}
+                                transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
+                            )}
+                            <span className="relative">{t(`progress.severity.${s}`)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div>
+                  <SectionLabel hint={t('progress.checkin.energyHint')}>{t('progress.checkin.energy')}</SectionLabel>
+                  <div className="flex items-end gap-2">
+                    {[1, 2, 3, 4, 5].map((e) => {
+                      const on = energy != null && e <= energy
+                      const color = ENERGY_COLORS[(energy ?? e) - 1]
+                      return (
+                        <motion.button key={e} type="button" aria-pressed={energy === e} onClick={() => setEnergy(energy === e ? null : e)}
+                          whileHover={{ y: -2 }} whileTap={{ scale: 0.92 }}
+                          className={`group flex min-w-[48px] flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-lg border px-1 pb-2 pt-2 transition-colors sm:flex-none ${
+                            energy === e ? 'border-accent-border bg-white/[0.04]' : 'border-line hover:border-line-strong'
+                          }`}>
+                          <span aria-hidden="true" className="flex h-12 w-5 items-end overflow-hidden rounded bg-white/[0.06]">
+                            <motion.span className="block w-full rounded"
+                              initial={false}
+                              animate={{ height: `${e * 20}%`, backgroundColor: on ? color : 'rgba(255,255,255,0.14)', boxShadow: on ? `0 0 12px ${color}88` : '0 0 0 transparent' }}
+                              transition={{ type: 'spring', stiffness: 300, damping: 24, delay: on ? (e - 1) * 0.04 : 0 }} />
+                          </span>
+                          <span className={`text-xs font-semibold tabular-nums ${energy === e ? 'text-zinc-50' : 'text-zinc-400'}`}>{e}</span>
+                        </motion.button>
+                      )
+                    })}
+                    <AnimatePresence mode="wait">
+                      {energy != null && (
+                        <motion.span key={energy} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                          className="ml-2 hidden self-center text-sm font-medium sm:inline" style={{ color: ENERGY_COLORS[energy - 1] }}>
+                          {t(`progress.energyLevel.${energy}`)}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <InputField label={t('progress.checkin.weight')} type="text" inputMode="decimal" value={weight}
+                    onChange={(e) => setWeight(e.target.value)} placeholder={user.weight ? String(user.weight) : undefined} />
+                  <div className="sm:col-span-2">
+                    <InputField label={t('progress.checkin.notes')} value={notes} textarea rows={2}
+                      onChange={(e) => setNotes(e.target.value.slice(0, 1000))} placeholder={t('progress.checkin.notesPlaceholder')} />
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {status && (
+                    <motion.div key={status.text} initial={{ opacity: 0, y: 6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }}>
+                      <Alert variant={status.kind}>{status.text}</Alert>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <PrimaryButton onClick={save} disabled={saving}>
+                  {saving ? <Spinner className="h-4 w-4" /> : <Check aria-hidden="true" className="h-4 w-4" />}
+                  {saving ? t('progress.checkin.saving') : t('progress.checkin.save')}
+                </PrimaryButton>
               </div>
-            )}
-
-            <div>
-              <p className="mb-1 text-sm font-medium text-zinc-200">{t('progress.checkin.energy')}</p>
-              <p className="mb-2 text-xs text-zinc-400">{t('progress.checkin.energyHint')}</p>
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 4, 5].map((e) => (
-                  <button key={e} type="button" aria-pressed={energy === e} onClick={() => setEnergy(energy === e ? null : e)}
-                    className={`${chip(energy === e)} min-w-[44px]`}>
-                    {e}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <InputField label={t('progress.checkin.weight')} type="text" inputMode="decimal" value={weight}
-                onChange={(e) => setWeight(e.target.value)} placeholder={user.weight ? String(user.weight) : undefined} />
-            </div>
-            <InputField label={t('progress.checkin.notes')} value={notes} textarea rows={3}
-              onChange={(e) => setNotes(e.target.value.slice(0, 1000))} placeholder={t('progress.checkin.notesPlaceholder')} />
-
-            {status && <Alert variant={status.kind}>{status.text}</Alert>}
-            <PrimaryButton onClick={save} disabled={saving}>
-              {saving ? t('progress.checkin.saving') : t('progress.checkin.save')}
-            </PrimaryButton>
+            </GlassCard>
           </div>
         )}
-      </GlassCard>
 
-      {insights && (
-        <GlassCard className="w-full !max-w-none">
-          <h3 className="mb-3 text-base font-semibold text-zinc-50">{t('progress.insights.title')}</h3>
-          <div className="space-y-3 text-sm text-zinc-300">
-            <p>{symptomList.length ? t('progress.insights.recent', { list: listFormat(symptomList) }) : t('progress.insights.none')}</p>
-            {insights.adjustments.length > 0 && (
-              <div>
-                <p className="font-medium text-zinc-200">{t('progress.insights.adjusted')}</p>
-                <ul className="mt-1 list-disc space-y-1 pl-5">
-                  {insights.adjustments.map((id) => <li key={id}>{t(`progress.adjustment.${id}`)}</li>)}
-                </ul>
-              </div>
-            )}
-            {insights.lab_suggestions.length > 0 && (
-              <p>{t('progress.insights.labs', { list: listFormat(insights.lab_suggestions.map((m) => t(`labs.names.${m}`))) })}</p>
-            )}
-            {insights.see_doctor && (
-              <div role="note" className="rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3 text-amber-100">
-                <p className="mb-1 flex items-center gap-2 font-semibold">
-                  <Stethoscope aria-hidden="true" className="h-4 w-4" />
-                  {t('progress.insights.doctor')}
-                </p>
-                <ul className="list-disc space-y-1 pl-5">
-                  {insights.see_doctor_reasons.map((r) => <li key={r}>{t(`progress.insights.doctorReason.${r}`)}</li>)}
-                </ul>
-              </div>
-            )}
-            <p className="text-xs text-zinc-500">{t('progress.insights.disclaimer')}</p>
+        {data?.insights && (
+          <div className={data.storage_available ? 'lg:col-span-2' : 'lg:col-span-5'}>
+            <GlassCard className="!max-w-none lg:sticky lg:top-24">
+              <InsightsPanel insights={data.insights} listFormat={listFormat} />
+            </GlassCard>
           </div>
-        </GlassCard>
-      )}
+        )}
+      </div>
 
       {data && (
         <GlassCard className="w-full !max-w-none">
@@ -244,38 +315,7 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
 
       {data?.storage_available && (
         <GlassCard className="w-full !max-w-none">
-          <h3 className="mb-3 text-base font-semibold text-zinc-50">{t('progress.history.title')}</h3>
-          {data.checkins.length === 0 ? (
-            <p className="text-sm text-zinc-400">{t('progress.history.empty')}</p>
-          ) : (
-            <ul className="divide-y divide-line">
-              {data.checkins.map((c) => (
-                <li key={c.id} className="flex items-start justify-between gap-3 py-3">
-                  <div className="min-w-0 text-sm text-zinc-300">
-                    <p className="font-semibold text-zinc-100">
-                      {new Date(`${c.checked_on}T00:00:00`).toLocaleDateString(lang === 'en' ? 'en-GB' : 'ro-RO', { weekday: 'short', day: 'numeric', month: 'long' })}
-                    </p>
-                    {c.symptoms.length > 0 && (
-                      <p>
-                        {listFormat(c.symptoms.map((s) => t(`progress.symptom.${s}`).toLowerCase()))}
-                        {c.severity ? ` · ${t(`progress.severity.${c.severity}`).toLowerCase()}` : ''}
-                      </p>
-                    )}
-                    <p className="text-xs text-zinc-400">
-                      {[c.energy != null ? t('progress.history.energy', { value: c.energy }) : null,
-                        c.weight != null ? t('progress.history.weight', { value: c.weight }) : null].filter(Boolean).join(' · ')}
-                    </p>
-                    {c.notes && <p className="mt-1 break-words text-xs text-zinc-400">{c.notes}</p>}
-                  </div>
-                  <button type="button" onClick={() => void remove(c.id)} aria-label={t('progress.history.delete')}
-                    title={t('progress.history.delete')}
-                    className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-300">
-                    <Trash2 aria-hidden="true" className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <JournalTimeline checkins={data.checkins} selectedDay={day} locale={locale} onEdit={editDay} onDelete={(id) => void remove(id)} />
         </GlassCard>
       )}
     </div>
