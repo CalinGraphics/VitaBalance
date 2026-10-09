@@ -94,10 +94,16 @@ const EditProfilePage = ({
         {error && <Alert variant="error" className="mb-5">{error}</Alert>}
         {success && <Alert variant="success" className="mb-5">{t('profile.edit.success')}</Alert>}
 
-        <ProfileAvatarEditor name={form.formData.name.trim() || user.name || user.email} email={user.email} url={user.avatar_url} onChange={onAvatarChange} />
+        <ProfileAvatarEditor
+          name={form.formData.name.trim() || user.name || user.email}
+          url={user.avatar_url}
+          onChange={onAvatarChange}
+          nameValue={form.formData.name}
+          onNameChange={(name) => form.update({ name })}
+        />
 
         <form onSubmit={handleSubmit} noValidate>
-          <ProfileFormFields form={form} />
+          <ProfileFormFields form={form} nameInHeader />
 
           {onNavigateToLabResults && (
             <div className="mt-6 rounded-lg border border-line bg-white/[0.02] p-4">

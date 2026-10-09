@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import type { CheckIn } from '../../services/api'
 import { ENERGY_COLORS } from './progressStats'
 
-const PREVIEW = 7
+// În coloana îngustă de lângă formular încap cam patru zile; restul se deschid la cerere.
+const PREVIEW = 4
 
 interface JournalTimelineProps {
   checkins: CheckIn[]

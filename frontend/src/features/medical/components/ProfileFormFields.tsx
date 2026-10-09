@@ -7,21 +7,39 @@ const SEX_VALUES = ['F', 'M', 'other'] as const
 const ACTIVITY_VALUES = ['sedentary', 'moderate', 'active', 'very_active'] as const
 const DIET_VALUES = ['omnivore', 'vegetarian', 'vegan', 'pescatarian'] as const
 
-/** Câmpurile formularului de profil (folosit la creare și la editare). */
-const ProfileFormFields = ({ form }: { form: ProfileForm }) => {
+/**
+ * Câmpurile formularului de profil (folosit la creare și la editare). La editare numele se schimbă din antetul
+ * cu poza (`nameInHeader`), iar obiectivul caloric urcă lângă email, ca primul rând să nu rămână pe jumătate gol.
+ */
+const ProfileFormFields = ({ form, nameInHeader = false }: { form: ProfileForm; nameInHeader?: boolean }) => {
   const { t } = useTranslation()
   const { formData, update } = form
+
+  const caloricGoal = (
+    <InputField
+      label={`${t('profile.fields.caloricGoal')} (${t('common.optional')})`}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={form.caloricGoalText}
+      onChange={(e) => form.setCaloricGoalText(sanitizeIntInput(e.target.value))}
+      placeholder="2000"
+      hint={t('profile.fields.caloricGoalHint', { min: CALORIC_GOAL_MIN, max: CALORIC_GOAL_MAX })}
+      transparentWhenEmpty
+    />
+  )
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
-        <InputField
-          label={t('profile.fields.name')}
-          value={formData.name}
-          onChange={(e) => update({ name: e.target.value })}
-          placeholder={t('profile.fields.namePlaceholder')}
-          autoComplete="name"
-        />
+        {!nameInHeader && (
+          <InputField
+            label={t('profile.fields.name')}
+            value={formData.name}
+            onChange={(e) => update({ name: e.target.value })}
+            placeholder={t('profile.fields.namePlaceholder')}
+            autoComplete="name"
+          />
+        )}
         <InputField
           label={t('profile.fields.email')}
           type="email"
@@ -31,6 +49,7 @@ const ProfileFormFields = ({ form }: { form: ProfileForm }) => {
           hint={t('profile.fields.emailLocked')}
           autoComplete="email"
         />
+        {nameInHeader && caloricGoal}
         <InputField
           label={t('profile.fields.age')}
           inputMode="numeric"
@@ -73,16 +92,7 @@ const ProfileFormFields = ({ form }: { form: ProfileForm }) => {
           onChange={(e) => update({ diet_type: e.target.value })}
           options={DIET_VALUES.map((v) => ({ value: v, label: t(`profile.options.diet.${v}`) }))}
         />
-        <InputField
-          label={`${t('profile.fields.caloricGoal')} (${t('common.optional')})`}
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={form.caloricGoalText}
-          onChange={(e) => form.setCaloricGoalText(sanitizeIntInput(e.target.value))}
-          placeholder="2000"
-          hint={t('profile.fields.caloricGoalHint', { min: CALORIC_GOAL_MIN, max: CALORIC_GOAL_MAX })}
-          transparentWhenEmpty
-        />
+        {!nameInHeader && caloricGoal}
       </div>
 
       <AllergySelector

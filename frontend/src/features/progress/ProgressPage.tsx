@@ -296,11 +296,19 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
           </div>
         )}
 
-        {data?.insights && (
-          <div className={data.storage_available ? 'lg:col-span-2' : 'lg:col-span-5'}>
-            <GlassCard className="!max-w-none lg:sticky lg:top-24">
-              <InsightsPanel insights={data.insights} listFormat={listFormat} />
-            </GlassCard>
+        {/* Coloana din dreapta: concluziile, apoi jurnalul, ca spațiul de lângă formular să nu rămână gol. */}
+        {(data?.insights || data?.storage_available) && (
+          <div className={`space-y-6 ${data?.storage_available ? 'lg:col-span-2' : 'lg:col-span-5'}`}>
+            {data?.insights && (
+              <GlassCard className="!max-w-none">
+                <InsightsPanel insights={data.insights} listFormat={listFormat} />
+              </GlassCard>
+            )}
+            {data?.storage_available && (
+              <GlassCard className="!max-w-none">
+                <JournalTimeline checkins={data.checkins} selectedDay={day} locale={locale} onEdit={editDay} onDelete={(id) => void remove(id)} />
+              </GlassCard>
+            )}
           </div>
         )}
       </div>
@@ -310,12 +318,6 @@ const ProgressPage = ({ user, onCheckinChange }: ProgressPageProps) => {
           <Suspense fallback={<ChartSkeleton />}>
             <ProgressCharts series={data.series} />
           </Suspense>
-        </GlassCard>
-      )}
-
-      {data?.storage_available && (
-        <GlassCard className="w-full !max-w-none">
-          <JournalTimeline checkins={data.checkins} selectedDay={day} locale={locale} onEdit={editDay} onDelete={(id) => void remove(id)} />
         </GlassCard>
       )}
     </div>

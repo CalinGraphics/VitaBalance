@@ -1,21 +1,24 @@
 import React, { useState } from 'react'
-import { Camera, ImagePlus, Trash2 } from 'lucide-react'
+import { Camera, ImagePlus, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, Avatar, Spinner } from '../../../shared/components'
 import { profileService } from '../../../services/api'
 import { ImageResizeError, resizeImageToDataUrl } from '../../../shared/utils/resizeImage'
 
 interface ProfileAvatarEditorProps {
+  /** Numele pentru inițiale și textul alternativ al pozei. */
   name: string
-  email?: string
   url: string | null | undefined
   onChange: (url: string | null) => void
+  /** Numele se editează aici, lângă poză; se salvează odată cu restul profilului. */
+  nameValue: string
+  onNameChange: (value: string) => void
 }
 
 type Status = { kind: 'success' | 'error'; message: string } | null
 
 /** Schimbarea / ștergerea pozei de profil; se salvează imediat, separat de restul formularului. */
-const ProfileAvatarEditor = ({ name, email, url, onChange }: ProfileAvatarEditorProps) => {
+const ProfileAvatarEditor = ({ name, url, onChange, nameValue, onNameChange }: ProfileAvatarEditorProps) => {
   const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
@@ -93,9 +96,26 @@ const ProfileAvatarEditor = ({ name, email, url, onChange }: ProfileAvatarEditor
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">{name}</p>
-          {email && email !== name && <p className="mt-0.5 truncate text-sm text-zinc-400">{email}</p>}
-          <label className={`mt-2 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg text-sm font-medium text-accent transition-colors hover:text-accent-hover focus-within:underline ${pickerClass}`}>
+          <label className="group/name flex w-fit max-w-full items-center gap-2 border-b border-transparent pb-0.5 transition-colors focus-within:border-accent/70 hover:border-line-strong">
+            <span className="sr-only">{t('profile.fields.name')}</span>
+            {/* Câmpul are lățimea textului (dublura invizibilă îl măsoară), ca creionul să stea lângă nume. */}
+            <span className="inline-grid min-w-0 text-xl font-semibold tracking-tight sm:text-3xl">
+              <span aria-hidden="true" className="invisible col-start-1 row-start-1 overflow-hidden whitespace-pre">
+                {nameValue || t('profile.fields.namePlaceholder')}
+              </span>
+              <input
+                value={nameValue}
+                onChange={(e) => onNameChange(e.target.value)}
+                placeholder={t('profile.fields.namePlaceholder')}
+                autoComplete="name"
+                maxLength={120}
+                size={1}
+                className="col-start-1 row-start-1 w-full min-w-0 bg-transparent text-zinc-50 outline-none placeholder:text-zinc-600"
+              />
+            </span>
+            <Pencil aria-hidden="true" className="h-4 w-4 flex-shrink-0 text-zinc-500 transition-colors group-hover/name:text-accent group-focus-within/name:text-accent" />
+          </label>
+          <label className={`mt-1.5 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg text-sm font-medium text-accent transition-colors hover:text-accent-hover focus-within:underline ${pickerClass}`}>
             <ImagePlus aria-hidden="true" className="h-4 w-4" />
             <span>{busy ? t('profile.avatar.saving') : url ? t('profile.avatar.change') : t('profile.avatar.add')}</span>
             <input type="file" accept="image/*" className="sr-only" onChange={handleFile} disabled={busy} />
