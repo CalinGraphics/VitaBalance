@@ -45,7 +45,9 @@
   "disclaimer": {
     "title": "Disclaimer medical:",
     "body": "Această aplicație oferă sugestii generale și nu înlocuiește consultul medical. Pentru probleme de sănătate, vă rugăm să consultați un specialist. Recomandările sunt bazate pe informații generale și pot să nu fie potrivite pentru toți utilizatorii.",
-    "dismiss": "Închide avertismentul"
+    "dismiss": "Închide avertismentul",
+    "more": "Citește tot",
+    "less": "Restrânge"
   },
   "selectors": {
     "allergiesPlaceholder": "Selectează alergiile",
@@ -279,7 +281,12 @@
       "haveAccount": "Ai deja cont?",
       "backToLogin": "Înapoi la logare",
       "avatarHint": "Opțional. O poți adăuga sau schimba oricând din pagina de profil.",
-      "avatarRemove": "Elimină"
+      "avatarRemove": "Elimină",
+      "steps": {
+        "profile": "Completezi profilul: vârstă, greutate, dietă",
+        "labs": "Adaugi analizele, dacă le ai (sau încarci PDF-ul)",
+        "recs": "Primești alimentele potrivite pentru tine"
+      }
     }
   },
   "profile": {
@@ -416,7 +423,9 @@
       "nothingFound": "Nu s-au identificat valori cunoscute în raport. Introdu manual.",
       "extracted": "S-au extras {{count}} valori: {{names}}. Verifică și completează manual dacă e cazul.",
       "lowConfidence": "{{count}} valori au încredere scăzută — verifică-le înainte de salvare.",
-      "failed": "Eroare la procesarea PDF-ului. Încearcă din nou sau introdu manual."
+      "failed": "Eroare la procesarea PDF-ului. Încearcă din nou sau introdu manual.",
+      "drop": "sau trage fișierul aici",
+      "dropActive": "Lasă fișierul aici"
     },
     "notes": {
       "label": "Observații sau diagnostic medical",
@@ -442,7 +451,19 @@
       "noFish": "Nu pot consuma pește",
       "noDairy": "Nu pot consuma lactate",
       "noSeeds": "Nu pot consuma semințe"
-    }
+    },
+    "status": {
+      "low": "Sub intervalul orientativ",
+      "ok": "În intervalul orientativ",
+      "high": "Peste intervalul orientativ"
+    },
+    "groups": {
+      "blood": "Sânge și proteine",
+      "vitamins": "Vitamine",
+      "minerals": "Minerale"
+    },
+    "completed": "completate",
+    "completedOf": "{{count}} din {{total}} analize completate"
   },
   "recommendations": {
     "title": "Recomandările tale",
@@ -521,6 +542,15 @@
       "howTitle": "Cum să-l mănânci",
       "showDetails": "Detalii și sfaturi",
       "hideDetails": "Ascunde detaliile"
+    },
+    "stats": {
+      "foods": "Alimente recomandate",
+      "foodsHint": "pe baza profilului și a analizelor",
+      "categories": "Categorii",
+      "categoriesHint": "grupe alimentare diferite",
+      "best": "Cea mai potrivită",
+      "bestHint": "locul 1 în listă",
+      "rank": "Locul {{rank}}"
     }
   },
   "pdf": {

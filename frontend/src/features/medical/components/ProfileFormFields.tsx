@@ -15,40 +15,47 @@ const ProfileFormFields = ({ form, nameInHeader = false }: { form: ProfileForm; 
   const { t } = useTranslation()
   const { formData, update } = form
 
+  // Câmpurile lungi ocupă tot rândul pe telefon; perechile scurte (vârstă/sex, greutate/înălțime) stau alăturate.
   const caloricGoal = (
-    <InputField
-      label={`${t('profile.fields.caloricGoal')} (${t('common.optional')})`}
-      inputMode="numeric"
-      pattern="[0-9]*"
-      value={form.caloricGoalText}
-      onChange={(e) => form.setCaloricGoalText(sanitizeIntInput(e.target.value))}
-      placeholder="2000"
-      hint={t('profile.fields.caloricGoalHint', { min: CALORIC_GOAL_MIN, max: CALORIC_GOAL_MAX })}
-      transparentWhenEmpty
-    />
+    <div className="col-span-2 md:col-span-1">
+      <InputField
+        label={`${t('profile.fields.caloricGoal')} (${t('common.optional')})`}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={form.caloricGoalText}
+        onChange={(e) => form.setCaloricGoalText(sanitizeIntInput(e.target.value))}
+        placeholder="2000"
+        hint={t('profile.fields.caloricGoalHint', { min: CALORIC_GOAL_MIN, max: CALORIC_GOAL_MAX })}
+        transparentWhenEmpty
+      />
+    </div>
   )
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-x-3 md:gap-x-4">
         {!nameInHeader && (
-          <InputField
-            label={t('profile.fields.name')}
-            value={formData.name}
-            onChange={(e) => update({ name: e.target.value })}
-            placeholder={t('profile.fields.namePlaceholder')}
-            autoComplete="name"
-          />
+          <div className="col-span-2 md:col-span-1">
+            <InputField
+              label={t('profile.fields.name')}
+              value={formData.name}
+              onChange={(e) => update({ name: e.target.value })}
+              placeholder={t('profile.fields.namePlaceholder')}
+              autoComplete="name"
+            />
+          </div>
         )}
-        <InputField
-          label={t('profile.fields.email')}
-          type="email"
-          value={formData.email}
-          onChange={() => {}}
-          readOnly
-          hint={t('profile.fields.emailLocked')}
-          autoComplete="email"
-        />
+        <div className="col-span-2 md:col-span-1">
+          <InputField
+            label={t('profile.fields.email')}
+            type="email"
+            value={formData.email}
+            onChange={() => {}}
+            readOnly
+            hint={t('profile.fields.emailLocked')}
+            autoComplete="email"
+          />
+        </div>
         {nameInHeader && caloricGoal}
         <InputField
           label={t('profile.fields.age')}

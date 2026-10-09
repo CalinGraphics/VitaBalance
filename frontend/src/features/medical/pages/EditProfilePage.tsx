@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, FlaskConical, Save, UserCog } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { GlassCard, PrimaryButton, PageHeader, Alert, Spinner } from '../../../shared/components'
+import { GlassCard, HeroBackdrop, PrimaryButton, PageHeader, Alert, Spinner } from '../../../shared/components'
 import { profileService } from '../../../services/api'
 import { regenerateRecommendationsAfterSave } from '../../recommendations/utils/regenerateAfterSave'
 import type { User } from '../../../shared/types'
@@ -79,7 +79,10 @@ const EditProfilePage = ({
 
   return (
     <div className="w-full max-w-3xl">
-      <GlassCard className="mx-auto w-full">
+      <GlassCard className="isolate mx-auto w-full overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 [mask-image:linear-gradient(to_bottom,black,transparent)]">
+          <HeroBackdrop />
+        </div>
         <button
           type="button"
           onClick={onNavigateBack}

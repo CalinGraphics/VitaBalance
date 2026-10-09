@@ -56,12 +56,13 @@ describe('schimbarea limbii', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.reject(new Error('rețea')))
     const xhrOpen = vi.spyOn(XMLHttpRequest.prototype, 'open')
 
-    render(<Recommendations user={user} />)
+    const { container } = render(<Recommendations user={user} />)
     const roName = recs[0].food.name_ro
     await waitFor(() => expect(screen.getAllByText(roName).length).toBeGreaterThan(0))
     await waitFor(() => expect(api.getSyncMeta).toHaveBeenCalled())
     // Graficul se încarcă lazy: așteptăm pagina completă, ca măsurătoarea să cuprindă doar schimbarea limbii.
-    await screen.findByText(i18n.t('recommendations.chart.title'), {}, { timeout: 5000 })
+    // (Titlul graficului stă acum în cardul paginii, deci așteptăm chiar graficul, nu titlul.)
+    await waitFor(() => expect(container.querySelector('.recharts-responsive-container')).not.toBeNull(), { timeout: 5000 })
 
     const callsBefore = Object.values(api).map((fn) => fn.mock.calls.length)
     const start = performance.now()

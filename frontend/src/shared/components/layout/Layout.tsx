@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import { Activity, FlaskConical, LayoutDashboard, LogOut, User, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AuthUser, Route } from '../../types';
@@ -37,7 +38,13 @@ const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNav
   const navigable = showNav && !!onNavigate;
 
   return (
-    <div className="app-bg min-h-screen text-zinc-100 overflow-x-hidden flex flex-col">
+    <div className="app-bg relative isolate min-h-screen text-zinc-100 overflow-x-hidden flex flex-col">
+      {/* Lumină ambientală discretă: două pete teal care se mișcă foarte lent în spatele conținutului. */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -left-40 -top-40 h-[32rem] w-[32rem] animate-aurora rounded-full bg-accent/[0.06] blur-3xl" />
+        <div className="absolute -right-32 top-1/3 h-[28rem] w-[28rem] animate-aurora-slow rounded-full bg-emerald-400/[0.04] blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-[28rem] bg-[linear-gradient(to_right,rgba(255,255,255,0.022)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.022)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
+      </div>
       <header className="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 md:h-16 md:gap-6">
           <img
@@ -57,17 +64,18 @@ const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNav
                     onClick={() => onNavigate?.(target)}
                     aria-current={active ? 'page' : undefined}
                     className={`relative flex min-h-[40px] cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-white/[0.07] text-zinc-50'
-                        : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-100'
+                      active ? 'text-zinc-50' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-100'
                     }`}
                   >
-                    <Icon aria-hidden="true" className={`h-4 w-4 ${active ? 'text-accent' : ''}`} />
-                    {t(labelKey)}
+                    {active && (
+                      <span aria-hidden="true" className="absolute inset-0 animate-scale-in rounded-lg bg-white/[0.07]" />
+                    )}
+                    <Icon aria-hidden="true" className={`relative h-4 w-4 transition-colors ${active ? 'text-accent' : ''}`} />
+                    <span className="relative">{t(labelKey)}</span>
                     {active && (
                       <span
                         aria-hidden="true"
-                        className="absolute -bottom-3 left-3 right-3 h-0.5 rounded-full bg-accent"
+                        className="absolute -bottom-3 left-3 right-3 h-0.5 animate-grow-x rounded-full bg-accent shadow-[0_0_12px_rgba(45,212,191,0.8)]"
                       />
                     )}
                   </button>
@@ -117,7 +125,15 @@ const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNav
           navigable ? 'pb-24 md:pb-10' : ''
         }`}
       >
-        {children}
+        <motion.div
+          key={route}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="flex w-full min-w-0 justify-center"
+        >
+          {children}
+        </motion.div>
       </main>
 
       <footer className="px-4 pb-6 text-center text-xs text-zinc-500 md:pb-8">
@@ -141,11 +157,18 @@ const Layout: React.FC<LayoutProps> = ({ children, route, showNav = false, onNav
                     onClick={() => onNavigate?.(target)}
                     aria-current={active ? 'page' : undefined}
                     aria-label={t(labelKey)}
-                    className={`flex min-h-[56px] w-full cursor-pointer flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors touch-manipulation ${
+                    className={`relative flex min-h-[60px] w-full cursor-pointer flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors touch-manipulation ${
                       active ? 'text-accent' : 'text-zinc-400 active:text-zinc-100'
                     }`}
                   >
-                    <Icon aria-hidden="true" className="h-5 w-5" />
+                    {active && (
+                      <span aria-hidden="true" className="absolute inset-x-0 top-0 flex justify-center">
+                        <span className="h-0.5 w-10 animate-grow-x rounded-full bg-accent shadow-[0_0_12px_rgba(45,212,191,0.9)]" />
+                      </span>
+                    )}
+                    <span className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-300 ${active ? 'bg-accent-soft' : ''}`}>
+                      <Icon aria-hidden="true" className={`h-5 w-5 transition-transform duration-300 ${active ? 'scale-110' : ''}`} />
+                    </span>
                     <span className="max-w-full truncate px-1">{t(shortLabelKey ?? labelKey)}</span>
                   </button>
                 </li>

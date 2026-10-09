@@ -1,4 +1,5 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts'
+import { useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { foodName } from '../explanations/buildExplanation'
@@ -51,14 +52,14 @@ const NutrientChart = ({ recommendations, matchPctOf }: NutrientChartProps) => {
     }
   })
 
+  const reduce = useReducedMotion()
   if (chartData.length === 0) return null
 
   return (
-    <div className="mt-6 min-w-0 overflow-hidden">
-      <h3 className="mb-4 text-base font-semibold text-zinc-100 sm:text-lg">{t('recommendations.chart.title')}</h3>
+    <div className="mt-4 min-w-0 overflow-hidden">
       <div className="h-[250px] w-full overflow-visible sm:h-[280px] md:h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 12, right: narrow ? 4 : 16, left: narrow ? 28 : 72, bottom: 8 }}>
+          <BarChart data={chartData} margin={{ top: 28, right: narrow ? 4 : 16, left: narrow ? 28 : 72, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis
               dataKey="name"
@@ -93,7 +94,21 @@ const NutrientChart = ({ recommendations, matchPctOf }: NutrientChartProps) => {
               }}
               labelStyle={{ color: ACCENT }}
             />
-            <Bar dataKey="match" name={seriesName} fill={ACCENT} radius={[6, 6, 0, 0]} maxBarSize={56} />
+            <defs>
+              <linearGradient id="match-bar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#5eead4" stopOpacity={1} />
+                <stop offset="100%" stopColor="#0d9488" stopOpacity={0.55} />
+              </linearGradient>
+            </defs>
+            <Bar dataKey="match" name={seriesName} fill="url(#match-bar)" radius={[8, 8, 0, 0]} maxBarSize={56}
+              isAnimationActive={!reduce} animationDuration={1100} animationEasing="ease-out">
+              {/* Primul aliment (100%) e evidențiat; restul păstrează gradientul. */}
+              {chartData.map((row, i) => (
+                <Cell key={row.fullName} fill="url(#match-bar)" fillOpacity={i === 0 ? 1 : 0.8} />
+              ))}
+              <LabelList dataKey="match" position="top" offset={8} formatter={(v: number) => `${v}%`}
+                style={{ fill: '#e4e4e7', fontSize: 12, fontWeight: 600 }} />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

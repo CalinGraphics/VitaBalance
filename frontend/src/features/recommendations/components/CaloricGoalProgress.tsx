@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { Flame } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '../../../shared/components'
@@ -62,7 +63,7 @@ const CaloricGoalProgress = ({ goal, recommendations, warning }: CaloricGoalProg
         <>
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="text-sm text-zinc-300">
-              <span className="text-2xl font-semibold tabular-nums text-zinc-50">≈ {total}</span>{' '}
+              <span className="text-3xl font-semibold tabular-nums tracking-tight text-zinc-50">≈ {total}</span>{' '}
               <span className="text-zinc-400">
                 / {goal} kcal
               </span>
@@ -81,9 +82,13 @@ const CaloricGoalProgress = ({ goal, recommendations, warning }: CaloricGoalProg
             aria-valuetext={t('recommendations.caloric.valueText', { total, goal, percent })}
             className="h-2.5 w-full overflow-hidden rounded-full bg-white/10"
           >
-            <div
-              className={`h-full rounded-full transition-[width] duration-500 ease-out ${over ? 'bg-amber-400' : 'bg-accent'}`}
-              style={{ width: `${Math.min(percent, 100)}%` }}
+            <motion.div
+              className={`h-full rounded-full bg-gradient-to-r ${
+                over ? 'from-amber-500 to-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.5)]' : 'from-accent-strong to-accent-hover shadow-[0_0_12px_rgba(45,212,191,0.5)]'
+              }`}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(percent, 100)}%` }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             />
           </div>
 

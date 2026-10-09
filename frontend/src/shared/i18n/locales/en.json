@@ -45,7 +45,9 @@
   "disclaimer": {
     "title": "Medical disclaimer:",
     "body": "This application provides general suggestions and does not replace medical advice. For any health concern, please consult a specialist. Recommendations are based on general information and may not be suitable for every user.",
-    "dismiss": "Dismiss disclaimer"
+    "dismiss": "Dismiss disclaimer",
+    "more": "Read more",
+    "less": "Show less"
   },
   "selectors": {
     "allergiesPlaceholder": "Select allergies",
@@ -277,7 +279,12 @@
       "haveAccount": "Already have an account?",
       "backToLogin": "Back to sign in",
       "avatarHint": "Optional. You can add or change it anytime from your profile.",
-      "avatarRemove": "Remove"
+      "avatarRemove": "Remove",
+      "steps": {
+        "profile": "Fill in your profile: age, weight, diet",
+        "labs": "Add your lab results if you have them (or upload the PDF)",
+        "recs": "Get the foods that suit you"
+      }
     }
   },
   "profile": {
@@ -413,7 +420,9 @@
       "nothingFound": "No known values were found in the report. Please enter them manually.",
       "extracted": "Extracted {{count}} values: {{names}}. Please review and complete manually if needed.",
       "lowConfidence": "{{count}} values have low confidence — check them before saving.",
-      "failed": "Could not process the PDF. Try again or enter the values manually."
+      "failed": "Could not process the PDF. Try again or enter the values manually.",
+      "drop": "or drop the file here",
+      "dropActive": "Drop the file here"
     },
     "notes": {
       "label": "Notes or medical diagnosis",
@@ -439,7 +448,19 @@
       "noFish": "I cannot eat fish",
       "noDairy": "I cannot eat dairy",
       "noSeeds": "I cannot eat seeds"
-    }
+    },
+    "status": {
+      "low": "Below the guide range",
+      "ok": "Within the guide range",
+      "high": "Above the guide range"
+    },
+    "groups": {
+      "blood": "Blood and protein",
+      "vitamins": "Vitamins",
+      "minerals": "Minerals"
+    },
+    "completed": "filled in",
+    "completedOf": "{{count}} of {{total}} results filled in"
   },
   "recommendations": {
     "title": "Your recommendations",
@@ -516,6 +537,15 @@
       "howTitle": "How to eat it",
       "showDetails": "Details and tips",
       "hideDetails": "Hide details"
+    },
+    "stats": {
+      "foods": "Recommended foods",
+      "foodsHint": "based on your profile and lab results",
+      "categories": "Categories",
+      "categoriesHint": "different food groups",
+      "best": "Best match",
+      "bestHint": "first on the list",
+      "rank": "Rank {{rank}}"
     }
   },
   "pdf": {

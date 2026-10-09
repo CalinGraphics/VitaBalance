@@ -1,24 +1,9 @@
-import { useEffect, useState } from 'react'
-import { animate, motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Activity, CalendarDays, Flame, FlaskConical, Zap, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { CountUp, HeroBackdrop } from '../../shared/components'
 import type { CheckIn } from '../../services/api'
 import { ENERGY_COLORS, lastDays, today, type ProgressSummary } from './progressStats'
-
-/** Număr care urcă de la 0 la valoare (instant când utilizatorul cere mișcare redusă). */
-function CountUp({ value, decimals = 0, locale }: { value: number; decimals?: number; locale: string }) {
-  const reduce = useReducedMotion()
-  const [shown, setShown] = useState(reduce ? value : 0)
-  useEffect(() => {
-    if (reduce) {
-      setShown(value)
-      return
-    }
-    const controls = animate(0, value, { duration: 1.1, ease: [0.16, 1, 0.3, 1], onUpdate: setShown })
-    return () => controls.stop()
-  }, [value, reduce])
-  return <>{new Intl.NumberFormat(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(shown)}</>
-}
 
 function StatTile({ Icon, label, value, suffix, hint, ratio, decimals, locale, index }: {
   Icon: LucideIcon
@@ -83,12 +68,7 @@ const ProgressHero = ({ summary, checkins, days, selectedDay, onSelectDay, showS
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className="relative w-full overflow-hidden rounded-card border border-line bg-surface shadow-card"
     >
-      {/* Lumină de fundal care se mișcă lent, doar în antet */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-24 -top-32 h-80 w-80 animate-aurora rounded-full bg-accent/[0.13] blur-3xl" />
-        <div className="absolute -right-16 top-10 h-64 w-64 animate-aurora-slow rounded-full bg-emerald-400/[0.07] blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]" />
-      </div>
+      <HeroBackdrop />
 
       <div className="relative p-5 sm:p-6 md:p-8">
         <div className="flex items-center gap-3.5">

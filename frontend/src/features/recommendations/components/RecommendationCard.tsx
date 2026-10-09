@@ -39,6 +39,7 @@ interface RecommendationCardProps {
 
 const RecommendationCard = ({
   recommendation,
+  index,
   matchPct,
   userId,
   onFeedbackSent,
@@ -211,18 +212,34 @@ const RecommendationCard = ({
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
-        className="h-full"
+        transition={{ duration: 0.5, delay: Math.min(index % 10, 8) * 0.06, ease: [0.16, 1, 0.3, 1] }}
+        whileHover={{ y: -4 }}
+        className="group/card relative h-full"
       >
-        <GlassCard className="h-full min-h-[440px] flex flex-col hover:border-line-strong transition-colors duration-200">
+        {/* Halou teal la hover, în spatele cardului */}
+        <div aria-hidden="true" className="pointer-events-none absolute -inset-px rounded-card bg-gradient-to-b from-accent/30 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover/card:opacity-100" />
+        <GlassCard className="h-full min-h-[400px] flex flex-col transition-colors duration-200 group-hover/card:border-transparent">
           {/* Conținut principal */}
           <div className="flex-1">
             {/* Header */}
             <div className="flex items-start justify-between mb-4 min-w-0">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span
+                    title={t('recommendations.stats.rank', { rank: index + 1 })}
+                    className={`flex h-7 min-w-[28px] flex-shrink-0 items-center justify-center rounded-lg px-1.5 text-xs font-bold tabular-nums ${
+                      index === 0
+                        ? 'bg-gradient-to-br from-accent-hover to-accent-strong text-accent-fg shadow-[0_0_16px_rgba(45,212,191,0.45)]'
+                        : index < 3
+                          ? 'border border-accent-border bg-accent-soft text-accent'
+                          : 'border border-line-strong text-zinc-400'
+                    }`}
+                  >
+                    <span className="sr-only">{t('recommendations.stats.rank', { rank: index + 1 })}</span>
+                    <span aria-hidden="true">#{index + 1}</span>
+                  </span>
                   <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-50 break-words">{name}</h3>
                   <span className="flex-shrink-0 rounded-md border border-accent-border bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
                     {category}
@@ -259,8 +276,8 @@ const RecommendationCard = ({
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${matchPct}%` }}
-                        transition={{ duration: 0.22, ease: 'easeOut' }}
-                        className="bg-accent h-3 sm:h-2.5 rounded-full"
+                        transition={{ duration: 1, delay: 0.2 + Math.min(index % 10, 8) * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                        className="h-3 rounded-full bg-gradient-to-r from-accent-strong to-accent-hover shadow-[0_0_10px_rgba(45,212,191,0.5)] sm:h-2.5"
                       />
                     </div>
                     <span className="text-base sm:text-sm font-semibold text-accent min-w-[56px] text-right tabular-nums">

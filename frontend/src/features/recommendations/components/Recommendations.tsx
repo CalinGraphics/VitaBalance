@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { UtensilsCrossed, Download } from 'lucide-react'
+import { BarChart3, Filter } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { GlassCard, PageHeader, Spinner } from '../../../shared/components'
+import { GlassCard, Spinner } from '../../../shared/components'
 import i18n, { currentLanguage } from '../../../shared/i18n'
 import { recommendationsService } from '../../../services/api'
 import type { User } from '../../../shared/types'
@@ -10,12 +10,12 @@ import RecommendationSkeleton, { ChartSkeleton } from './RecommendationSkeleton'
 
 // Graficul (recharts) e greu: se încarcă separat, după ce cardurile sunt deja pe ecran.
 const NutrientChart = lazy(() => import('./NutrientChart'))
-import UserProfileInfo from './UserProfileInfo'
+import RecommendationsHero from './RecommendationsHero'
 import CaloricGoalProgress from './CaloricGoalProgress'
 import type { Recommendation } from '../types'
 import { humanizeRecommendationClientError } from '../../../shared/utils/apiErrors'
 import { formatFoodCategory, resolveFoodCategory } from '../../../shared/utils/formatters'
-import { categoryLabel } from '../explanations/buildExplanation'
+import { categoryLabel, foodName } from '../explanations/buildExplanation'
 import {
   loadStoredRecommendations,
   pollRecommendationRefresh,
@@ -438,8 +438,14 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
   const showInlineRegenerating = regeneratingAfterProfile && recommendations.length > 0
 
   return (
-    <div className="space-y-8">
-      <UserProfileInfo user={user} />
+    <div className="space-y-6 sm:space-y-8">
+      <RecommendationsHero
+        user={user}
+        count={recommendations.length}
+        categories={availableCategories.length}
+        bestName={recommendations[0] ? foodName(recommendations[0], i18nHook.language === 'en' ? 'en' : 'ro') : null}
+        onExport={recommendations.length > 0 ? exportToPDF : undefined}
+      />
 
       <CaloricGoalProgress
         goal={user.caloric_goal}
@@ -470,70 +476,61 @@ const Recommendations = ({ user, refreshKey }: RecommendationsProps) => {
 
       {recommendations.length > 0 && (
         <GlassCard className="w-full !max-w-none">
-          <div className="mb-6 flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
-            <PageHeader
-              Icon={UtensilsCrossed}
-              title={t('recommendations.title')}
-              subtitle={t('recommendations.subtitle')}
-              className="min-w-0"
-            />
-            <button
-              type="button"
-              onClick={exportToPDF}
-              className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center gap-2 self-start whitespace-nowrap rounded-lg border border-line-strong px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-white/5 touch-manipulation md:self-center"
-            >
-              <Download aria-hidden="true" className="h-4 w-4 flex-shrink-0 text-accent" />
-              <span>{t('recommendations.exportPdf')}</span>
-            </button>
-          </div>
-
+          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-50 sm:text-lg">
+            <BarChart3 aria-hidden="true" className="h-4 w-4 text-accent" />
+            {t('recommendations.chart.title')}
+          </h2>
           {/* Aceeași listă (și același filtru de categorie) ca în carduri. */}
           <Suspense fallback={<ChartSkeleton />}>
             <NutrientChart recommendations={filteredRecommendations} matchPctOf={matchPctOf} />
           </Suspense>
-        </GlassCard>
-      )}
 
-      {recommendations.length > 0 && (
-        <GlassCard className="w-full !max-w-none">
-          <div className="mb-3">
-            <h3 className="text-lg font-semibold text-zinc-50">{t('recommendations.categories.title')}</h3>
-            <p className="text-xs text-zinc-400">{t('recommendations.categories.subtitle')}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCategory('all')
-                setVisibleCount(10)
-              }}
-              aria-pressed={selectedCategory === 'all'}
-              className={`min-h-[36px] cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                selectedCategory === 'all'
-                  ? 'border-accent-border bg-accent-soft text-accent'
-                  : 'border-line-strong text-zinc-300 hover:bg-white/5'
-              }`}
-            >
-              {t('recommendations.categories.all', { count: recommendations.length })}
-            </button>
-            {availableCategories.map((category) => (
+          <div className="mt-2 border-t border-line pt-5">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+                <Filter aria-hidden="true" className="h-4 w-4 text-accent" />
+                {t('recommendations.categories.title')}
+              </h3>
+              <p className="text-xs text-zinc-500">{t('recommendations.categories.subtitle')}</p>
+            </div>
+            {/* Pe telefon etichetele derulează orizontal în loc să ocupe patru rânduri. */}
+            <div className="-mx-5 flex snap-x gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
               <button
-                key={category}
                 type="button"
                 onClick={() => {
-                  setSelectedCategory(category)
+                  setSelectedCategory('all')
                   setVisibleCount(10)
                 }}
-                aria-pressed={selectedCategory === category}
-                className={`min-h-[36px] cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  selectedCategory === category
-                    ? 'border-accent-border bg-accent-soft text-accent'
-                    : 'border-line-strong text-zinc-300 hover:bg-white/5'
+                aria-pressed={selectedCategory === 'all'}
+                className={`relative min-h-[36px] flex-shrink-0 cursor-pointer snap-start whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  selectedCategory === 'all' ? 'border-accent-border text-accent' : 'border-line-strong text-zinc-300 hover:border-accent-border hover:text-zinc-50'
                 }`}
               >
-                {categoryLabels[category] ?? category} ({categoryCounts[category]})
+                {selectedCategory === 'all' && (
+                  <span aria-hidden="true" className="absolute inset-0 animate-scale-in rounded-full bg-accent-soft" />
+                )}
+                <span className="relative">{t('recommendations.categories.all', { count: recommendations.length })}</span>
               </button>
-            ))}
+              {availableCategories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(category)
+                    setVisibleCount(10)
+                  }}
+                  aria-pressed={selectedCategory === category}
+                  className={`relative min-h-[36px] flex-shrink-0 cursor-pointer snap-start whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                    selectedCategory === category ? 'border-accent-border text-accent' : 'border-line-strong text-zinc-300 hover:border-accent-border hover:text-zinc-50'
+                  }`}
+                >
+                  {selectedCategory === category && (
+                    <span aria-hidden="true" className="absolute inset-0 animate-scale-in rounded-full bg-accent-soft" />
+                  )}
+                  <span className="relative">{categoryLabels[category] ?? category} ({categoryCounts[category]})</span>
+                </button>
+              ))}
+            </div>
           </div>
         </GlassCard>
       )}
